@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MessageSquare, Loader2, TrendingUp, Eye, ChevronRight } from 'lucide-react';
+import { MessageSquare, Loader2, TrendingUp, Eye, ChevronRight, Shield, ArrowUpRight, Zap, Brain, Users } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 interface DebateListItem {
   id: string;
@@ -28,6 +29,7 @@ const statusBadge: Record<string, { label: string; color: string }> = {
 };
 
 export default function DebatesListPage() {
+  const { user } = useAuth();
   const [debates, setDebates] = useState<DebateListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -118,18 +120,74 @@ export default function DebatesListPage() {
           <Loader2 className="w-8 h-8 text-navy-500 animate-spin" />
         </div>
       ) : predictionEntries.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-          <MessageSquare className="w-12 h-12 mb-3" />
-          <p className="text-lg font-medium text-gray-600">Henuz panel degerlendirmesi yok</p>
-          <p className="text-sm mt-1 mb-4">Tahminler olusturuldukca burada gorunecektir</p>
-          <Link
-            to="/predictions"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-navy-700 text-white text-sm font-medium hover:bg-navy-600 transition-colors"
-          >
-            <TrendingUp className="w-4 h-4" />
-            Tahminlere Git
-          </Link>
-        </div>
+        user ? (
+          <div className="bg-gradient-to-br from-navy-800 via-navy-900 to-gray-900 rounded-2xl border border-navy-700 overflow-hidden">
+            <div className="relative px-6 py-12 sm:px-12 sm:py-16">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-gold-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-navy-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+
+              <div className="relative max-w-lg mx-auto text-center">
+                <div className="mx-auto w-20 h-20 rounded-2xl bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center mb-6 shadow-lg shadow-gold-500/20">
+                  <Shield className="w-10 h-10 text-navy-900" />
+                </div>
+
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gold-500/10 border border-gold-500/20 text-gold-400 text-xs font-semibold tracking-wide uppercase mb-4">
+                  <Zap className="w-3 h-3" />
+                  Elite Ozellik
+                </div>
+
+                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">
+                  AI Panel Degerlendirmesi
+                </h2>
+                <p className="text-gray-400 leading-relaxed mb-8 max-w-md mx-auto">
+                  Birden fazla yapay zeka modelinin tahminleri tartistigi, oylama yaptigi ve uzlasma aradigi ozel degerlendirme surecimize erisim kazanin.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+                  <div className="bg-white/5 rounded-xl border border-white/10 p-4">
+                    <Brain className="w-6 h-6 text-gold-400 mb-2 mx-auto" />
+                    <p className="text-sm font-medium text-white">Coklu AI Modeli</p>
+                    <p className="text-xs text-gray-500 mt-1">5 farkli uzman persona</p>
+                  </div>
+                  <div className="bg-white/5 rounded-xl border border-white/10 p-4">
+                    <Users className="w-6 h-6 text-gold-400 mb-2 mx-auto" />
+                    <p className="text-sm font-medium text-white">Panel Oylama</p>
+                    <p className="text-xs text-gray-500 mt-1">Onay, red, cekimser</p>
+                  </div>
+                  <div className="bg-white/5 rounded-xl border border-white/10 p-4">
+                    <MessageSquare className="w-6 h-6 text-gold-400 mb-2 mx-auto" />
+                    <p className="text-sm font-medium text-white">Detayli Analiz</p>
+                    <p className="text-xs text-gray-500 mt-1">Her turun tam metni</p>
+                  </div>
+                </div>
+
+                <Link
+                  to="/settings"
+                  className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-gradient-to-r from-gold-500 to-gold-600 text-navy-900 font-bold text-sm hover:from-gold-400 hover:to-gold-500 transition-all shadow-lg shadow-gold-500/25"
+                >
+                  Elite Plana Yukselt
+                  <ArrowUpRight className="w-4 h-4" />
+                </Link>
+                <p className="text-xs text-gray-500 mt-3">
+                  Mevcut planlar hakkinda bilgi almak icin Ayarlar sayfasini ziyaret edin.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+            <MessageSquare className="w-12 h-12 mb-3" />
+            <p className="text-lg font-medium text-gray-600">Henuz panel degerlendirmesi yok</p>
+            <p className="text-sm mt-1 mb-4">Tahminler olusturuldukca burada gorunecektir</p>
+            <Link
+              to="/predictions"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-navy-700 text-white text-sm font-medium hover:bg-navy-600 transition-colors"
+            >
+              <TrendingUp className="w-4 h-4" />
+              Tahminlere Git
+            </Link>
+          </div>
+        )
       ) : (
         <>
           <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">

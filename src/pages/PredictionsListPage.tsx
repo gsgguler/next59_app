@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { TrendingUp, Loader2, Trophy, Filter, X } from 'lucide-react';
+import { TrendingUp, Loader2, Trophy, Filter, X, Lock, ArrowUpRight, Sparkles } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import PredictionListCard from '../components/predictions/PredictionListCard';
 
 interface PredictionItem {
@@ -23,6 +24,7 @@ type ConfidenceFilter = 'all' | 'low' | 'medium' | 'high';
 type SortKey = 'date' | 'probability' | 'confidence';
 
 export default function PredictionsListPage() {
+  const { user } = useAuth();
   const [predictions, setPredictions] = useState<PredictionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [accessFilter, setAccessFilter] = useState<AccessFilter>('all');
@@ -175,17 +177,73 @@ export default function PredictionsListPage() {
           <Loader2 className="w-8 h-8 text-navy-500 animate-spin" />
         </div>
       ) : predictions.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-          <TrendingUp className="w-12 h-12 mb-3" />
-          <p className="text-lg font-medium text-gray-600">Henuz tahmin bulunmuyor</p>
-          <p className="text-sm mt-1 mb-4">Mac tahminlerini kesfetmek icin maclara goz atin</p>
-          <Link
-            to="/matches"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-navy-700 text-white text-sm font-medium hover:bg-navy-600 transition-colors"
-          >
-            <Trophy className="w-4 h-4" />
-            Maclari Kesfet
-          </Link>
+        <div className="flex flex-col items-center justify-center py-16">
+          {user && (accessFilter === 'pro' || accessFilter === 'elite') ? (
+            <div className="max-w-md text-center">
+              <div className="mx-auto w-16 h-16 rounded-2xl bg-gold-50 border border-gold-200 flex items-center justify-center mb-5">
+                <Lock className="w-7 h-7 text-gold-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {accessFilter === 'elite' ? 'Elite' : 'Pro'} Tahminler Kilitli
+              </h3>
+              <p className="text-sm text-gray-500 leading-relaxed mb-6">
+                {accessFilter === 'elite'
+                  ? 'Elite seviye tahminler, en yuksek dogruluk oranina sahip ozel analizleri icerir. Bu iceriklere erisim icin Elite planina yukseltme yapabilirsiniz.'
+                  : 'Pro seviye tahminler, detayli istatistiksel analizler ve model ciktilari icerir. Erisim icin Pro planina gecis yapabilirsiniz.'}
+              </p>
+              <Link
+                to="/settings"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-gold-500 to-gold-600 text-navy-900 font-semibold text-sm hover:from-gold-400 hover:to-gold-500 transition-all shadow-sm"
+              >
+                <ArrowUpRight className="w-4 h-4" />
+                Planini Yukselt
+              </Link>
+            </div>
+          ) : user && accessFilter === 'all' ? (
+            <div className="max-w-lg text-center">
+              <div className="mx-auto w-16 h-16 rounded-2xl bg-navy-50 border border-navy-200 flex items-center justify-center mb-5">
+                <Sparkles className="w-7 h-7 text-navy-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Tahminler Bekleniyor
+              </h3>
+              <p className="text-sm text-gray-500 leading-relaxed mb-2">
+                Henuz goruntuleyeceginiz tahmin bulunmuyor. Bu durum, tahminlerin henuz olusturulmamis olmasindan veya mevcut erisim seviyenizin disinda kalmasindan kaynaklanabilir.
+              </p>
+              <p className="text-xs text-gray-400 mb-6">
+                Pro ve Elite planlarda daha fazla tahmine erisebilirsiniz.
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <Link
+                  to="/matches"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-navy-700 text-white text-sm font-medium hover:bg-navy-600 transition-colors"
+                >
+                  <Trophy className="w-4 h-4" />
+                  Maclari Kesfet
+                </Link>
+                <Link
+                  to="/settings"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white border border-gold-300 text-gold-700 text-sm font-medium hover:bg-gold-50 transition-colors"
+                >
+                  <ArrowUpRight className="w-4 h-4" />
+                  Planlari Gor
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center text-gray-400">
+              <TrendingUp className="w-12 h-12 mb-3 mx-auto" />
+              <p className="text-lg font-medium text-gray-600">Henuz tahmin bulunmuyor</p>
+              <p className="text-sm mt-1 mb-4">Mac tahminlerini kesfetmek icin maclara goz atin</p>
+              <Link
+                to="/matches"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-navy-700 text-white text-sm font-medium hover:bg-navy-600 transition-colors"
+              >
+                <Trophy className="w-4 h-4" />
+                Maclari Kesfet
+              </Link>
+            </div>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">

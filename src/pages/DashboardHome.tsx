@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Trophy, TrendingUp, Target, MessageSquare, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Trophy, TrendingUp, Target, MessageSquare, ArrowUpRight, ArrowDownRight, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface StatCard {
@@ -242,7 +243,24 @@ function RecentPredictionsList() {
   }, []);
 
   if (predictions.length === 0) {
-    return <p className="text-sm text-gray-400 py-4 text-center">Tahmin bulunamadi</p>;
+    return (
+      <div className="py-6 text-center">
+        <div className="mx-auto w-10 h-10 rounded-xl bg-gold-50 border border-gold-200 flex items-center justify-center mb-3">
+          <Lock className="w-5 h-5 text-gold-500" />
+        </div>
+        <p className="text-sm font-medium text-gray-600 mb-1">Tahmin bulunamadi</p>
+        <p className="text-xs text-gray-400 mb-3">
+          Daha fazla tahmine erismek icin planini yukseltebilirsin.
+        </p>
+        <Link
+          to="/settings"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-gold-600 hover:text-gold-700 transition-colors"
+        >
+          Planlari Gor
+          <ArrowUpRight className="w-3 h-3" />
+        </Link>
+      </div>
+    );
   }
 
   const confidenceColor: Record<string, string> = {
