@@ -11,17 +11,17 @@ function getPasswordStrength(pw: string): { score: number; label: string; color:
   if (/[0-9]/.test(pw)) score++;
   if (/[^A-Za-z0-9]/.test(pw)) score++;
 
-  if (score <= 1) return { score, label: 'Zayif', color: 'bg-red-500' };
+  if (score <= 1) return { score, label: 'Zayıf', color: 'bg-red-500' };
   if (score <= 2) return { score, label: 'Orta', color: 'bg-orange-500' };
-  if (score <= 3) return { score, label: 'Iyi', color: 'bg-yellow-500' };
-  return { score, label: 'Guclu', color: 'bg-emerald-500' };
+  if (score <= 3) return { score, label: 'İyi', color: 'bg-yellow-500' };
+  return { score, label: 'Güçlü', color: 'bg-emerald-500' };
 }
 
 const requirements = [
   { test: (pw: string) => pw.length >= 8, label: 'En az 8 karakter' },
-  { test: (pw: string) => /[A-Z]/.test(pw), label: 'Buyuk harf' },
+  { test: (pw: string) => /[A-Z]/.test(pw), label: 'Büyük harf' },
   { test: (pw: string) => /[0-9]/.test(pw), label: 'Rakam' },
-  { test: (pw: string) => /[^A-Za-z0-9]/.test(pw), label: 'Ozel karakter' },
+  { test: (pw: string) => /[^A-Za-z0-9]/.test(pw), label: 'Özel karakter' },
 ];
 
 export default function RegisterPage() {
@@ -39,7 +39,7 @@ export default function RegisterPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (password.length < 8) {
-      setError('Sifre en az 8 karakter olmalidir');
+      setError('Şifre en az 8 karakter olmalıdır');
       return;
     }
     setError('');
@@ -66,7 +66,7 @@ export default function RegisterPage() {
             <span className="text-4xl font-bold text-white tracking-tight">Next59</span>
           </div>
           <p className="text-navy-200 text-lg leading-relaxed max-w-md">
-            Futbolun gelecegini kesfet. Yapay zeka ile guclendirilmis tahminler ve analizler.
+            Futbolun geleceğini keşfet. Yapay zeka ile güçlendirilmiş tahminler ve analizler.
           </p>
         </div>
       </div>
@@ -78,8 +78,8 @@ export default function RegisterPage() {
             <span className="text-2xl font-bold text-navy-700">Next59</span>
           </div>
 
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Kayit Ol</h1>
-          <p className="text-gray-500 mb-8">Yeni hesap olusturun</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Kayıt Ol</h1>
+          <p className="text-gray-500 mb-8">Yeni hesap oluşturun</p>
 
           {error && (
             <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
@@ -99,7 +99,7 @@ export default function RegisterPage() {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-navy-500 focus:border-navy-500 transition-colors"
-                placeholder="Adiniz Soyadiniz"
+                placeholder="Adınız Soyadınız"
               />
             </div>
 
@@ -120,7 +120,7 @@ export default function RegisterPage() {
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
-                Sifre
+                Şifre
               </label>
               <div className="relative">
                 <input
@@ -130,7 +130,7 @@ export default function RegisterPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-navy-500 focus:border-navy-500 transition-colors pr-12"
-                  placeholder="Guclu bir sifre secin"
+                  placeholder="Güçlü bir şifre seçin"
                 />
                 <button
                   type="button"
@@ -181,14 +181,14 @@ export default function RegisterPage() {
               ) : (
                 <UserPlus className="w-5 h-5" />
               )}
-              {loading ? 'Hesap olusturuluyor...' : 'Kayit Ol'}
+              {loading ? 'Hesap oluşturuluyor...' : 'Kayıt Ol'}
             </button>
           </form>
 
           <p className="mt-8 text-center text-sm text-gray-500">
-            Zaten hesabiniz var mi?{' '}
+            Zaten hesabınız var mı?{' '}
             <Link to="/login" className="text-navy-700 font-medium hover:text-navy-600 transition-colors">
-              Giris Yap
+              Giriş Yap
             </Link>
           </p>
         </div>
