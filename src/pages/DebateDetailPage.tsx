@@ -68,7 +68,7 @@ export default function DebateDetailPage() {
         setRounds(fetchedRounds);
         setUseMock(false);
 
-        const matchId = (predRes.data as any)?.match?.id;
+        const matchId = (predRes.data as unknown as PredictionInfo | null)?.match?.id;
         if (matchId) {
           const { data: seal } = await supabase
             .from('match_seals')

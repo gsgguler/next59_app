@@ -157,8 +157,17 @@ export default function DashboardHome() {
   );
 }
 
+interface UpcomingMatch {
+  id: string;
+  kickoff_at: string | null;
+  status: string;
+  matchweek: number | null;
+  home_team: { name: string; short_name: string; tla: string } | null;
+  away_team: { name: string; short_name: string; tla: string } | null;
+}
+
 function UpcomingMatchesList() {
-  const [matches, setMatches] = useState<any[]>([]);
+  const [matches, setMatches] = useState<UpcomingMatch[]>([]);
 
   useEffect(() => {
     async function fetch() {
@@ -206,8 +215,17 @@ function UpcomingMatchesList() {
   );
 }
 
+interface RecentPrediction {
+  id: string;
+  statement: string;
+  probability: number;
+  confidence_label: string;
+  access_level: string;
+  generated_at: string;
+}
+
 function RecentPredictionsList() {
-  const [predictions, setPredictions] = useState<any[]>([]);
+  const [predictions, setPredictions] = useState<RecentPrediction[]>([]);
 
   useEffect(() => {
     async function fetch() {

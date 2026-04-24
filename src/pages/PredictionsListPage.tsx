@@ -58,7 +58,7 @@ export default function PredictionsListPage() {
     }
 
     const { data } = await query;
-    let items = (data as unknown as PredictionItem[]) ?? [];
+    const items = [...((data as unknown as PredictionItem[]) ?? [])];
 
     if (sortKey === 'confidence') {
       const order: Record<string, number> = { high: 0, medium: 1, low: 2 };
