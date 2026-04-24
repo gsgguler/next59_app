@@ -10,6 +10,7 @@ const productLinks = [
 const legalLinks = [
   { label: 'Gizlilik Politikasi', to: '/privacy' },
   { label: 'Kullanim Sartlari', to: '/terms' },
+  { label: 'KVKK Aydinlatma Metni', to: '/kvkk' },
   { label: 'Cerez Politikasi', to: '/cookies' },
 ];
 

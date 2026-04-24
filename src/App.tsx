@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './components/ui/Toast';
 import ErrorBoundary from './components/ui/ErrorBoundary';
@@ -19,6 +19,11 @@ import AdminPage from './pages/AdminPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import PlaceholderPage from './pages/PlaceholderPage';
+import NotFoundPage from './pages/NotFoundPage';
+import PrivacyPage from './pages/legal/PrivacyPage';
+import TermsPage from './pages/legal/TermsPage';
+import KvkkPage from './pages/legal/KvkkPage';
+import CookiesPage from './pages/legal/CookiesPage';
 
 export default function App() {
   return (
@@ -50,7 +55,12 @@ export default function App() {
                 <Route index element={<AdminPage />} />
               </Route>
 
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/kvkk" element={<KvkkPage />} />
+              <Route path="/cookies" element={<CookiesPage />} />
+
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </ToastProvider>
         </AuthProvider>
