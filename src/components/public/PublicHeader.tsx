@@ -30,8 +30,8 @@ export default function PublicHeader() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">
-            <NavLink to="/#features">Özellikler</NavLink>
-            <NavLink to="/#how-it-works">Nasıl Çalışır</NavLink>
+            <NavLink to="/#features">Ozellikler</NavLink>
+            <NavLink to="/#how-it-works">Nasil Calisir</NavLink>
             <NavLink to="/#pricing">Fiyatlar</NavLink>
           </nav>
 
@@ -40,13 +40,13 @@ export default function PublicHeader() {
               to="/login"
               className="text-sm font-medium text-navy-200 hover:text-white transition-colors px-4 py-2"
             >
-              Giriş Yap
+              Giris Yap
             </Link>
             <Link
               to="/register"
               className="text-sm font-semibold bg-gold-500 hover:bg-gold-400 text-navy-950 px-5 py-2 rounded-lg transition-colors"
             >
-              Üye Ol
+              Uye Ol
             </Link>
           </div>
 
@@ -61,8 +61,8 @@ export default function PublicHeader() {
 
         {mobileOpen && (
           <div className="md:hidden pb-4 border-t border-navy-800/50 mt-1 pt-3 space-y-1 animate-fade-in">
-            <MobileNavLink to="/#features" onClick={() => setMobileOpen(false)}>Özellikler</MobileNavLink>
-            <MobileNavLink to="/#how-it-works" onClick={() => setMobileOpen(false)}>Nasıl Çalışır</MobileNavLink>
+            <MobileNavLink to="/#features" onClick={() => setMobileOpen(false)}>Ozellikler</MobileNavLink>
+            <MobileNavLink to="/#how-it-works" onClick={() => setMobileOpen(false)}>Nasil Calisir</MobileNavLink>
             <MobileNavLink to="/#pricing" onClick={() => setMobileOpen(false)}>Fiyatlar</MobileNavLink>
             <div className="pt-3 flex flex-col gap-2">
               <Link
@@ -70,14 +70,14 @@ export default function PublicHeader() {
                 onClick={() => setMobileOpen(false)}
                 className="text-center text-sm font-medium text-navy-200 hover:text-white border border-navy-700 py-2.5 rounded-lg transition-colors"
               >
-                Giriş Yap
+                Giris Yap
               </Link>
               <Link
                 to="/register"
                 onClick={() => setMobileOpen(false)}
                 className="text-center text-sm font-semibold bg-gold-500 hover:bg-gold-400 text-navy-950 py-2.5 rounded-lg transition-colors"
               >
-                Üye Ol
+                Uye Ol
               </Link>
             </div>
           </div>

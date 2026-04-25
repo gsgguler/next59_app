@@ -52,7 +52,7 @@ export default function DashboardHome() {
 
   const cards: StatCard[] = [
     {
-      title: 'Aktif Maçlar',
+      title: 'Aktif Maclar',
       value: loading ? '-' : String(stats.activeMatches),
       change: '+3 bu hafta',
       trend: 'up',
@@ -61,7 +61,7 @@ export default function DashboardHome() {
       bgColor: 'bg-emerald-50',
     },
     {
-      title: 'Yayınlanan Tahminler',
+      title: 'Yayinlanan Tahminler',
       value: loading ? '-' : String(stats.predictions),
       change: '+12 bu ay',
       trend: 'up',
@@ -70,9 +70,9 @@ export default function DashboardHome() {
       bgColor: 'bg-blue-50',
     },
     {
-      title: 'Doğruluk Oranı',
+      title: 'Dogruluk Orani',
       value: loading ? '-' : `%${stats.accuracy}`,
-      change: '+2.1% geçen aya göre',
+      change: '+2.1% gecen aya gore',
       trend: 'up',
       icon: Target,
       color: 'text-gold-600',
@@ -81,7 +81,7 @@ export default function DashboardHome() {
     {
       title: 'AI Debate',
       value: loading ? '-' : String(stats.debates),
-      change: '5 aktif tartışma',
+      change: '5 aktif tartisma',
       trend: 'up',
       icon: MessageSquare,
       color: 'text-rose-600',
@@ -129,7 +129,7 @@ export default function DashboardHome() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Yaklaşan Maçlar</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Yaklasan Maclar</h2>
           <div className="space-y-3">
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => (
@@ -189,7 +189,7 @@ function UpcomingMatchesList() {
   }, []);
 
   if (matches.length === 0) {
-    return <p className="text-sm text-gray-400 py-4 text-center">Yaklaşan maç bulunamadı</p>;
+    return <p className="text-sm text-gray-400 py-4 text-center">Yaklasan mac bulunamadi</p>;
   }
 
   return (
@@ -248,15 +248,15 @@ function RecentPredictionsList() {
         <div className="mx-auto w-10 h-10 rounded-xl bg-gold-50 border border-gold-200 flex items-center justify-center mb-3">
           <Lock className="w-5 h-5 text-gold-500" />
         </div>
-        <p className="text-sm font-medium text-gray-600 mb-1">Tahmin bulunamadı</p>
+        <p className="text-sm font-medium text-gray-600 mb-1">Tahmin bulunamadi</p>
         <p className="text-xs text-gray-400 mb-3">
-          Daha fazla tahmine erişmek için planını yükseltebilirsin.
+          Daha fazla tahmine erismek icin planini yukseltebilirsin.
         </p>
         <Link
           to="/settings"
           className="inline-flex items-center gap-1.5 text-xs font-medium text-gold-600 hover:text-gold-700 transition-colors"
         >
-          Planları Gör
+          Planlari Gor
           <ArrowUpRight className="w-3 h-3" />
         </Link>
       </div>
@@ -276,7 +276,7 @@ function RecentPredictionsList() {
           <div className="flex-1 min-w-0 mr-3">
             <p className="text-sm font-medium text-gray-900 truncate">{p.statement}</p>
             <p className="text-xs text-gray-400 mt-0.5">
-              %{Math.round(p.probability * 100)} olasılık
+              %{Math.round(p.probability * 100)} olasilik
             </p>
           </div>
           <span className={`text-xs font-medium px-2 py-1 rounded capitalize ${confidenceColor[p.confidence_label] || 'text-gray-600 bg-gray-50'}`}>
