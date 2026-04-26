@@ -16,14 +16,12 @@ function getSupabase() {
 }
 
 function getIstanbulToday(): string {
-  const now = new Date();
-  const istanbul = new Intl.DateTimeFormat("en-CA", {
+  return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Europe/Istanbul",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(now);
-  return istanbul;
+  }).format(new Date());
 }
 
 Deno.serve(async (req: Request) => {
@@ -45,81 +43,92 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({
           tier: "anon",
-          display_name: "Anonymous",
-          daily_match_views: 2,
-          has_full_analysis: false,
-          has_featured_match: false,
-          matches_viewed_today: 0,
-          remaining_views: 2,
-          featured_match_id: null,
-          usage_date: getIstanbulToday(),
+          daily_limit: 2,
+          views_used_today: 0,
+          views_remaining: 2,
+          analysis_depth: "none",
+          can_view_predictions: false,
         }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     const { data: sub } = await supabase
       .from("user_subscriptions")
-      .select("tier_id, subscription_tiers(code, display_name, daily_match_views, has_full_analysis, has_featured_match)")
+      .select(
+        "tier_id, subscription_tiers(id, code, tier_code, daily_match_views, analysis_depth, can_view_predictions)",
+      )
       .eq("user_id", user.id)
       .eq("is_active", true)
       .maybeSingle();
 
     let tierCode = "free";
-    let tierDisplayName = "Free";
-    let dailyMatchViews = 3;
-    let hasFullAnalysis = false;
-    let hasFeaturedMatch = true;
+    let dailyLimit = 3;
+    let analysisDepth = "first_30min";
+    let canViewPredictions = true;
+    let tierId: string | null = null;
 
     if (sub?.subscription_tiers) {
       const t = sub.subscription_tiers as unknown as {
+        id: string;
         code: string;
-        display_name: string;
+        tier_code: string;
         daily_match_views: number;
-        has_full_analysis: boolean;
-        has_featured_match: boolean;
+        analysis_depth: string;
+        can_view_predictions: boolean;
       };
-      tierCode = t.code;
-      tierDisplayName = t.display_name;
-      dailyMatchViews = t.daily_match_views;
-      hasFullAnalysis = t.has_full_analysis;
-      hasFeaturedMatch = t.has_featured_match;
+      tierCode = t.tier_code;
+      dailyLimit = t.daily_match_views;
+      analysisDepth = t.analysis_depth;
+      canViewPredictions = t.can_view_predictions;
+    } else {
+      // Auto-create free tier subscription
+      const { data: freeTier } = await supabase
+        .from("subscription_tiers")
+        .select("id, tier_code, daily_match_views, analysis_depth, can_view_predictions")
+        .eq("code", "free")
+        .maybeSingle();
+
+      if (freeTier) {
+        tierId = freeTier.id;
+        tierCode = freeTier.tier_code;
+        dailyLimit = freeTier.daily_match_views;
+        analysisDepth = freeTier.analysis_depth;
+        canViewPredictions = freeTier.can_view_predictions;
+
+        await supabase.from("user_subscriptions").insert({
+          user_id: user.id,
+          tier_id: freeTier.id,
+          is_active: true,
+        });
+      }
     }
 
     const today = getIstanbulToday();
 
     const { data: usage } = await supabase
       .from("user_daily_usage")
-      .select("matches_viewed, featured_match_id")
+      .select("matches_viewed")
       .eq("user_id", user.id)
       .eq("usage_date", today)
       .maybeSingle();
 
-    const matchesViewedToday = usage?.matches_viewed ?? 0;
-    const featuredMatchId = usage?.featured_match_id ?? null;
-
-    const isUnlimited = dailyMatchViews === -1;
-    const remainingViews = isUnlimited
+    const viewsUsedToday = usage?.matches_viewed ?? 0;
+    const isUnlimited = dailyLimit === -1;
+    const viewsRemaining = isUnlimited
       ? -1
-      : Math.max(0, dailyMatchViews - matchesViewedToday);
+      : Math.max(0, dailyLimit - viewsUsedToday);
 
     return new Response(
       JSON.stringify({
         tier: tierCode,
-        display_name: tierDisplayName,
-        daily_match_views: dailyMatchViews,
-        has_full_analysis: hasFullAnalysis,
-        has_featured_match: hasFeaturedMatch,
-        matches_viewed_today: matchesViewedToday,
-        remaining_views: remainingViews,
-        featured_match_id: featuredMatchId,
-        usage_date: today,
+        daily_limit: dailyLimit,
+        views_used_today: viewsUsedToday,
+        views_remaining: viewsRemaining,
+        analysis_depth: analysisDepth,
+        can_view_predictions: canViewPredictions,
       }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
     return new Response(

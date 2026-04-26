@@ -32,7 +32,7 @@ Deno.serve(async (req: Request) => {
   try {
     const supabase = getSupabase();
 
-    const { match_id } = await req.json() as { match_id: string };
+    const { match_id } = (await req.json()) as { match_id: string };
     if (!match_id) {
       return new Response(
         JSON.stringify({ error: "match_id is required" }),
@@ -60,44 +60,60 @@ Deno.serve(async (req: Request) => {
       data: { user },
     } = await supabase.auth.getUser(token);
 
-    const today = getIstanbulToday();
-
-    // ── ANON PATH ──
+    // ANON PATH
     if (!user) {
       return new Response(
-        JSON.stringify({
-          error: "Authentication required to view matches. Sign up for free to get 3 daily match views.",
-          code: "AUTH_REQUIRED",
-          limit: 2,
-        }),
-        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({ error: "Sign up required", code: "AUTH_REQUIRED" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // ── AUTHENTICATED PATH ──
+    // Resolve tier
     const { data: sub } = await supabase
       .from("user_subscriptions")
-      .select("tier_id, subscription_tiers(code, daily_match_views, has_featured_match)")
+      .select(
+        "tier_id, subscription_tiers(code, tier_code, daily_match_views, analysis_depth, has_featured_match)",
+      )
       .eq("user_id", user.id)
       .eq("is_active", true)
       .maybeSingle();
 
     let tierCode = "free";
     let dailyLimit = 3;
+    let analysisDepth = "first_30min";
     let hasFeaturedMatch = true;
 
     if (sub?.subscription_tiers) {
       const t = sub.subscription_tiers as unknown as {
         code: string;
+        tier_code: string;
         daily_match_views: number;
+        analysis_depth: string;
         has_featured_match: boolean;
       };
-      tierCode = t.code;
+      tierCode = t.tier_code;
       dailyLimit = t.daily_match_views;
+      analysisDepth = t.analysis_depth;
       hasFeaturedMatch = t.has_featured_match;
+    } else {
+      // Auto-create free subscription
+      const { data: freeTier } = await supabase
+        .from("subscription_tiers")
+        .select("id")
+        .eq("code", "free")
+        .maybeSingle();
+
+      if (freeTier) {
+        await supabase.from("user_subscriptions").insert({
+          user_id: user.id,
+          tier_id: freeTier.id,
+          is_active: true,
+        });
+      }
     }
 
     const isUnlimited = dailyLimit === -1;
+    const today = getIstanbulToday();
 
     const { data: usage } = await supabase
       .from("user_daily_usage")
@@ -110,35 +126,37 @@ Deno.serve(async (req: Request) => {
     const viewedIds: string[] = usage?.match_ids_viewed ?? [];
     const existingFeatured = usage?.featured_match_id ?? null;
 
-    // Already viewed this match today — no-op, return success
+    // Already viewed -- idempotent
     if (viewedIds.includes(match_id)) {
       const isFeatured = existingFeatured === match_id;
+      const effectiveDepth =
+        isFeatured || tierCode === "pro" ? "full" : analysisDepth;
+
       return new Response(
         JSON.stringify({
-          status: "already_viewed",
-          tier: tierCode,
-          matches_viewed_today: currentViews,
-          remaining_views: isUnlimited ? -1 : Math.max(0, dailyLimit - currentViews),
-          is_featured_match: isFeatured,
-          featured_match_id: existingFeatured,
-          access_level: isFeatured || tierCode === "pro" ? "full" : "preview",
+          allowed: true,
+          views_used: currentViews,
+          views_remaining: isUnlimited
+            ? -1
+            : Math.max(0, dailyLimit - currentViews),
+          analysis_depth: effectiveDepth,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // Check quota (non-unlimited tiers)
+    // Quota check
     if (!isUnlimited && currentViews >= dailyLimit) {
       return new Response(
         JSON.stringify({
-          error: "Daily match view limit reached. Upgrade to Pro for unlimited access.",
+          error: "Daily limit reached",
           code: "DAILY_LIMIT_REACHED",
-          tier: tierCode,
-          limit: dailyLimit,
-          matches_viewed_today: currentViews,
-          remaining_views: 0,
+          allowed: false,
+          views_used: currentViews,
+          views_remaining: 0,
+          analysis_depth: analysisDepth,
         }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
@@ -146,13 +164,15 @@ Deno.serve(async (req: Request) => {
     const newViews = currentViews + 1;
     const newViewedIds = [...viewedIds, match_id];
 
-    // Featured match: first match of the day for free-tier users
     let featuredMatchId = existingFeatured;
     if (hasFeaturedMatch && tierCode === "free" && !existingFeatured) {
       featuredMatchId = match_id;
     }
 
     const isFeatured = featuredMatchId === match_id;
+
+    const resetAt = new Date(today + "T00:00:00+03:00");
+    resetAt.setDate(resetAt.getDate() + 1);
 
     if (usage) {
       const { error: updateErr } = await supabase
@@ -165,9 +185,8 @@ Deno.serve(async (req: Request) => {
         })
         .eq("id", usage.id);
 
-      if (updateErr) {
+      if (updateErr)
         throw new Error(`Failed to update usage: ${updateErr.message}`);
-      }
     } else {
       const { error: insertErr } = await supabase
         .from("user_daily_usage")
@@ -177,22 +196,25 @@ Deno.serve(async (req: Request) => {
           matches_viewed: newViews,
           match_ids_viewed: newViewedIds,
           featured_match_id: featuredMatchId,
+          tier_at_time: tierCode,
+          reset_at: resetAt.toISOString(),
         });
 
-      if (insertErr) {
+      if (insertErr)
         throw new Error(`Failed to insert usage: ${insertErr.message}`);
-      }
     }
+
+    const effectiveDepth =
+      isFeatured || tierCode === "pro" ? "full" : analysisDepth;
 
     return new Response(
       JSON.stringify({
-        status: "recorded",
-        tier: tierCode,
-        matches_viewed_today: newViews,
-        remaining_views: isUnlimited ? -1 : Math.max(0, dailyLimit - newViews),
-        is_featured_match: isFeatured,
-        featured_match_id: featuredMatchId,
-        access_level: isFeatured || tierCode === "pro" ? "full" : "preview",
+        allowed: true,
+        views_used: newViews,
+        views_remaining: isUnlimited
+          ? -1
+          : Math.max(0, dailyLimit - newViews),
+        analysis_depth: effectiveDepth,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
