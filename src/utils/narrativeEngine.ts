@@ -10,30 +10,30 @@ export function generateNarrativePreview(
   homeName: string,
   awayName: string,
 ): string {
-  if (!prediction) return 'Analiz yakinda eklenecektir.';
+  if (!prediction) return 'Analiz yakında eklenecektir.';
 
   const { home_prob, draw_prob, away_prob, confidence } = prediction;
   const parts: string[] = [];
 
   if (home_prob > 0.55) {
-    parts.push(`${homeName} veri setinde ustunluk gosteriyor.`);
+    parts.push(`${homeName} veri setinde üstünlük gösteriyor.`);
   } else if (away_prob > 0.55) {
-    parts.push(`${awayName} veri setinde guclu gorunuyor.`);
+    parts.push(`${awayName} veri setinde güçlü görünüyor.`);
   } else if (draw_prob > 0.35) {
-    parts.push('Dengeli bir mucadele ongoruluyor.');
+    parts.push('Dengeli bir mücadele öngörülüyor.');
   } else if (home_prob > away_prob) {
-    parts.push(`${homeName} hafif avantajli gorunuyor.`);
+    parts.push(`${homeName} hafif avantajlı görünüyor.`);
   } else if (away_prob > home_prob) {
-    parts.push(`${awayName} one cikiyor.`);
+    parts.push(`${awayName} öne çıkıyor.`);
   } else {
-    parts.push('Dengeli bir mucadele bekleniyor.');
+    parts.push('Dengeli bir mücadele bekleniyor.');
   }
 
   if (parts.length < 2) {
     if (confidence > 0.8) {
-      parts.push('Yuksek guvenilirlik.');
+      parts.push('Yüksek güvenilirlik.');
     } else if (confidence < 0.5) {
-      parts.push('Sinirli veri seti ile hazirlanmistir.');
+      parts.push('Sınırlı veri seti ile hazırlanmıştır.');
     }
   }
 

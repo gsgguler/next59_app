@@ -3,9 +3,9 @@ import { ArrowLeft, Lock, MapPin } from 'lucide-react';
 import type { MatchData } from '../../data/mockMatches';
 
 const statusConfig = {
-  scheduled: { label: 'Yaklassiyor', cls: 'bg-navy-800 text-navy-300 border-navy-700' },
+  scheduled: { label: 'Yaklaşıyor', cls: 'bg-navy-800 text-navy-300 border-navy-700' },
   live: { label: 'CANLI', cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 animate-pulse' },
-  finished: { label: 'Tamamlandi', cls: 'bg-navy-800/60 text-navy-500 border-navy-700/50' },
+  finished: { label: 'Tamamlandı', cls: 'bg-navy-800/60 text-navy-500 border-navy-700/50' },
 } as const;
 
 const flagMap: Record<string, string> = {
@@ -51,7 +51,7 @@ export default function MatchHeader({ match }: { match: MatchData }) {
     hour12: false,
   });
 
-  const roundLabel = match.round_name.replace('Group Stage - ', 'Grup Asamasi - Mac Gunu ');
+  const roundLabel = match.round_name.replace('Group Stage - ', 'Grup Aşaması - Maç Günü ');
 
   return (
     <div className="relative overflow-hidden">
@@ -69,7 +69,7 @@ export default function MatchHeader({ match }: { match: MatchData }) {
         <div className="flex items-center gap-2 text-xs text-navy-500 mb-6">
           <Link to="/" className="inline-flex items-center gap-1 text-navy-400 hover:text-champagne transition-colors">
             <ArrowLeft className="w-3.5 h-3.5" />
-            Tum Maclar
+            Tüm Maçlar
           </Link>
           <span>/</span>
           <span className="text-navy-400 truncate">
@@ -125,7 +125,7 @@ export default function MatchHeader({ match }: { match: MatchData }) {
             </span>
           )}
           <span>{roundLabel}</span>
-          <span className="bg-navy-800 text-navy-400 px-2 py-0.5 rounded">Tarafsiz Saha</span>
+          <span className="bg-navy-800 text-navy-400 px-2 py-0.5 rounded">Tarafsız Saha</span>
         </div>
 
         {/* Pre-match lock badge */}
@@ -133,7 +133,7 @@ export default function MatchHeader({ match }: { match: MatchData }) {
           <div className="mt-5 flex justify-center">
             <div className="inline-flex items-center gap-1.5 text-[11px] text-champagne/70 bg-champagne/5 border border-champagne/10 rounded-full px-3.5 py-1.5">
               <Lock className="w-3 h-3" />
-              Mac basladiginda kehanetler kilitlenir
+              Maç başladığında kehanetler kilitlenir
             </div>
           </div>
         )}

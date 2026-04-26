@@ -11,7 +11,7 @@ export default function PowerBalance({ match }: { match: MatchData }) {
   return (
     <div className="space-y-8">
       {/* Elo Comparison */}
-      <Section title="Elo Karsilastirmasi">
+      <Section title="Elo Karşılaştırması">
         <div className="flex items-end justify-between mb-4">
           <div className="text-center">
             <p className="text-xs text-navy-500 mb-1">{match.home_team.short_name}</p>
@@ -51,12 +51,12 @@ export default function PowerBalance({ match }: { match: MatchData }) {
 
         {Math.abs(eloDiff) > 10 && (
           <p className="text-xs text-navy-400 mt-3">
-            {higherTeam}, {Math.abs(Math.round(eloDiff))} Elo puani ustunluge sahip.
+            {higherTeam}, {Math.abs(Math.round(eloDiff))} Elo puanı üstünlüğe sahip.
           </p>
         )}
 
         <p className="text-[10px] text-navy-600 mt-2 leading-relaxed">
-          Elo, takimin son 30 uluslararasi macina dayali hesaplanmis guc endeksidir.
+          Elo, takımın son 30 uluslararası maçına dayalı hesaplanmış güç endeksidir.
         </p>
       </Section>
 
@@ -77,25 +77,25 @@ export default function PowerBalance({ match }: { match: MatchData }) {
         <div className="mt-4 flex items-center gap-4 text-[10px] text-navy-600">
           <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> G = Galibiyet</span>
           <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-navy-600" /> B = Beraberlik</span>
-          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-red-500" /> M = Maglubiyet</span>
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-red-500" /> M = Mağlubiyet</span>
         </div>
       </Section>
 
       {/* Team Stats */}
-      <Section title="Takim Istatistikleri">
+      <Section title="Takım İstatistikleri">
         <div className="grid grid-cols-2 gap-4">
-          <StatCard label="Mac Basi Gol (Ev)" home={estimateGoals(homeElo)} away={estimateGoals(awayElo)} />
-          <StatCard label="Mac Basi Yenilen Gol" home={estimateConceded(homeElo)} away={estimateConceded(awayElo)} />
+          <StatCard label="Maç Başı Gol (Ev)" home={estimateGoals(homeElo)} away={estimateGoals(awayElo)} />
+          <StatCard label="Maç Başı Yenilen Gol" home={estimateConceded(homeElo)} away={estimateConceded(awayElo)} />
           <StatCard label="Kalesini Kapama %" home={`${estimateCleanSheet(homeElo)}%`} away={`${estimateCleanSheet(awayElo)}%`} />
-          <StatCard label="Derecelendirme Mac Sayisi" home="30" away="30" />
+          <StatCard label="Derecelendirme Maç Sayısı" home="30" away="30" />
         </div>
       </Section>
 
       {/* Squad Assessment */}
-      <Section title="Kadro Degerlendirmesi">
+      <Section title="Kadro Değerlendirmesi">
         <div className="bg-navy-800/40 border border-navy-700/40 rounded-lg p-6 text-center">
           <p className="text-sm text-navy-500">
-            Kadro bilgisi mac saatine yakin eklenecektir.
+            Kadro bilgisi maç saatine yakın eklenecektir.
           </p>
         </div>
       </Section>

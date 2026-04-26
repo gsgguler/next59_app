@@ -62,7 +62,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'register' }:
       }
       setTimeout(() => onClose(), 500);
     } catch {
-      setError('Beklenmedik bir hata olustu. Lutfen tekrar deneyin.');
+      setError('Beklenmedik bir hata oluştu. Lütfen tekrar deneyin.');
       setLoading(false);
     }
   }
@@ -82,10 +82,10 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'register' }:
 
         <div className="px-8 pt-8 pb-2 text-center">
           <h2 className="font-display text-2xl font-bold text-white">
-            Next59'a Hos Geldiniz
+            Next59'a Hoş Geldiniz
           </h2>
           <p className="mt-2 text-sm text-navy-300">
-            30 gun boyunca tum analizlere ucretsiz erisin
+            30 gün boyunca tüm analizlere ücretsiz erişin
           </p>
         </div>
 
@@ -100,7 +100,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'register' }:
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Adiniz"
+                placeholder="Adınız"
                 className="w-full bg-navy-800 border border-navy-600 text-white rounded-lg px-4 py-3 text-sm placeholder-navy-500 focus:outline-none focus:ring-2 focus:ring-champagne/50 focus:border-champagne transition-all"
               />
             </div>
@@ -123,14 +123,14 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'register' }:
 
           <div>
             <label htmlFor="auth-password" className="block text-xs font-medium text-navy-300 mb-1.5">
-              Sifre
+              Şifre
             </label>
             <input
               id="auth-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Sifreniz"
+              placeholder="Şifreniz"
               required
               minLength={6}
               className="w-full bg-navy-800 border border-navy-600 text-white rounded-lg px-4 py-3 text-sm placeholder-navy-500 focus:outline-none focus:ring-2 focus:ring-champagne/50 focus:border-champagne transition-all"
@@ -151,47 +151,47 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'register' }:
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Yukleniyor...</span>
+                <span>Yükleniyor...</span>
               </>
             ) : mode === 'register' ? (
-              'Uye Ol'
+              'Üye Ol'
             ) : (
-              'Giris Yap'
+              'Giriş Yap'
             )}
           </button>
 
           <div className="text-center">
             {mode === 'register' ? (
               <p className="text-sm text-navy-400">
-                Zaten hesabin var mi?{' '}
+                Zaten hesabın var mı?{' '}
                 <button
                   type="button"
                   onClick={() => { setMode('login'); setError(null); }}
                   className="text-champagne hover:text-champagne-light font-medium transition-colors"
                 >
-                  Giris Yap
+                  Giriş Yap
                 </button>
               </p>
             ) : (
               <p className="text-sm text-navy-400">
-                Hesabin yok mu?{' '}
+                Hesabın yok mu?{' '}
                 <button
                   type="button"
                   onClick={() => { setMode('register'); setError(null); }}
                   className="text-champagne hover:text-champagne-light font-medium transition-colors"
                 >
-                  Uye Ol
+                  Üye Ol
                 </button>
               </p>
             )}
           </div>
 
           <p className="text-[11px] text-navy-500 text-center leading-relaxed">
-            Uye olarak{' '}
-            <a href="/terms" className="underline hover:text-navy-300 transition-colors">Kullanim Kosullari</a>
+            Üye olarak{' '}
+            <a href="/terms" className="underline hover:text-navy-300 transition-colors">Kullanım Koşulları</a>
             {' '}ve{' '}
-            <a href="/privacy" className="underline hover:text-navy-300 transition-colors">Gizlilik Politikasi</a>
-            'ni kabul etmis olursunuz.
+            <a href="/privacy" className="underline hover:text-navy-300 transition-colors">Gizlilik Politikası</a>
+            'nı kabul etmiş olursunuz.
           </p>
         </form>
       </div>

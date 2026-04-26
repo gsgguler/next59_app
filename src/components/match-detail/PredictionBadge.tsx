@@ -3,12 +3,12 @@ import { Check, X, Clock } from 'lucide-react';
 const config = {
   correct: {
     icon: Check,
-    label: 'Dogru',
+    label: 'Doğru',
     cls: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
   },
   incorrect: {
     icon: X,
-    label: 'Yanlis',
+    label: 'Yanlış',
     cls: 'text-red-400 bg-red-400/10 border-red-400/20',
   },
   pending: {

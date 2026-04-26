@@ -7,7 +7,7 @@ import type { MatchData } from '../data/mockMatches';
 import CookieBanner from '../components/legal/CookieBanner';
 
 const DATE_RANGES = [
-  { label: 'Tum Tarihler', from: '', to: '' },
+  { label: 'Tüm Tarihler', from: '', to: '' },
   { label: '11-15 Haziran', from: '2026-06-11', to: '2026-06-15' },
   { label: '16-20 Haziran', from: '2026-06-16', to: '2026-06-20' },
   { label: '21-25 Haziran', from: '2026-06-21', to: '2026-06-25' },
@@ -15,15 +15,15 @@ const DATE_RANGES = [
 ];
 
 const SORT_OPTIONS = [
-  { label: 'Tarihe Gore', value: 'date' as const },
-  { label: 'Elo Farkina Gore', value: 'elo_diff' as const },
+  { label: 'Tarihe Göre', value: 'date' as const },
+  { label: 'Elo Farkına Göre', value: 'elo_diff' as const },
 ];
 
 const MATCHDAY_OPTIONS = [
-  { label: 'Tum Maclar', value: '' },
-  { label: '1. Mac Gunu', value: 'Group Stage - 1' },
-  { label: '2. Mac Gunu', value: 'Group Stage - 2' },
-  { label: '3. Mac Gunu', value: 'Group Stage - 3' },
+  { label: 'Tüm Maçlar', value: '' },
+  { label: '1. Maç Günü', value: 'Group Stage - 1' },
+  { label: '2. Maç Günü', value: 'Group Stage - 2' },
+  { label: '3. Maç Günü', value: 'Group Stage - 3' },
 ];
 
 const INITIAL_DATES = 6;
@@ -103,7 +103,7 @@ export default function HomePage() {
   }, [teamSearch, dateRange, sortBy, matchday]);
 
   useEffect(() => {
-    document.title = 'Next59 | 2026 Dunya Kupasi — AI Futbol Gazetesi';
+    document.title = 'Next59 | 2026 Dünya Kupası — AI Futbol Gazetesi';
   }, []);
 
   return (
@@ -125,15 +125,15 @@ export default function HomePage() {
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div>
               <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight tracking-tight">
-                2026 Dunya Kupasi
+                2026 Dünya Kupası
               </h1>
               <p className="mt-3 text-base sm:text-lg text-navy-300 max-w-xl leading-relaxed">
-                Veri odakli futbol gazeteciligi — 48 takim, 72 mac, AI analiz
+                Veri odaklı futbol gazeteciliği — 48 takım, 72 maç, AI analiz
               </p>
             </div>
             <div className="shrink-0">
               <p className="text-[10px] uppercase tracking-widest text-navy-500 mb-2 font-semibold">
-                Baslangica Kalan Sure
+                Başlangıca Kalan Süre
               </p>
               <Countdown />
             </div>
@@ -171,7 +171,7 @@ export default function HomePage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-navy-500" />
               <input
                 type="text"
-                placeholder="Takim Ara..."
+                placeholder="Takım Ara..."
                 value={teamSearch}
                 onChange={(e) => setTeamSearch(e.target.value)}
                 className="w-full bg-navy-900 border border-navy-700 text-white text-xs rounded-lg pl-8 pr-3 py-2 placeholder-navy-500 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all"
@@ -193,7 +193,7 @@ export default function HomePage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {filtered.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-navy-400 text-sm">Aramanizla eslesen mac bulunamadi.</p>
+            <p className="text-navy-400 text-sm">Aramanızla eşleşen maç bulunamadı.</p>
             <button
               onClick={() => { setTeamSearch(''); setDateRange(0); setMatchday(''); }}
               className="mt-3 text-xs text-champagne hover:text-champagne-light transition-colors"
@@ -204,7 +204,7 @@ export default function HomePage() {
         ) : sortBy === 'elo_diff' ? (
           <div className="space-y-3">
             <h2 className="text-xs font-semibold text-navy-500 uppercase tracking-wider mb-4">
-              Elo Farkina Gore Siralandi ({filtered.length} mac)
+              Elo Farkına Göre Sıralandı ({filtered.length} maç)
             </h2>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map((m) => (
@@ -235,7 +235,7 @@ export default function HomePage() {
                   onClick={() => setVisibleDates((v) => v + 6)}
                   className="inline-flex items-center gap-2 bg-navy-900 border border-navy-700 hover:border-champagne/30 text-navy-300 hover:text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-all"
                 >
-                  Daha Fazla Goster
+                  Daha Fazla Göster
                   <ChevronDown className="w-4 h-4" />
                 </button>
               </div>
@@ -251,7 +251,7 @@ export default function HomePage() {
           __html: JSON.stringify({
             '@context': 'https://schema.org',
             '@type': 'ItemList',
-            name: '2026 Dunya Kupasi Mac Takvimi',
+            name: '2026 Dünya Kupası Maç Takvimi',
             numberOfItems: MOCK_MATCHES.length,
             itemListElement: MOCK_MATCHES.slice(0, 10).map((m, i) => ({
               '@type': 'ListItem',

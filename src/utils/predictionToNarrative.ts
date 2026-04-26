@@ -16,15 +16,15 @@ export function predictionToNarrative(
   awayName: string,
   eloDiff?: number,
 ): string {
-  if (!p) return 'Analiz verisi henuz yuklenmedi.';
+  if (!p) return 'Analiz verisi henüz yüklenmedi.';
 
   const confCaveat =
     p.confidence < 0.6
-      ? ' Bu analiz sinirli veri seti ile hazirlanmistir.'
+      ? ' Bu analiz sınırlı veri seti ile hazırlanmıştır.'
       : '';
   const eloRef =
     eloDiff && Math.abs(eloDiff) > 100
-      ? ` Elo farkı (${Math.abs(Math.round(eloDiff))} puan) bu ongoru uzerinde belirleyici etkiye sahiptir.`
+      ? ` Elo farkı (${Math.abs(Math.round(eloDiff))} puan) bu öngörü üzerinde belirleyici etkiye sahiptir.`
       : '';
 
   const favorite = p.home_prob > p.away_prob ? homeName : awayName;
@@ -36,60 +36,60 @@ export function predictionToNarrative(
   switch (type) {
     case 'general': {
       if (isDraw) {
-        return `Veri motorumuz bu karsilasmayi son derece dengeli gosteriyor. Her iki takimin da birbirine yakin performans grafigi, beraberlik senaryosunu onde tutuyor.${eloRef}${confCaveat}`;
+        return `Veri motorumuz bu karşılaşmayı son derece dengeli gösteriyor. Her iki takımın da birbirine yakın performans grafiği, beraberlik senaryosunu önde tutuyor.${eloRef}${confCaveat}`;
       }
       if (maxProb > 0.5) {
-        return `Veri motorumuz, ${favorite} takiminin saha avantaji ve guncel form grafigi ile oyunu domine etmesini ongoruyor. Karsilasmanin hizli tempoda baslamasi bekleniyor.${eloRef} Bu analiz yuksek guvenilirlikli veri setine dayanmaktadir.${confCaveat}`;
+        return `Veri motorumuz, ${favorite} takımının saha avantajı ve güncel form grafiği ile oyunu domine etmesini öngörüyor. Karşılaşmanın hızlı tempoda başlaması bekleniyor.${eloRef} Bu analiz yüksek güvenilirlikli veri setine dayanmaktadır.${confCaveat}`;
       }
       if (isClose) {
-        return `Iki takimin verileri birbirine son derece yakin. ${homeName} hafif bir avantaj tasisa da, ${awayName} takiminin surpriz yapma potansiyeli yuksek.${eloRef}${confCaveat}`;
+        return `İki takımın verileri birbirine son derece yakın. ${homeName} hafif bir avantaj taşısa da, ${awayName} takımının sürpriz yapma potansiyeli yüksek.${eloRef}${confCaveat}`;
       }
-      return `${favorite} bu karsilasmayi veri setinde one geciriyor. Ancak ${underdog} takiminin son performansi goz ardi edilmemeli.${eloRef}${confCaveat}`;
+      return `${favorite} bu karşılaşmayı veri setinde öne geçiriyor. Ancak ${underdog} takımının son performansı göz ardı edilmemeli.${eloRef}${confCaveat}`;
     }
 
     case 'goals': {
       if (p.over_2_5 > 0.7) {
-        return `Iki takimin hucum verileri ve son maclardaki skor ortalamalari, karsilasmada 3 gol barajinin asilmasina isaret ediyor. Yuksek tempolu bir mucadele bekleniyor.${confCaveat}`;
+        return `İki takımın hücum verileri ve son maçlardaki skor ortalamaları, karşılaşmada 3 gol barajının aşılmasına işaret ediyor. Yüksek tempolu bir mücadele bekleniyor.${confCaveat}`;
       }
       if (p.over_2_5 > 0.5) {
-        return `Orta duzeyde gol beklentisi mevcut. Veri seti, karsilasmanin 2 ila 3 gol arasinda sonuclanmasini isaret ediyor.${confCaveat}`;
+        return `Orta düzeyde gol beklentisi mevcut. Veri seti, karşılaşmanın 2 ila 3 gol arasında sonuçlanmasını işaret ediyor.${confCaveat}`;
       }
-      return `Dusuk skor beklentisi hakim. Her iki takimin da defansif yapi onceligi, az golle sonuclanma olasiligini artiriyor.${confCaveat}`;
+      return `Düşük skor beklentisi hâkim. Her iki takımın da defansif yapı önceliği, az golle sonuçlanma olasılığını artırıyor.${confCaveat}`;
     }
 
     case 'mutual': {
       if (p.btts > 0.6) {
-        return `Her iki takimin da skor uretme kapasitesi dikkat cekici. Veri setinde karsilikli gol ihtimali belirgin sekilde goruluyor. Defansif aciklar, iki tarafin da filelerini sarsabilir.${confCaveat}`;
+        return `Her iki takımın da skor üretme kapasitesi dikkat çekici. Veri setinde karşılıklı gol ihtimali belirgin şekilde görülüyor. Defansif açıklar, iki tarafın da filelerini sarsabilir.${confCaveat}`;
       }
       if (p.btts > 0.45) {
-        return `Karsilikli gol senaryosu orta duzey olasiliga sahip. Bir takimin kalesini gole kapatmasi surpiz olmazdi ancak her iki tarafin da skor uretme potansiyeli mevcut.${confCaveat}`;
+        return `Karşılıklı gol senaryosu orta düzey olasılığa sahip. Bir takımın kalesini gole kapatması sürpriz olmazdı ancak her iki tarafın da skor üretme potansiyeli mevcut.${confCaveat}`;
       }
-      return `Veri seti, takimlardan birinin kalesini gole kapatma olasiligini isaret ediyor. Defansif ustunluk bu karsilasmada belirleyici olabilir.${confCaveat}`;
+      return `Veri seti, takımlardan birinin kalesini gole kapatma olasılığını işaret ediyor. Defansif üstünlük bu karşılaşmada belirleyici olabilir.${confCaveat}`;
     }
 
     case 'first_half': {
       if (maxProb > 0.45) {
-        return `Ilk 45 dakikada tempolu bir baslangic bekleniyor. ${favorite} takiminin erken dakikalarda inisiyatifi ele almasi ongoruluyor. Son maclardaki ilk yari performanslari bu ongoru ile uyumlu.${confCaveat}`;
+        return `İlk 45 dakikada tempolu bir başlangıç bekleniyor. ${favorite} takımının erken dakikalarda inisiyatifi ele alması öngörülüyor. Son maçlardaki ilk yarı performansları bu öngörü ile uyumlu.${confCaveat}`;
       }
-      return `Ilk yarida temkinli bir baslangic bekleniyor. Her iki takimin da riskten kacmasi muhtemel. Ortaalan hakimiyeti mucadelenin anahtar unsuru olacak.${confCaveat}`;
+      return `İlk yarıda temkinli bir başlangıç bekleniyor. Her iki takımın da riskten kaçması muhtemel. Ortaalan hâkimiyeti mücadelenin anahtar unsuru olacak.${confCaveat}`;
     }
 
     case 'second_half': {
       if (p.over_2_5 > 0.6) {
-        return `Ikinci yarida oyunun kirilma anlari yasanabilir. Yedek kulubesinden yapilacak degisikliklerin mac uzerinde etkili olacagi ongoruluyor. Ozellikle 60-75 dakika arasi kritik bir zaman dilimi olarak one cikiyor.${confCaveat}`;
+        return `İkinci yarıda oyunun kırılma anları yaşanabilir. Yedek kulübesinden yapılacak değişikliklerin maç üzerinde etkili olacağı öngörülüyor. Özellikle 60-75 dakika arası kritik bir zaman dilimi olarak öne çıkıyor.${confCaveat}`;
       }
-      return `Ikinci yari, taktiksel degisikliklerin etkisini gosterecegi bir donem. Kondisyon farklarinin belirginlesmesiyle birlikte macin seyri degisebilir.${confCaveat}`;
+      return `İkinci yarı, taktiksel değişikliklerin etkisini göstereceği bir dönem. Kondisyon farklarının belirginleşmesiyle birlikte maçın seyri değişebilir.${confCaveat}`;
     }
 
     case 'full_time': {
       const scorePred = predictScore(p);
       if (maxProb > 0.5) {
-        return `Veri bulteni: ${favorite} takiminin galibiyeti yuksek ihtimal. Skor tahmini: ${scorePred}. *Bu bir veri analizidir, kesin sonuc degildir. Futbolun dogasi geregi surprizler her zaman mumkundur.`;
+        return `Veri bülteni: ${favorite} takımının galibiyeti yüksek ihtimal. Skor tahmini: ${scorePred}. *Bu bir veri analizidir, kesin sonuç değildir. Futbolun doğası gereği sürprizler her zaman mümkündür.`;
       }
       if (isDraw) {
-        return `Veri bulteni: Beraberlik en yuksek olasilikli senaryo olarak one cikiyor. Skor tahmini: ${scorePred}. *Bu bir veri analizidir, kesin sonuc degildir. Futbolun dogasi geregi surprizler her zaman mumkundur.`;
+        return `Veri bülteni: Beraberlik en yüksek olasılıklı senaryo olarak öne çıkıyor. Skor tahmini: ${scorePred}. *Bu bir veri analizidir, kesin sonuç değildir. Futbolun doğası gereği sürprizler her zaman mümkündür.`;
       }
-      return `Veri bulteni: ${favorite} hafif favorili gorunuyor ancak skor tablosu her iki yone de donebilir. Skor tahmini: ${scorePred}. *Bu bir veri analizidir, kesin sonuc degildir. Futbolun dogasi geregi surprizler her zaman mumkundur.`;
+      return `Veri bülteni: ${favorite} hafif favorili görünüyor ancak skor tablosu her iki yöne de dönebilir. Skor tahmini: ${scorePred}. *Bu bir veri analizidir, kesin sonuç değildir. Futbolun doğası gereği sürprizler her zaman mümkündür.`;
     }
   }
 }

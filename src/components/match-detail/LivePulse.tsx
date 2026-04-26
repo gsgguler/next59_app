@@ -14,7 +14,7 @@ export default function LivePulse({ match }: { match: MatchData }) {
         <div className="flex items-center gap-2 mb-6">
           <Radio className="w-4 h-4 text-navy-600" />
           <p className="text-sm text-navy-400">
-            Mac basladiginda canli AI analizleri burada gorunecektir.
+            Maç başladığında canlı AI analizleri burada görünecektir.
           </p>
         </div>
 
@@ -76,7 +76,7 @@ export default function LivePulse({ match }: { match: MatchData }) {
           <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
         </span>
         <p className="text-sm font-semibold text-emerald-400">
-          CANLI — Mac Devam Ediyor
+          CANLI — Maç Devam Ediyor
         </p>
       </div>
 
@@ -112,7 +112,7 @@ export default function LivePulse({ match }: { match: MatchData }) {
                   <div className="bg-navy-900/40 border border-navy-800/60 rounded-lg px-3 py-2.5">
                     <div className="flex items-center gap-1.5 text-[10px] text-navy-600">
                       <Clock className="w-3 h-3" />
-                      Canli veri bekleniyor...
+                      Canlı veri bekleniyor...
                     </div>
                   </div>
                 </div>

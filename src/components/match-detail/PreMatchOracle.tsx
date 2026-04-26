@@ -6,10 +6,10 @@ import NarrativeParagraph from './NarrativeParagraph';
 const sections: { type: 'general' | 'goals' | 'mutual' | 'first_half' | 'second_half' | 'full_time'; title: string }[] = [
   { type: 'general', title: 'Genel Senaryo' },
   { type: 'goals', title: 'Gol Beklentisi' },
-  { type: 'mutual', title: 'Karsilikli Atak Senaryosu' },
-  { type: 'first_half', title: 'Ilk Yari Analizi' },
-  { type: 'second_half', title: 'Ikinci Yari Projeksiyonu' },
-  { type: 'full_time', title: 'Mac Sonu Tahmini' },
+  { type: 'mutual', title: 'Karşılıklı Atak Senaryosu' },
+  { type: 'first_half', title: 'İlk Yarı Analizi' },
+  { type: 'second_half', title: 'İkinci Yarı Projeksiyonu' },
+  { type: 'full_time', title: 'Maç Sonu Tahmini' },
 ];
 
 export default function PreMatchOracle({ match }: { match: MatchData }) {
@@ -89,7 +89,7 @@ export default function PreMatchOracle({ match }: { match: MatchData }) {
         <div className="mt-6 p-4 bg-navy-900/60 border border-navy-800 rounded-xl">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-navy-400 uppercase tracking-wider">
-              Dogruluk Orani
+              Doğruluk Oranı
             </span>
             <span className="text-sm font-mono font-bold text-champagne tabular-nums">
               -- / 6
@@ -99,7 +99,7 @@ export default function PreMatchOracle({ match }: { match: MatchData }) {
             <div className="h-full w-0 bg-emerald-500 rounded-full transition-all" />
           </div>
           <p className="text-[10px] text-navy-600 mt-1.5">
-            Mac sonuclari dogrulandiktan sonra guncellenir.
+            Maç sonuçları doğrulandıktan sonra güncellenir.
           </p>
         </div>
       )}

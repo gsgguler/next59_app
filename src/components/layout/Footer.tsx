@@ -2,16 +2,16 @@ import { Link } from 'react-router-dom';
 import Logo from '../Logo';
 
 const quickLinks = [
-  { label: 'Maclar', to: '/matches' },
+  { label: 'Maçlar', to: '/matches' },
   { label: 'Tahminler', to: '/predictions' },
-  { label: 'Hakkimizda', to: '/about' },
+  { label: 'Hakkımızda', to: '/about' },
 ];
 
 const legalLinks = [
-  { label: 'Gizlilik Politikasi', to: '/privacy' },
-  { label: 'Kullanim Sartlari', to: '/terms' },
-  { label: 'KVKK Aydinlatma Metni', to: '/kvkk' },
-  { label: 'Cerez Politikasi', to: '/cookies' },
+  { label: 'Gizlilik Politikası', to: '/privacy' },
+  { label: 'Kullanım Şartları', to: '/terms' },
+  { label: 'KVKK Aydınlatma Metni', to: '/kvkk' },
+  { label: 'Çerez Politikası', to: '/cookies' },
 ];
 
 const socialLinks = [
@@ -32,14 +32,14 @@ export default function Footer() {
           <div className="col-span-2 md:col-span-1">
             <Logo size="sm" linkTo="/" />
             <p className="mt-4 text-sm text-navy-300 leading-relaxed max-w-xs">
-              Veri odakli futbol gazeteciligi. Macin 90 dakikasini, mac baslamadan yaziyoruz.
+              Veri odaklı futbol gazeteciliği. Maçın 90 dakikasını, maç başlamadan yazıyoruz.
             </p>
           </div>
 
           {/* Quick Links */}
           <div>
             <h4 className="text-xs font-semibold text-navy-400 uppercase tracking-wider mb-4">
-              Hizli Linkler
+              Hızlı Linkler
             </h4>
             <ul className="space-y-2.5">
               {quickLinks.map((link) => (
@@ -99,10 +99,10 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="py-6 border-t border-navy-800 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-navy-500">
-            &copy; {year} Next59. Tum haklari saklidir.
+            &copy; {year} Next59. Tüm hakları saklıdır.
           </p>
           <p className="text-xs text-navy-600 text-center sm:text-right max-w-md">
-            Bu platform yatirim tavsiyesi vermez. Icerikler yalnizca bilgilendirme amaclidir.
+            Bu platform yatırım tavsiyesi vermez. İçerikler yalnızca bilgilendirme amaçlıdır.
           </p>
         </div>
       </div>

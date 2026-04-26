@@ -3,9 +3,9 @@ import type { MatchData } from '../../data/mockMatches';
 import { generateNarrativePreview } from '../../utils/narrativeEngine';
 
 const statusConfig = {
-  scheduled: { label: 'Yaklassiyor', cls: 'bg-navy-800 text-navy-300 border-navy-700' },
+  scheduled: { label: 'Yaklaşıyor', cls: 'bg-navy-800 text-navy-300 border-navy-700' },
   live: { label: 'CANLI', cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 animate-pulse' },
-  finished: { label: 'Tamamlandi', cls: 'bg-navy-800/60 text-navy-500 border-navy-700/50' },
+  finished: { label: 'Tamamlandı', cls: 'bg-navy-800/60 text-navy-500 border-navy-700/50' },
 } as const;
 
 function FlagBadge({ code, name }: { code: string; name: string }) {
