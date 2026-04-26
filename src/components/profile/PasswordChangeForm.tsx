@@ -10,17 +10,17 @@ function getStrength(pw: string) {
   if (/[A-Z]/.test(pw)) s++;
   if (/[0-9]/.test(pw)) s++;
   if (/[^A-Za-z0-9]/.test(pw)) s++;
-  if (s <= 1) return { score: s, label: 'Zayif', color: 'bg-red-500' };
+  if (s <= 1) return { score: s, label: 'Zayıf', color: 'bg-red-500' };
   if (s <= 2) return { score: s, label: 'Orta', color: 'bg-orange-500' };
-  if (s <= 3) return { score: s, label: 'Iyi', color: 'bg-yellow-500' };
-  return { score: s, label: 'Guclu', color: 'bg-emerald-500' };
+  if (s <= 3) return { score: s, label: 'İyi', color: 'bg-yellow-500' };
+  return { score: s, label: 'Güçlü', color: 'bg-emerald-500' };
 }
 
 const reqs = [
   { test: (p: string) => p.length >= 8, label: 'En az 8 karakter' },
-  { test: (p: string) => /[A-Z]/.test(p), label: 'Buyuk harf' },
+  { test: (p: string) => /[A-Z]/.test(p), label: 'Büyük harf' },
   { test: (p: string) => /[0-9]/.test(p), label: 'Rakam' },
-  { test: (p: string) => /[^A-Za-z0-9]/.test(p), label: 'Ozel karakter' },
+  { test: (p: string) => /[^A-Za-z0-9]/.test(p), label: 'Özel karakter' },
 ];
 
 export default function PasswordChangeForm() {
@@ -37,11 +37,11 @@ export default function PasswordChangeForm() {
     setError('');
 
     if (newPassword.length < 8) {
-      setError('Sifre en az 8 karakter olmali');
+      setError('Şifre en az 8 karakter olmalı');
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError('Sifreler eslesmedi');
+      setError('Şifreler eşleşmedi');
       return;
     }
 
@@ -52,7 +52,7 @@ export default function PasswordChangeForm() {
     if (err) {
       setError(err.message);
     } else {
-      toast('Sifre basariyla degistirildi', 'success');
+      toast('Şifre başarıyla değiştirildi', 'success');
       setNewPassword('');
       setConfirmPassword('');
     }
@@ -65,13 +65,13 @@ export default function PasswordChangeForm() {
       )}
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1.5">Yeni Sifre</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">Yeni Şifre</label>
         <input
           type="password"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
           className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 focus:ring-2 focus:ring-navy-500 focus:border-navy-500 transition-colors"
-          placeholder="Yeni sifreniz"
+          placeholder="Yeni şifreniz"
           required
         />
         {newPassword.length > 0 && (
@@ -98,17 +98,17 @@ export default function PasswordChangeForm() {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1.5">Sifre Tekrar</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">Şifre Tekrar</label>
         <input
           type="password"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 focus:ring-2 focus:ring-navy-500 focus:border-navy-500 transition-colors"
-          placeholder="Sifrenizi tekrar girin"
+          placeholder="Şifrenizi tekrar girin"
           required
         />
         {confirmPassword && newPassword !== confirmPassword && (
-          <p className="text-xs text-red-500 mt-1">Sifreler eslesmedi</p>
+          <p className="text-xs text-red-500 mt-1">Şifreler eşleşmedi</p>
         )}
       </div>
 
@@ -118,7 +118,7 @@ export default function PasswordChangeForm() {
         className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-navy-700 text-white text-sm font-medium hover:bg-navy-600 disabled:opacity-50 transition-colors"
       >
         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
-        Sifreyi Degistir
+        Şifreyi Değiştir
       </button>
     </form>
   );

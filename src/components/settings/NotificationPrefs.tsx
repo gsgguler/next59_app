@@ -79,9 +79,9 @@ export default function NotificationPrefs() {
         onToggleMaster={() => toggle('emailEnabled')}
         items={[
           { label: 'Yeni tahminler', checked: prefs.emailNewPredictions, onChange: () => toggle('emailNewPredictions') },
-          { label: 'Mac hatirlaticilari', checked: prefs.emailMatchReminders, onChange: () => toggle('emailMatchReminders') },
-          { label: 'Debate sonuclari', checked: prefs.emailDebateResults, onChange: () => toggle('emailDebateResults') },
-          { label: 'Sistem bakimi', checked: prefs.emailMaintenance, onChange: () => toggle('emailMaintenance') },
+          { label: 'Maç hatırlatıcıları', checked: prefs.emailMatchReminders, onChange: () => toggle('emailMatchReminders') },
+          { label: 'Debate sonuçları', checked: prefs.emailDebateResults, onChange: () => toggle('emailDebateResults') },
+          { label: 'Sistem bakımı', checked: prefs.emailMaintenance, onChange: () => toggle('emailMaintenance') },
         ]}
       />
 
@@ -90,8 +90,8 @@ export default function NotificationPrefs() {
         enabled={prefs.pushEnabled}
         onToggleMaster={() => toggle('pushEnabled')}
         items={[
-          { label: 'Canli mac golleri', checked: prefs.pushLiveGoals, onChange: () => toggle('pushLiveGoals') },
-          { label: 'Tahmin dogrulama sonuclari', checked: prefs.pushPredictionResults, onChange: () => toggle('pushPredictionResults') },
+          { label: 'Canlı maç golleri', checked: prefs.pushLiveGoals, onChange: () => toggle('pushLiveGoals') },
+          { label: 'Tahmin doğrulama sonuçları', checked: prefs.pushPredictionResults, onChange: () => toggle('pushPredictionResults') },
         ]}
       />
 
@@ -100,7 +100,7 @@ export default function NotificationPrefs() {
         enabled={prefs.smsEnabled}
         onToggleMaster={() => toggle('smsEnabled')}
         items={[
-          { label: 'Kritik sistem uyarilari', checked: prefs.smsCriticalAlerts, onChange: () => toggle('smsCriticalAlerts') },
+          { label: 'Kritik sistem uyarıları', checked: prefs.smsCriticalAlerts, onChange: () => toggle('smsCriticalAlerts') },
         ]}
       />
 

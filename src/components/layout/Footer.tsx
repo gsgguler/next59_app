@@ -2,16 +2,16 @@ import { Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const productLinks = [
-  { label: 'Ozellikler', to: '/features' },
-  { label: 'Fiyatlandirma', to: '/pricing' },
+  { label: 'Özellikler', to: '/features' },
+  { label: 'Fiyatlandırma', to: '/pricing' },
   { label: 'SSS', to: '/faq' },
 ];
 
 const legalLinks = [
-  { label: 'Gizlilik Politikasi', to: '/privacy' },
-  { label: 'Kullanim Sartlari', to: '/terms' },
-  { label: 'KVKK Aydinlatma Metni', to: '/kvkk' },
-  { label: 'Cerez Politikasi', to: '/cookies' },
+  { label: 'Gizlilik Politikası', to: '/privacy' },
+  { label: 'Kullanım Şartları', to: '/terms' },
+  { label: 'KVKK Aydınlatma Metni', to: '/kvkk' },
+  { label: 'Çerez Politikası', to: '/cookies' },
 ];
 
 const socialLinks = [
@@ -33,12 +33,12 @@ export default function Footer() {
               <span className="text-lg font-bold text-white tracking-tight">Next59</span>
             </Link>
             <p className="mt-3 text-sm text-navy-300 leading-relaxed max-w-xs">
-              AI destekli futbol analiz platformu. Macin 90 dakikasini, mac baslamadan yaziyoruz.
+              AI destekli futbol analiz platformu. Maçın 90 dakikasını, maç başlamadan yazıyoruz.
             </p>
           </div>
 
           <div>
-            <h4 className="text-xs font-semibold text-navy-400 uppercase tracking-wider mb-4">Urun</h4>
+            <h4 className="text-xs font-semibold text-navy-400 uppercase tracking-wider mb-4">Ürün</h4>
             <ul className="space-y-2.5">
               {productLinks.map((link) => (
                 <li key={link.to}>
@@ -90,10 +90,10 @@ export default function Footer() {
 
         <div className="py-6 border-t border-navy-800 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-navy-500">
-            &copy; {year} Next59. Tum haklari saklidir.
+            &copy; {year} Next59. Tüm hakları saklıdır.
           </p>
           <p className="text-xs text-navy-600">
-            Bu platform yatirim tavsiyesi vermez. Icerikler yalnizca bilgilendirme amacidir.
+            Bu platform yatırım tavsiyesi vermez. İçerikler yalnızca bilgilendirme amaçlıdır.
           </p>
         </div>
       </div>

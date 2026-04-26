@@ -22,7 +22,7 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const displayName = profile?.display_name || user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Kullanici';
+  const displayName = profile?.display_name || user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Kullanıcı';
   const initials = displayName
     .split(' ')
     .map((w: string) => w[0])
@@ -106,7 +106,7 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-navy-700 hover:bg-navy-50 transition-colors"
                 >
                   <ShieldCheck className="w-4 h-4" />
-                  Yonetim Paneli
+                  Yönetim Paneli
                 </Link>
               )}
 
@@ -116,7 +116,7 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
                 >
                   <LogOut className="w-4 h-4" />
-                  Cikis Yap
+                  Çıkış Yap
                 </button>
               </div>
             </div>

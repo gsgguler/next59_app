@@ -62,7 +62,7 @@ export default function OrgTable() {
     if (error) {
       toast(error.message, 'error');
     } else {
-      toast('Organizasyon olusturuldu', 'success');
+      toast('Organizasyon oluşturuldu', 'success');
       setShowCreate(false);
       setNewOrg({ name: '', slug: '', tier: 'free' });
       fetchOrgs();
@@ -78,7 +78,7 @@ export default function OrgTable() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Isim veya slug ara..."
+            placeholder="İsim veya slug ara..."
             className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-navy-500 focus:border-navy-500 transition-colors"
           />
         </div>
@@ -96,17 +96,17 @@ export default function OrgTable() {
           <Loader2 className="w-6 h-6 text-navy-500 animate-spin" />
         </div>
       ) : orgs.length === 0 ? (
-        <p className="text-center py-12 text-gray-400 text-sm">Organizasyon bulunamadi</p>
+        <p className="text-center py-12 text-gray-400 text-sm">Organizasyon bulunamadı</p>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
           <table className="w-full min-w-[640px]">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Isim</th>
+                <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">İsim</th>
                 <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Slug</th>
                 <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Tier</th>
-                <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Tur</th>
-                <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Max Uye</th>
+                <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Tür</th>
+                <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Max Üye</th>
                 <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Tarih</th>
               </tr>
             </thead>
@@ -139,26 +139,26 @@ export default function OrgTable() {
         footer={
           <>
             <button onClick={() => setShowCreate(false)} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100 transition-colors">
-              Iptal
+              İptal
             </button>
             <button
               onClick={handleCreate}
               disabled={creating || !newOrg.name || !newOrg.slug}
               className="px-4 py-2 rounded-lg bg-navy-700 text-white text-sm font-medium hover:bg-navy-600 disabled:opacity-50 transition-colors"
             >
-              {creating ? 'Olusturuluyor...' : 'Olustur'}
+              {creating ? 'Oluşturuluyor...' : 'Oluştur'}
             </button>
           </>
         }
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Isim</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">İsim</label>
             <input
               value={newOrg.name}
               onChange={(e) => setNewOrg({ ...newOrg, name: e.target.value })}
               className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-navy-500 focus:border-navy-500"
-              placeholder="Organizasyon adi"
+              placeholder="Organizasyon adı"
             />
           </div>
           <div>

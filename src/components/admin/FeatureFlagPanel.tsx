@@ -43,7 +43,7 @@ export default function FeatureFlagPanel() {
     const { error } = await supabase.from('feature_flags').update({ is_active: !current }).eq('id', id);
     if (error) {
       setFlags((prev) => prev.map((f) => f.id === id ? { ...f, is_active: current } : f));
-      toast('Guncelleme basarisiz', 'error');
+      toast('Güncelleme başarısız', 'error');
     } else {
       toast(`Flag ${!current ? 'aktif' : 'pasif'}`, 'success');
     }
@@ -54,7 +54,7 @@ export default function FeatureFlagPanel() {
     if (rolloutTimers.current[id]) clearTimeout(rolloutTimers.current[id]);
     rolloutTimers.current[id] = setTimeout(async () => {
       const { error } = await supabase.from('feature_flags').update({ rollout_percentage: value }).eq('id', id);
-      if (error) toast('Rollout guncellenemedi', 'error');
+      if (error) toast('Rollout güncellenemedi', 'error');
       else toast(`Rollout: %${value}`, 'info');
     }, 500);
   }
@@ -74,7 +74,7 @@ export default function FeatureFlagPanel() {
     if (error) {
       toast(error.message, 'error');
     } else {
-      toast('Flag olusturuldu', 'success');
+      toast('Flag oluşturuldu', 'success');
       setShowCreate(false);
       setNewFlag({ key: '', nameTr: '', nameEn: '', tier: 'free' });
       fetchFlags();
@@ -153,14 +153,14 @@ export default function FeatureFlagPanel() {
         footer={
           <>
             <button onClick={() => setShowCreate(false)} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100 transition-colors">
-              Iptal
+              İptal
             </button>
             <button
               onClick={handleCreate}
               disabled={creating || !newFlag.key || !newFlag.nameTr}
               className="px-4 py-2 rounded-lg bg-navy-700 text-white text-sm font-medium hover:bg-navy-600 disabled:opacity-50 transition-colors"
             >
-              {creating ? 'Olusturuluyor...' : 'Olustur'}
+              {creating ? 'Oluşturuluyor...' : 'Oluştur'}
             </button>
           </>
         }
@@ -176,16 +176,16 @@ export default function FeatureFlagPanel() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Isim (TR)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">İsim (TR)</label>
             <input
               value={newFlag.nameTr}
               onChange={(e) => setNewFlag({ ...newFlag, nameTr: e.target.value })}
               className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-navy-500 focus:border-navy-500"
-              placeholder="Ozellik adi"
+              placeholder="Özellik adı"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Isim (EN)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">İsim (EN)</label>
             <input
               value={newFlag.nameEn}
               onChange={(e) => setNewFlag({ ...newFlag, nameEn: e.target.value })}

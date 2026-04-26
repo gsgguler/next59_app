@@ -2,94 +2,94 @@ import LegalPageLayout from './LegalPageLayout';
 
 export default function KvkkPage() {
   return (
-    <LegalPageLayout title="KVKK Aydinlatma Metni" lastUpdated="24 Nisan 2026">
+    <LegalPageLayout title="KVKK Aydınlatma Metni" lastUpdated="24 Nisan 2026">
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-3">
-          1. Veri Sorumlusunun Kimligi
+          1. Veri Sorumlusunun Kimliği
         </h2>
         <p>
-          6698 sayili Kisisel Verilerin Korunmasi Kanunu ("KVKK") kapsaminda, veri sorumlusu
-          sifatiyla Next59 olarak kisisel verilerinizi asagida aciklanan amaclar cercevesinde
-          islemekteyiz.
+          6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") kapsamında, veri sorumlusu
+          sıfatıyla Next59 olarak kişisel verilerinizi aşağıda açıklanan amaçlar çerçevesinde
+          işlemekteyiz.
         </p>
       </section>
 
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-3">
-          2. Islenen Kisisel Veriler
+          2. İşlenen Kişisel Veriler
         </h2>
         <ul className="list-disc list-inside space-y-1.5 ml-2">
           <li>Kimlik bilgileri (ad, soyad)</li>
-          <li>Iletisim bilgileri (e-posta adresi)</li>
-          <li>Hesap bilgileri (kullanici adi, sifre hash)</li>
-          <li>Islem guvenligi bilgileri (IP adresi, oturum verileri)</li>
-          <li>Kullanim verileri (sayfa goruntulenmeleri, islem kayitlari)</li>
+          <li>İletişim bilgileri (e-posta adresi)</li>
+          <li>Hesap bilgileri (kullanıcı adı, şifre hash)</li>
+          <li>İşlem güvenliği bilgileri (IP adresi, oturum verileri)</li>
+          <li>Kullanım verileri (sayfa görüntülenmeleri, işlem kayıtları)</li>
         </ul>
       </section>
 
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-3">
-          3. Kisisel Verilerin Islenmesi Amaci
+          3. Kişisel Verilerin İşlenmesi Amacı
         </h2>
         <p>
-          Kisisel verileriniz; uyelik islemlerinin yurutulmesi, hizmet kalitesinin artirilmasi,
-          yasal yukumluluklerimizin yerine getirilmesi, bilgi guvenligi surecleri ile talep ve
-          sikayetlerin yonetilmesi amaciyla islenmektedir.
+          Kişisel verileriniz; üyelik işlemlerinin yürütülmesi, hizmet kalitesinin artırılması,
+          yasal yükümlülüklerimizin yerine getirilmesi, bilgi güvenliği süreçleri ile talep ve
+          şikayetlerin yönetilmesi amacıyla işlenmektedir.
         </p>
       </section>
 
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-3">
-          4. Verilerin Aktarimi
+          4. Verilerin Aktarımı
         </h2>
         <p>
-          Kisisel verileriniz; yasal zorunluluklar cercevesinde kamu kurum ve kuruluslarina, hizmet
-          saglayicilarimiza (hosting, e-posta, odeme altyapisi) ve is ortaklarimiza KVKK'nin 8. ve
-          9. maddelerinde belirlenen sartlara uygun olarak aktarilabilmektedir.
+          Kişisel verileriniz; yasal zorunluluklar çerçevesinde kamu kurum ve kuruluşlarına, hizmet
+          sağlayıcılarımıza (hosting, e-posta, ödeme altyapısı) ve iş ortaklarımıza KVKK'nin 8. ve
+          9. maddelerinde belirlenen şartlara uygun olarak aktarılabilmektedir.
         </p>
       </section>
 
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-3">
-          5. Veri Saklama Suresi
+          5. Veri Saklama Süresi
         </h2>
         <p>
-          Kisisel verileriniz, isleme amacinin gerektirdigi sure boyunca ve yasal mevzuatin
-          ongordugi zorunlu saklama sureleri kadar muhafaza edilmektedir.
+          Kişisel verileriniz, işleme amacının gerektirdiği süre boyunca ve yasal mevzuatın
+          öngördüğü zorunlu saklama süreleri kadar muhafaza edilmektedir.
         </p>
       </section>
 
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-3">
-          6. Ilgili Kisi Haklari
+          6. İlgili Kişi Hakları
         </h2>
         <p className="mb-3">
-          KVKK'nin 11. maddesi uyarinca asagidaki haklara sahipsiniz:
+          KVKK'nin 11. maddesi uyarınca aşağıdaki haklara sahipsiniz:
         </p>
         <ul className="list-disc list-inside space-y-1.5 ml-2">
-          <li>Kisisel verilerinizin islenip islenmedigini ogrenme</li>
-          <li>Islenmisse buna iliskin bilgi talep etme</li>
-          <li>Isleme amacini ve amacina uygun kullanilip kullanilmadigini ogrenme</li>
-          <li>Yurt ici veya yurt disinda aktarildiginiz ucuncu kisileri bilme</li>
-          <li>Eksik veya yanlis islenmis verilerin duzeltilmesini isteme</li>
-          <li>KVKK'nin 7. maddesi kapsaminda silinmesini veya yok edilmesini isteme</li>
-          <li>Islenen verilerin munhasiran otomatik sistemler araciligiyla analiz edilmesi suretiyle aleyhine bir sonucun ortaya cikmasina itiraz etme</li>
-          <li>Kanuna aykiri isleme nedeniyle zarara ugramasi halinde zararin giderilmesini talep etme</li>
+          <li>Kişisel verilerinizin işlenip işlenmediğini öğrenme</li>
+          <li>İşlenmişse buna ilişkin bilgi talep etme</li>
+          <li>İşleme amacını ve amacına uygun kullanılıp kullanılmadığını öğrenme</li>
+          <li>Yurt içi veya yurt dışında aktarıldığınız üçüncü kişileri bilme</li>
+          <li>Eksik veya yanlış işlenmiş verilerin düzeltilmesini isteme</li>
+          <li>KVKK'nin 7. maddesi kapsamında silinmesini veya yok edilmesini isteme</li>
+          <li>İşlenen verilerin münhasıran otomatik sistemler aracılığıyla analiz edilmesi suretiyle aleyhine bir sonucun ortaya çıkmasına itiraz etme</li>
+          <li>Kanuna aykırı işleme nedeniyle zarara uğraması halinde zararın giderilmesini talep etme</li>
         </ul>
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">7. Basvuru</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-3">7. Başvuru</h2>
         <p>
-          Yukarida belirtilen haklarinizi kullanmak icin kvkk@next59.com adresine yazili
-          basvuruda bulunabilirsiniz.
+          Yukarıda belirtilen haklarınızı kullanmak için kvkk@next59.com adresine yazılı
+          başvuruda bulunabilirsiniz.
         </p>
       </section>
 
       <div className="mt-8 p-4 bg-navy-50 rounded-xl border border-navy-100">
         <p className="text-xs text-navy-600 italic">
-          Bu aydinlatma metni, yasal ekibimiz tarafindan tam icerik hazirlanana kadar taslak olarak
-          yayinlanmaktadir. Lutfen yasal baglamlarda referans almadan once guncel versiyonu kontrol
+          Bu aydınlatma metni, yasal ekibimiz tarafından tam içerik hazırlanana kadar taslak olarak
+          yayınlanmaktadır. Lütfen yasal bağlamlarda referans almadan önce güncel versiyonu kontrol
           ediniz.
         </p>
       </div>

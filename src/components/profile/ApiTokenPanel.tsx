@@ -112,7 +112,7 @@ export default function ApiTokenPanel() {
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text);
-    toast('Panoya kopyalandi', 'success');
+    toast('Panoya kopyalandı', 'success');
   }
 
   function closeCreateModal() {
@@ -133,7 +133,7 @@ export default function ApiTokenPanel() {
     return (
       <div className="text-center py-12 text-gray-400">
         <Key className="w-10 h-10 mx-auto mb-3" />
-        <p className="text-sm">API tokenlari icin bir organizasyona ihtiyaciniz var</p>
+        <p className="text-sm">API tokenları için bir organizasyona ihtiyacınız var</p>
       </div>
     );
   }
@@ -156,11 +156,11 @@ export default function ApiTokenPanel() {
 
       <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-700">
         <AlertTriangle className="w-4 h-4 shrink-0" />
-        Tokenlar bir kez gosterilir. Kaybetmeyin.
+        Tokenlar bir kez gösterilir. Kaybetmeyin.
       </div>
 
       {tokens.length === 0 ? (
-        <p className="text-center py-8 text-gray-400 text-sm">Henuz API tokeni olusturulmamidir</p>
+        <p className="text-center py-8 text-gray-400 text-sm">Henüz API tokeni oluşturulmamıştır</p>
       ) : (
         <div className="space-y-2">
           {activeTokens.map((t) => (
@@ -168,7 +168,7 @@ export default function ApiTokenPanel() {
           ))}
           {revokedTokens.length > 0 && (
             <>
-              <p className="text-xs text-gray-400 pt-2">Iptal edilmis</p>
+              <p className="text-xs text-gray-400 pt-2">İptal edilmiş</p>
               {revokedTokens.map((t) => (
                 <TokenRow key={t.id} token={t} onRevoke={revokeToken} onCopy={copyToClipboard} />
               ))}
@@ -180,7 +180,7 @@ export default function ApiTokenPanel() {
       <Modal
         open={showCreate}
         onClose={closeCreateModal}
-        title={generatedToken ? 'Token Olusturuldu' : 'Yeni API Token'}
+        title={generatedToken ? 'Token Oluşturuldu' : 'Yeni API Token'}
         footer={
           generatedToken ? (
             <button onClick={closeCreateModal} className="px-4 py-2 rounded-lg bg-navy-700 text-white text-sm font-medium hover:bg-navy-600 transition-colors">
@@ -189,14 +189,14 @@ export default function ApiTokenPanel() {
           ) : (
             <>
               <button onClick={closeCreateModal} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100 transition-colors">
-                Iptal
+                İptal
               </button>
               <button
                 onClick={handleCreate}
                 disabled={creating || !newToken.name}
                 className="px-4 py-2 rounded-lg bg-navy-700 text-white text-sm font-medium hover:bg-navy-600 disabled:opacity-50 transition-colors"
               >
-                {creating ? 'Olusturuluyor...' : 'Olustur'}
+                {creating ? 'Oluşturuluyor...' : 'Oluştur'}
               </button>
             </>
           )
@@ -204,7 +204,7 @@ export default function ApiTokenPanel() {
       >
         {generatedToken ? (
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">Bu token sadece bir kez gosterilecektir. Simdi kopyalayin.</p>
+            <p className="text-sm text-gray-600">Bu token sadece bir kez gösterilecektir. Şimdi kopyalayın.</p>
             <div className="flex items-center gap-2">
               <code className="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono break-all select-all">
                 {generatedToken}
@@ -217,12 +217,12 @@ export default function ApiTokenPanel() {
         ) : (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Isim</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">İsim</label>
               <input
                 value={newToken.name}
                 onChange={(e) => setNewToken({ ...newToken, name: e.target.value })}
                 className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-navy-500 focus:border-navy-500"
-                placeholder="Token adi"
+                placeholder="Token adı"
               />
             </div>
             <div>
@@ -251,7 +251,7 @@ export default function ApiTokenPanel() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Sure (gun)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Süre (gün)</label>
               <input
                 type="number"
                 value={newToken.expiryDays}
@@ -278,8 +278,8 @@ function TokenRow({ token, onRevoke, onCopy }: { token: Token; onRevoke: (id: st
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <p className="text-sm font-medium text-gray-900">{token.name}</p>
-            {isRevoked && <span className="text-[10px] font-medium text-red-600 bg-red-50 px-1.5 py-0.5 rounded">Iptal</span>}
-            {isExpired && !isRevoked && <span className="text-[10px] font-medium text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">Suresi Dolmus</span>}
+            {isRevoked && <span className="text-[10px] font-medium text-red-600 bg-red-50 px-1.5 py-0.5 rounded">İptal</span>}
+            {isExpired && !isRevoked && <span className="text-[10px] font-medium text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">Süresi Dolmuş</span>}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <code className="text-xs font-mono text-gray-400">{token.token_prefix}</code>
@@ -307,7 +307,7 @@ function TokenRow({ token, onRevoke, onCopy }: { token: Token; onRevoke: (id: st
           <span>Son: {new Date(token.expires_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}</span>
         )}
         {token.last_used_at && (
-          <span>Kullanim: {new Date(token.last_used_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}</span>
+          <span>Kullanım: {new Date(token.last_used_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}</span>
         )}
       </div>
     </div>

@@ -59,11 +59,11 @@ export default function UserTable() {
             type="text"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-            placeholder="Isim veya email ara..."
+            placeholder="İsim veya email ara..."
             className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-navy-500 focus:border-navy-500 transition-colors"
           />
         </div>
-        <span className="text-sm text-gray-400">{total} kullanici</span>
+        <span className="text-sm text-gray-400">{total} kullanıcı</span>
       </div>
 
       {loading ? (
@@ -71,17 +71,17 @@ export default function UserTable() {
           <Loader2 className="w-6 h-6 text-navy-500 animate-spin" />
         </div>
       ) : users.length === 0 ? (
-        <p className="text-center py-12 text-gray-400 text-sm">Kullanici bulunamadi</p>
+        <p className="text-center py-12 text-gray-400 text-sm">Kullanıcı bulunamadı</p>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
           <table className="w-full min-w-[640px]">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Kullanici</th>
+                <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Kullanıcı</th>
                 <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Email</th>
                 <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Rol</th>
-                <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Kayit</th>
-                <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Son Giris</th>
+                <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Kayıt</th>
+                <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Son Giriş</th>
               </tr>
             </thead>
             <tbody>
@@ -102,7 +102,7 @@ export default function UserTable() {
                   <td className="px-4 py-3 text-sm text-gray-600 truncate max-w-[200px]">{u.email}</td>
                   <td className="px-4 py-3">
                     <span className={`text-xs font-medium px-2 py-0.5 rounded border ${roleBadge(u.is_super_admin)}`}>
-                      {u.is_super_admin ? 'Super Admin' : 'Kullanici'}
+                      {u.is_super_admin ? 'Super Admin' : 'Kullanıcı'}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">

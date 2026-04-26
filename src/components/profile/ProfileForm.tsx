@@ -41,9 +41,9 @@ export default function ProfileForm() {
 
     setSaving(false);
     if (error) {
-      toast('Profil guncellenemedi: ' + error.message, 'error');
+      toast('Profil güncellenemedi: ' + error.message, 'error');
     } else {
-      toast('Profil guncellendi', 'success');
+      toast('Profil güncellendi', 'success');
       await refreshProfile();
     }
   }
@@ -66,7 +66,7 @@ export default function ProfileForm() {
           </div>
         )}
         <div>
-          <p className="text-lg font-semibold text-gray-900">{displayName || 'Kullanici'}</p>
+          <p className="text-lg font-semibold text-gray-900">{displayName || 'Kullanıcı'}</p>
           <p className="text-sm text-gray-500">{user?.email}</p>
           {profile?.is_super_admin && (
             <span className="text-xs font-medium text-navy-700 bg-navy-50 border border-navy-200 px-2 py-0.5 rounded mt-1 inline-block">
@@ -83,7 +83,7 @@ export default function ProfileForm() {
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 focus:ring-2 focus:ring-navy-500 focus:border-navy-500 transition-colors"
-            placeholder="Adiniz Soyadiniz"
+            placeholder="Adınız Soyadınız"
           />
         </div>
 
@@ -113,7 +113,7 @@ export default function ProfileForm() {
             onChange={(e) => setLocale(e.target.value)}
             className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 focus:ring-2 focus:ring-navy-500 focus:border-navy-500 transition-colors"
           >
-            <option value="tr">Turkce</option>
+            <option value="tr">Türkçe</option>
             <option value="en">English</option>
           </select>
         </div>
@@ -133,7 +133,7 @@ export default function ProfileForm() {
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors"
         >
           <RotateCcw className="w-4 h-4" />
-          Sifirla
+          Sıfırla
         </button>
       </div>
     </div>

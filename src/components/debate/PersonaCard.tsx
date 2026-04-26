@@ -3,7 +3,7 @@ import { Bot, ChevronDown, ChevronUp } from 'lucide-react';
 
 const personaConfig: Record<string, { name: string; color: string; bg: string; ring: string }> = {
   bas_hakem: {
-    name: 'Bas Hakem',
+    name: 'Baş Hakem',
     color: 'text-navy-700',
     bg: 'bg-navy-50',
     ring: 'ring-navy-200',
@@ -21,7 +21,7 @@ const personaConfig: Record<string, { name: string; color: string; bg: string; r
     ring: 'ring-emerald-200',
   },
   matematikci: {
-    name: 'Matematikci',
+    name: 'Matematikçi',
     color: 'text-orange-700',
     bg: 'bg-orange-50',
     ring: 'ring-orange-200',
@@ -31,7 +31,7 @@ const personaConfig: Record<string, { name: string; color: string; bg: string; r
 const voteConfig: Record<string, { label: string; color: string; bg: string }> = {
   onay: { label: 'ONAY', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
   red: { label: 'RED', color: 'text-red-700', bg: 'bg-red-50 border-red-200' },
-  cekimser: { label: 'CEKIMSER', color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200' },
+  cekimser: { label: 'ÇEKİMSER', color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200' },
 };
 
 interface PersonaCardProps {
@@ -74,7 +74,7 @@ export default function PersonaCard({
         <div className="flex-1 min-w-0">
           <p className={`text-sm font-semibold ${cfg.color}`}>{cfg.name}</p>
           {confidence !== null && (
-            <p className="text-xs text-gray-400">Guven: %{Math.round(confidence * 100)}</p>
+            <p className="text-xs text-gray-400">Güven: %{Math.round(confidence * 100)}</p>
           )}
         </div>
         {voteCfg && (
@@ -94,7 +94,7 @@ export default function PersonaCard({
             {expanded ? (
               <>Kapat <ChevronUp className="w-3.5 h-3.5" /></>
             ) : (
-              <>Devamini Oku <ChevronDown className="w-3.5 h-3.5" /></>
+              <>Devamını Oku <ChevronDown className="w-3.5 h-3.5" /></>
             )}
           </button>
         )}

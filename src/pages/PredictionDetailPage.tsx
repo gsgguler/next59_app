@@ -63,9 +63,9 @@ export default function PredictionDetailPage() {
         .maybeSingle();
 
       if (err) {
-        setError('Tahmin yuklenirken hata olustu');
+        setError('Tahmin yüklenirken hata oluştu');
       } else if (!data) {
-        setError('Tahmin bulunamadi');
+        setError('Tahmin bulunamadı');
       } else {
         setPrediction(data as unknown as PredictionData);
       }
@@ -87,9 +87,9 @@ export default function PredictionDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-gray-400">
         <BarChart3 className="w-12 h-12 mb-3" />
-        <p className="text-lg font-medium text-gray-600">{error || 'Tahmin bulunamadi'}</p>
+        <p className="text-lg font-medium text-gray-600">{error || 'Tahmin bulunamadı'}</p>
         <Link to="/predictions" className="mt-4 text-sm text-navy-600 hover:text-navy-700 font-medium">
-          Tahminlere don
+          Tahminlere dön
         </Link>
       </div>
     );
@@ -105,7 +105,7 @@ export default function PredictionDetailPage() {
       <nav className="flex items-center gap-1.5 text-sm text-gray-400 flex-wrap">
         <Link to="/" className="hover:text-gray-600 transition-colors">Dashboard</Link>
         <ChevronRight className="w-3.5 h-3.5" />
-        <Link to="/matches" className="hover:text-gray-600 transition-colors">Maclar</Link>
+        <Link to="/matches" className="hover:text-gray-600 transition-colors">Maçlar</Link>
         <ChevronRight className="w-3.5 h-3.5" />
         <span className="text-gray-600">{homeName} vs {awayName}</span>
         <ChevronRight className="w-3.5 h-3.5" />
@@ -114,7 +114,7 @@ export default function PredictionDetailPage() {
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Mac Tahmini</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Maç Tahmini</h1>
           <p className="text-gray-500 mt-0.5">{compName && `${compName} - `}{homeName} vs {awayName}</p>
         </div>
         <span className="text-sm font-mono text-gold-600 bg-gold-50 border border-gold-200 px-3 py-1.5 rounded-lg self-start">
@@ -149,13 +149,13 @@ export default function PredictionDetailPage() {
           <AccessLevelCard accessLevel={prediction.access_level} />
 
           <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Gecmis Dogruluk</h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Geçmiş Doğruluk</h3>
             <div className="flex items-center gap-3">
               <div className="w-16 h-16 rounded-full border-4 border-emerald-200 flex items-center justify-center">
                 <span className="text-lg font-bold text-emerald-600">68%</span>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Bu model icin ortalama dogruluk orani</p>
+                <p className="text-sm text-gray-600">Bu model için ortalama doğruluk oranı</p>
                 <p className="text-xs text-gray-400 mt-1">Son 100 tahmine dayanmaktadir</p>
               </div>
             </div>
@@ -169,8 +169,8 @@ export default function PredictionDetailPage() {
               <MessageSquare className="w-5 h-5 text-navy-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900">AI Debate'i Gor</p>
-              <p className="text-xs text-gray-500">Panel degerlendirmesini incele</p>
+              <p className="text-sm font-semibold text-gray-900">AI Debate'i Gör</p>
+              <p className="text-xs text-gray-500">Panel değerlendirmesini incele</p>
             </div>
             <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-navy-600 transition-colors" />
           </Link>
@@ -209,8 +209,8 @@ function MatchSummaryCard({
   });
 
   const statusLabels: Record<string, { label: string; color: string }> = {
-    scheduled: { label: 'Planli', color: 'text-blue-600 bg-blue-50' },
-    live: { label: 'Canli', color: 'text-red-600 bg-red-50' },
+    scheduled: { label: 'Planlı', color: 'text-blue-600 bg-blue-50' },
+    live: { label: 'Canlı', color: 'text-red-600 bg-red-50' },
     finished: { label: 'Bitti', color: 'text-gray-600 bg-gray-100' },
     postponed: { label: 'Ertelendi', color: 'text-orange-600 bg-orange-50' },
   };
@@ -262,7 +262,7 @@ function MatchSummaryCard({
 
 function AccessLevelCard({ accessLevel }: { accessLevel: string }) {
   const levels = [
-    { code: 'free', label: 'Ucretsiz', tier: 1 },
+    { code: 'free', label: 'Ücretsiz', tier: 1 },
     { code: 'pro', label: 'Pro', tier: 2 },
     { code: 'elite', label: 'Elite', tier: 3 },
     { code: 'b2b_only', label: 'B2B', tier: 4 },
@@ -272,7 +272,7 @@ function AccessLevelCard({ accessLevel }: { accessLevel: string }) {
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <h3 className="text-sm font-semibold text-gray-900 mb-4">Erisim Seviyesi</h3>
+      <h3 className="text-sm font-semibold text-gray-900 mb-4">Erişim Seviyesi</h3>
       <div className="space-y-2">
         {levels.map((level, i) => {
           const isActive = i === currentIdx;

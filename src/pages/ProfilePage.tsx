@@ -6,8 +6,8 @@ import PasswordChangeForm from '../components/profile/PasswordChangeForm';
 
 const tabs = [
   { key: 'info', label: 'Bilgilerim' },
-  { key: 'tokens', label: 'API Tokenlari' },
-  { key: 'password', label: 'Sifre Degistir' },
+  { key: 'tokens', label: 'API Tokenları' },
+  { key: 'password', label: 'Şifre Değiştir' },
 ] as const;
 
 type TabKey = (typeof tabs)[number]['key'];
@@ -22,7 +22,7 @@ export default function ProfilePage() {
           <UserCircle className="w-6 h-6 text-navy-600" />
           Profilim
         </h1>
-        <p className="text-gray-500 mt-1">Hesap bilgilerinizi yonetin</p>
+        <p className="text-gray-500 mt-1">Hesap bilgilerinizi yönetin</p>
       </div>
 
       <div className="border-b border-gray-200">

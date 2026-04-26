@@ -46,10 +46,10 @@ export default class ErrorBoundary extends Component<Props, State> {
           </div>
 
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Beklenmeyen bir hata olustu
+            Beklenmeyen bir hata oluştu
           </h1>
           <p className="text-gray-500 mb-8 leading-relaxed">
-            Bir seyler yanlis gitti. Sayfayi yeniden yuklemeyi deneyin veya ana sayfaya donun.
+            Bir şeyler yanlış gitti. Sayfayı yeniden yüklemeyi deneyin veya ana sayfaya dönün.
           </p>
 
           {process.env.NODE_ENV === 'development' && this.state.error && (

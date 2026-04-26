@@ -22,9 +22,9 @@ export default function ConsensusPanel({
           <Scale className="w-5 h-5 text-gold-400" />
         </div>
         <div>
-          <h3 className="text-lg font-bold">Panel Karari</h3>
+          <h3 className="text-lg font-bold">Panel Kararı</h3>
           <p className="text-xs text-navy-300">
-            {consensusReached ? 'Uzlasma saglandi' : 'Uzlasma saglanamadi'}
+            {consensusReached ? 'Uzlaşma sağlandı' : 'Uzlaşma sağlanamadı'}
           </p>
         </div>
       </div>
@@ -33,14 +33,14 @@ export default function ConsensusPanel({
 
       <div className="flex items-center gap-6 mb-5 py-3 border-y border-navy-600">
         <div>
-          <p className="text-xs text-navy-400 mb-0.5">Genel Guven</p>
+          <p className="text-xs text-navy-400 mb-0.5">Genel Güven</p>
           <p className="text-xl font-bold text-gold-400">%{confPct}</p>
         </div>
         <div>
           <p className="text-xs text-navy-400 mb-0.5">Karar</p>
           <p className="text-xl font-bold">
             {consensusReached ? (
-              <span className="text-emerald-400">Onaylandi</span>
+              <span className="text-emerald-400">Onaylandı</span>
             ) : (
               <span className="text-orange-400">Belirsiz</span>
             )}
@@ -60,7 +60,7 @@ export default function ConsensusPanel({
         disabled
       >
         <Download className="w-4 h-4" />
-        Raporu Indir (Yakin Zamanda)
+        Raporu İndir (Yakın Zamanda)
       </button>
     </div>
   );

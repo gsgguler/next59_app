@@ -17,94 +17,94 @@ import {
 import CookieBanner from '../components/legal/CookieBanner';
 
 const stats = [
-  { value: '94%', label: 'Analiz Dogrulugu', icon: Target },
-  { value: '500+', label: 'Haftalik Mac Analizi', icon: BarChart3 },
-  { value: '10K+', label: 'Aktif Kullanici', icon: Users },
-  { value: '<2dk', label: 'Analiz Suresi', icon: Clock },
+  { value: '94%', label: 'Analiz Doğruluğu', icon: Target },
+  { value: '500+', label: 'Haftalık Maç Analizi', icon: BarChart3 },
+  { value: '10K+', label: 'Aktif Kullanıcı', icon: Users },
+  { value: '<2dk', label: 'Analiz Süresi', icon: Clock },
 ];
 
 const features = [
   {
     icon: Brain,
-    title: 'AI Tabanli Analiz',
-    description: 'Yapay zeka modellerimiz gecmis verileri, form durumlarini ve taktiksel degisiklikleri analiz ederek detayli mac ongorusu olusturur.',
+    title: 'AI Tabanlı Analiz',
+    description: 'Yapay zekâ modellerimiz geçmiş verileri, form durumlarını ve taktiksel değişiklikleri analiz ederek detaylı maç öngörüsü oluşturur.',
   },
   {
     icon: MessageSquare,
     title: 'AI Debate Sistemi',
-    description: 'Farkli bakis acilarini temsil eden AI personalar, her mac icin lehte ve aleyhte argumanlariyla tartisir.',
+    description: 'Farklı bakış açılarını temsil eden AI personalar, her maç için lehte ve aleyhte argümanlarıyla tartışır.',
   },
   {
     icon: TrendingUp,
-    title: 'Canli Tahmin Takibi',
-    description: 'Tahminlerinizi gercek zamanli takip edin. Basari oranlarinizi, ROI metriklerinizi ve trend analizlerinizi goruntuleyin.',
+    title: 'Canlı Tahmin Takibi',
+    description: 'Tahminlerinizi gerçek zamanlı takip edin. Başarı oranlarınızı, ROI metriklerinizi ve trend analizlerinizi görüntüleyin.',
   },
   {
     icon: BarChart3,
-    title: 'Detayli Istatistikler',
-    description: 'Takim performanslari, oyuncu formlari ve karsilasma gecmisi gibi kapsamli istatistik verilere erisin.',
+    title: 'Detaylı İstatistikler',
+    description: 'Takım performansları, oyuncu formları ve karşılaşma geçmişi gibi kapsamlı istatistik verilere erişin.',
   },
   {
     icon: Zap,
-    title: 'Anlik Bildirimler',
-    description: 'Mac oncesi analizler, kadro degisiklikleri ve onemli gelismeler icin aninda bildirim alin.',
+    title: 'Anlık Bildirimler',
+    description: 'Maç öncesi analizler, kadro değişiklikleri ve önemli gelişmeler için anında bildirim alın.',
   },
   {
     icon: Shield,
-    title: 'Guvenilir Altyapi',
-    description: 'End-to-end sifreleme, KVKK uyumlulugu ve %99.9 uptime garantisi ile verileriniz guvende.',
+    title: 'Güvenilir Altyapı',
+    description: 'End-to-end şifreleme, KVKK uyumluluğu ve %99.9 uptime garantisi ile verileriniz güvende.',
   },
 ];
 
 const howItWorks = [
-  { step: '01', title: 'Mac Secin', description: 'Analiz etmek istediginiz maci listeden secin.' },
-  { step: '02', title: 'AI Analiz Eder', description: 'Yapay zeka modellerimiz tum verileri isler ve tahmin olusturur.' },
-  { step: '03', title: 'Debate Izleyin', description: 'AI personalar mac hakkinda farkli bakis acilarini tartisir.' },
-  { step: '04', title: 'Karar Verin', description: 'Kapsamli analize dayanarak bilingli kararlar verin.' },
+  { step: '01', title: 'Maç Seçin', description: 'Analiz etmek istediğiniz maçı listeden seçin.' },
+  { step: '02', title: 'AI Analiz Eder', description: 'Yapay zekâ modellerimiz tüm verileri işler ve tahmin oluşturur.' },
+  { step: '03', title: 'Debate İzleyin', description: 'AI personalar maç hakkında farklı bakış açılarını tartışır.' },
+  { step: '04', title: 'Karar Verin', description: 'Kapsamlı analize dayanarak bilinçli kararlar verin.' },
 ];
 
 const plans = [
   {
-    name: 'Baslangic',
-    price: 'Ucretsiz',
+    name: 'Başlangıç',
+    price: 'Ücretsiz',
     period: '',
-    description: 'Platforma goz atip temel ozellikleri kesfet.',
+    description: 'Platforma göz atıp temel özellikleri keşfet.',
     features: [
-      'Gunluk 3 mac analizi',
+      'Günlük 3 maç analizi',
       'Temel istatistikler',
-      'Topluluk erisimi',
+      'Topluluk erişimi',
     ],
-    cta: 'Hemen Basla',
+    cta: 'Hemen Başla',
     featured: false,
   },
   {
     name: 'Pro',
     price: '149',
     period: '/ay',
-    description: 'Ciddi analizciler icin tam erisim.',
+    description: 'Ciddi analizciler için tam erişim.',
     features: [
-      'Sinirsiz mac analizi',
-      'AI Debate tam erisim',
-      'Detayli istatistikler',
-      'Oncelikli bildirimler',
-      'API erisimi',
+      'Sınırsız maç analizi',
+      'AI Debate tam erişim',
+      'Detaylı istatistikler',
+      'Öncelikli bildirimler',
+      'API erişimi',
     ],
-    cta: 'Pro\'ya Gecis Yap',
+    cta: 'Pro\'ya Geçiş Yap',
     featured: true,
   },
   {
     name: 'Kurumsal',
-    price: 'Ozel',
+    price: 'Özel',
     period: '',
-    description: 'Buyuk takimlar icin ozellestirilmis cozum.',
+    description: 'Büyük takımlar için özelleştirilmiş çözüm.',
     features: [
-      'Pro\'daki her sey',
-      'Ozel AI modeli egitimi',
+      'Pro\'daki her şey',
+      'Özel AI modeli eğitimi',
       'Dedicated destek',
       'SLA garantisi',
-      'Beyaz etiket secenegi',
+      'Beyaz etiket seçeneği',
     ],
-    cta: 'Iletisime Gec',
+    cta: 'İletişime Geç',
     featured: false,
   },
 ];
@@ -113,19 +113,19 @@ const testimonials = [
   {
     name: 'Ahmet Y.',
     role: 'Spor Analisti',
-    quote: 'Next59 sayesinde mac analizlerimde cok daha tutarli sonuclar elde ediyorum. AI Debate sistemi gercekten oyun degistirici.',
+    quote: 'Next59 sayesinde maç analizlerimde çok daha tutarlı sonuçlar elde ediyorum. AI Debate sistemi gerçekten oyun değiştirici.',
     rating: 5,
   },
   {
     name: 'Mehmet K.',
-    role: 'Icerik Ureticisi',
-    quote: 'Eskiden bir mac analizi icin saatler harcardim. Simdi birka dakika icinde kapsamli bir analiz onumde oluyor.',
+    role: 'İçerik Üreticisi',
+    quote: 'Eskiden bir maç analizi için saatler harcardım. Şimdi birkaç dakika içinde kapsamlı bir analiz önümde oluyor.',
     rating: 5,
   },
   {
     name: 'Elif S.',
     role: 'Veri Bilimci',
-    quote: 'Platformun veri kalitesi ve analiz derinligi etkileyici. Kurumsal musterilerimiz icin vazgecilmez bir arac oldu.',
+    quote: 'Platformun veri kalitesi ve analiz derinliği etkileyici. Kurumsal müşterilerimiz için vazgeçilmez bir araç oldu.',
     rating: 5,
   },
 ];
@@ -149,14 +149,14 @@ export default function LandingPage() {
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight tracking-tight">
-              Macin 90 Dakikasini,{' '}
+              Maçın 90 Dakikasını,{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-400 to-gold-600">
-                Mac Baslamadan Yaziyoruz
+                Maç Başlamadan Yazıyoruz
               </span>
             </h1>
 
             <p className="mt-6 text-lg sm:text-xl text-navy-300 max-w-2xl mx-auto leading-relaxed">
-              Yapay zeka destekli analiz platformumuz ile futbol maclarini daha once hic olmadigi kadar derinlemesine analiz edin.
+              Yapay zekâ destekli analiz platformumuz ile futbol maçlarını daha önce hiç olmadığı kadar derinlemesine analiz edin.
             </p>
 
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -164,14 +164,14 @@ export default function LandingPage() {
                 to="/register"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gold-500 hover:bg-gold-400 text-navy-950 font-semibold px-8 py-3.5 rounded-xl transition-all hover:shadow-lg hover:shadow-gold-500/20 text-sm"
               >
-                Ucretsiz Basla
+                Ücretsiz Başla
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <a
                 href="#how-it-works"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 border border-navy-700 hover:border-navy-600 text-navy-200 hover:text-white font-medium px-8 py-3.5 rounded-xl transition-all text-sm"
               >
-                Nasil Calisir?
+                Nasıl Çalışır?
                 <ChevronRight className="w-4 h-4" />
               </a>
             </div>
@@ -201,7 +201,7 @@ export default function LandingPage() {
               Neden <span className="text-gold-500">Next59</span>?
             </h2>
             <p className="mt-4 text-navy-300">
-              En gelismis yapay zeka teknolojileriyle futbol analizinin sinirlarini zorluyoruz.
+              En gelişmiş yapay zekâ teknolojileriyle futbol analizinin sınırlarını zorluyoruz.
             </p>
           </div>
 
@@ -227,10 +227,10 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-white">
-              Nasil <span className="text-gold-500">Calisir</span>?
+              Nasıl <span className="text-gold-500">Çalışır</span>?
             </h2>
             <p className="mt-4 text-navy-300">
-              Dort basit adimda mac analizinizi tamamlayin.
+              Dört basit adımda maç analizinizi tamamlayın.
             </p>
           </div>
 
@@ -256,7 +256,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-white">
-              Kullanicilarimiz <span className="text-gold-500">Ne Diyor</span>?
+              Kullanıcılarımız <span className="text-gold-500">Ne Diyor</span>?
             </h2>
           </div>
 
@@ -287,10 +287,10 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-white">
-              <span className="text-gold-500">Fiyatlandirma</span>
+              <span className="text-gold-500">Fiyatlandırma</span>
             </h2>
             <p className="mt-4 text-navy-300">
-              Ihtiyaciniza uygun plani secin. Istediginiz zaman yukseltebilirsiniz.
+              İhtiyacınıza uygun planı seçin. İstediğiniz zaman yükseltebilirsiniz.
             </p>
           </div>
 
@@ -305,13 +305,13 @@ export default function LandingPage() {
                 }`}
               >
                 {plan.featured && (
-                  <div className="text-xs font-semibold text-gold-400 uppercase tracking-wider mb-3">En Populer</div>
+                  <div className="text-xs font-semibold text-gold-400 uppercase tracking-wider mb-3">En Popüler</div>
                 )}
                 <h3 className="text-lg font-bold text-white">{plan.name}</h3>
                 <p className="text-sm text-navy-300 mt-1 mb-4">{plan.description}</p>
 
                 <div className="flex items-baseline gap-1 mb-6">
-                  {plan.price !== 'Ucretsiz' && plan.price !== 'Ozel' && (
+                  {plan.price !== 'Ücretsiz' && plan.price !== 'Özel' && (
                     <span className="text-lg text-navy-400">TL</span>
                   )}
                   <span className="text-4xl font-bold text-white">{plan.price}</span>
@@ -347,16 +347,16 @@ export default function LandingPage() {
       <section className="py-20 sm:py-28 bg-navy-900/50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-            Analize Hemen Baslayin
+            Analize Hemen Başlayın
           </h2>
           <p className="text-lg text-navy-300 mb-8 max-w-2xl mx-auto">
-            Binlerce kullaniciya katilin ve yapay zeka destekli futbol analizinin gucunu kesfet.
+            Binlerce kullanıcıya katılın ve yapay zekâ destekli futbol analizinin gücünü keşfedin.
           </p>
           <Link
             to="/register"
             className="inline-flex items-center gap-2 bg-gold-500 hover:bg-gold-400 text-navy-950 font-semibold px-8 py-3.5 rounded-xl transition-all hover:shadow-lg hover:shadow-gold-500/20 text-sm"
           >
-            Ucretsiz Hesap Olustur
+            Ücretsiz Hesap Oluştur
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>

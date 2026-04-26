@@ -30,8 +30,8 @@ interface DebateTimelineProps {
 
 const roundLabels: Record<number, string> = {
   1: 'Veri Analizi',
-  2: 'Strateji Degerlendirmesi',
-  3: 'Final Degerlendirmesi',
+  2: 'Strateji Değerlendirmesi',
+  3: 'Final Değerlendirmesi',
 };
 
 export default function DebateTimeline({ rounds }: DebateTimelineProps) {
@@ -116,7 +116,7 @@ export default function DebateTimeline({ rounds }: DebateTimelineProps) {
               {isExpanded && round.persona_outputs.length === 0 && (
                 <div className="p-4 rounded-lg bg-gray-50 border border-gray-100 text-sm text-gray-400 flex items-center gap-2">
                   <Circle className="w-4 h-4" />
-                  Henuz analiz baslamadi
+                  Henüz analiz başlamadı
                 </div>
               )}
             </div>
@@ -129,13 +129,13 @@ export default function DebateTimeline({ rounds }: DebateTimelineProps) {
 
 function StatusDot({ status }: { status: string }) {
   if (status === 'completed') {
-    return <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">Tamamlandi</span>;
+    return <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">Tamamlandı</span>;
   }
   if (status === 'in_progress') {
     return <span className="text-[10px] font-medium text-gold-700 bg-gold-50 px-1.5 py-0.5 rounded">Devam ediyor</span>;
   }
   if (status === 'failed') {
-    return <span className="text-[10px] font-medium text-red-600 bg-red-50 px-1.5 py-0.5 rounded">Basarisiz</span>;
+    return <span className="text-[10px] font-medium text-red-600 bg-red-50 px-1.5 py-0.5 rounded">Başarısız</span>;
   }
   return <span className="text-[10px] font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">Bekliyor</span>;
 }

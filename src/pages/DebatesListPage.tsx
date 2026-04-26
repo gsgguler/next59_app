@@ -23,9 +23,9 @@ interface DebateListItem {
 }
 
 const statusBadge: Record<string, { label: string; color: string }> = {
-  completed: { label: 'Tamamlandi', color: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+  completed: { label: 'Tamamlandı', color: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
   in_progress: { label: 'Devam Ediyor', color: 'text-gold-700 bg-gold-50 border-gold-200' },
-  failed: { label: 'Basarisiz', color: 'text-red-700 bg-red-50 border-red-200' },
+  failed: { label: 'Başarısız', color: 'text-red-700 bg-red-50 border-red-200' },
 };
 
 export default function DebatesListPage() {
@@ -98,9 +98,9 @@ export default function DebatesListPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <MessageSquare className="w-6 h-6 text-navy-600" />
-            AI Panel Degerlendirmeleri
+            AI Panel Değerlendirmeleri
           </h1>
-          <p className="text-gray-500 mt-1">{predictionEntries.length} degerlendirme</p>
+          <p className="text-gray-500 mt-1">{predictionEntries.length} değerlendirme</p>
         </div>
 
         <select
@@ -108,10 +108,10 @@ export default function DebatesListPage() {
           onChange={(e) => setStatusFilter(e.target.value)}
           className="px-3 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-700 bg-white focus:ring-2 focus:ring-navy-500 focus:border-navy-500 transition-colors self-start"
         >
-          <option value="all">Tum Durumlar</option>
-          <option value="completed">Tamamlandi</option>
+          <option value="all">Tüm Durumlar</option>
+          <option value="completed">Tamamlandı</option>
           <option value="in_progress">Devam Ediyor</option>
-          <option value="failed">Basarisiz</option>
+          <option value="failed">Başarısız</option>
         </select>
       </div>
 
@@ -133,30 +133,30 @@ export default function DebatesListPage() {
 
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gold-500/10 border border-gold-500/20 text-gold-400 text-xs font-semibold tracking-wide uppercase mb-4">
                   <Zap className="w-3 h-3" />
-                  Elite Ozellik
+                  Elite Özellik
                 </div>
 
                 <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">
-                  AI Panel Degerlendirmesi
+                  AI Panel Değerlendirmesi
                 </h2>
                 <p className="text-gray-400 leading-relaxed mb-8 max-w-md mx-auto">
-                  Birden fazla yapay zeka modelinin tahminleri tartistigi, oylama yaptigi ve uzlasma aradigi ozel degerlendirme surecimize erisim kazanin.
+                  Birden fazla yapay zeka modelinin tahminleri tartıştığı, oylama yaptığı ve uzlaşma aradığı özel değerlendirme sürecimize erişim kazanın.
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                   <div className="bg-white/5 rounded-xl border border-white/10 p-4">
                     <Brain className="w-6 h-6 text-gold-400 mb-2 mx-auto" />
-                    <p className="text-sm font-medium text-white">Coklu AI Modeli</p>
-                    <p className="text-xs text-gray-500 mt-1">5 farkli uzman persona</p>
+                    <p className="text-sm font-medium text-white">Çoklu AI Modeli</p>
+                    <p className="text-xs text-gray-500 mt-1">5 farklı uzman persona</p>
                   </div>
                   <div className="bg-white/5 rounded-xl border border-white/10 p-4">
                     <Users className="w-6 h-6 text-gold-400 mb-2 mx-auto" />
                     <p className="text-sm font-medium text-white">Panel Oylama</p>
-                    <p className="text-xs text-gray-500 mt-1">Onay, red, cekimser</p>
+                    <p className="text-xs text-gray-500 mt-1">Onay, red, çekimser</p>
                   </div>
                   <div className="bg-white/5 rounded-xl border border-white/10 p-4">
                     <MessageSquare className="w-6 h-6 text-gold-400 mb-2 mx-auto" />
-                    <p className="text-sm font-medium text-white">Detayli Analiz</p>
+                    <p className="text-sm font-medium text-white">Detaylı Analiz</p>
                     <p className="text-xs text-gray-500 mt-1">Her turun tam metni</p>
                   </div>
                 </div>
@@ -165,11 +165,11 @@ export default function DebatesListPage() {
                   to="/settings"
                   className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-gradient-to-r from-gold-500 to-gold-600 text-navy-900 font-bold text-sm hover:from-gold-400 hover:to-gold-500 transition-all shadow-lg shadow-gold-500/25"
                 >
-                  Elite Plana Yukselt
+                  Elite Plana Yükselt
                   <ArrowUpRight className="w-4 h-4" />
                 </Link>
                 <p className="text-xs text-gray-500 mt-3">
-                  Mevcut planlar hakkinda bilgi almak icin Ayarlar sayfasini ziyaret edin.
+                  Mevcut planlar hakkında bilgi almak için Ayarlar sayfasını ziyaret edin.
                 </p>
               </div>
             </div>
@@ -177,8 +177,8 @@ export default function DebatesListPage() {
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-gray-400">
             <MessageSquare className="w-12 h-12 mb-3" />
-            <p className="text-lg font-medium text-gray-600">Henuz panel degerlendirmesi yok</p>
-            <p className="text-sm mt-1 mb-4">Tahminler olusturuldukca burada gorunecektir</p>
+            <p className="text-lg font-medium text-gray-600">Henüz panel değerlendirmesi yok</p>
+            <p className="text-sm mt-1 mb-4">Tahminler oluşturuldukça burada görünecektir</p>
             <Link
               to="/predictions"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-navy-700 text-white text-sm font-medium hover:bg-navy-600 transition-colors"
@@ -195,12 +195,12 @@ export default function DebatesListPage() {
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
                   <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Cassandra Kodu</th>
-                  <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Mac</th>
+                  <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Maç</th>
                   <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Durum</th>
                   <th className="text-center text-xs font-medium text-gray-500 px-4 py-3">Tur</th>
-                  <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Uzlasma</th>
+                  <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Uzlaşma</th>
                   <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Tarih</th>
-                  <th className="text-right text-xs font-medium text-gray-500 px-4 py-3">Islem</th>
+                  <th className="text-right text-xs font-medium text-gray-500 px-4 py-3">İşlem</th>
                 </tr>
               </thead>
               <tbody>
@@ -244,7 +244,7 @@ export default function DebatesListPage() {
                           className="inline-flex items-center gap-1.5 text-xs font-medium text-navy-600 hover:text-navy-700 transition-colors"
                         >
                           <Eye className="w-3.5 h-3.5" />
-                          Goruntule
+                          Görüntüle
                         </Link>
                       </td>
                     </tr>

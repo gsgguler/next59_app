@@ -2,19 +2,19 @@ import { ShieldCheck, ShieldAlert, Shield } from 'lucide-react';
 
 const config = {
   high: {
-    label: 'Yuksek Guven',
+    label: 'Yüksek Güven',
     icon: ShieldCheck,
     text: 'text-emerald-700',
     bg: 'bg-emerald-50 border-emerald-200',
   },
   medium: {
-    label: 'Orta Guven',
+    label: 'Orta Güven',
     icon: Shield,
     text: 'text-yellow-700',
     bg: 'bg-yellow-50 border-yellow-200',
   },
   low: {
-    label: 'Dusuk Guven',
+    label: 'Düşük Güven',
     icon: ShieldAlert,
     text: 'text-gray-600',
     bg: 'bg-gray-50 border-gray-200',

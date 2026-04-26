@@ -6,10 +6,10 @@ import FeatureFlagPanel from '../components/admin/FeatureFlagPanel';
 import AdminStatCards from '../components/admin/AdminStatCards';
 
 const tabs = [
-  { key: 'users', label: 'Kullanicilar' },
+  { key: 'users', label: 'Kullanıcılar' },
   { key: 'orgs', label: 'Organizasyonlar' },
   { key: 'flags', label: 'Feature Flags' },
-  { key: 'stats', label: 'Istatistikler' },
+  { key: 'stats', label: 'İstatistikler' },
 ] as const;
 
 type TabKey = (typeof tabs)[number]['key'];
@@ -22,9 +22,9 @@ export default function AdminPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
           <ShieldCheck className="w-6 h-6 text-navy-600" />
-          Yonetim Paneli
+          Yönetim Paneli
         </h1>
-        <p className="text-gray-500 mt-1">Platform yonetimi ve istatistikler</p>
+        <p className="text-gray-500 mt-1">Platform yönetimi ve istatistikler</p>
       </div>
 
       <div className="border-b border-gray-200">

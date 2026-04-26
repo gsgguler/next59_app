@@ -4,7 +4,7 @@ import BillingPanel from '../components/settings/BillingPanel';
 import NotificationPrefs from '../components/settings/NotificationPrefs';
 
 const tabs = [
-  { key: 'billing', label: 'Faturalandirma' },
+  { key: 'billing', label: 'Faturalandırma' },
   { key: 'notifications', label: 'Bildirimler' },
 ] as const;
 
@@ -20,7 +20,7 @@ export default function SettingsPage() {
           <Settings className="w-6 h-6 text-navy-600" />
           Ayarlar
         </h1>
-        <p className="text-gray-500 mt-1">Hesap ve bildirim ayarlariniz</p>
+        <p className="text-gray-500 mt-1">Hesap ve bildirim ayarlarınız</p>
       </div>
 
       <div className="border-b border-gray-200">

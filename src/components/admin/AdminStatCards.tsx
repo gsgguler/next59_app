@@ -33,10 +33,10 @@ export default function AdminStatCards() {
   }, []);
 
   const cards: Stat[] = [
-    { title: 'Toplam Kullanici', value: loading ? '-' : String(stats.users), icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { title: 'Toplam Kullanıcı', value: loading ? '-' : String(stats.users), icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
     { title: 'Aktif Organizasyon', value: loading ? '-' : String(stats.orgs), icon: Building2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { title: 'Bugunku Girisler', value: loading ? '-' : String(stats.todayLogins), icon: LogIn, color: 'text-gold-600', bg: 'bg-gold-50' },
-    { title: 'Premium Uye', value: loading ? '-' : String(stats.premium), icon: Crown, color: 'text-rose-600', bg: 'bg-rose-50' },
+    { title: 'Bugünkü Girişler', value: loading ? '-' : String(stats.todayLogins), icon: LogIn, color: 'text-gold-600', bg: 'bg-gold-50' },
+    { title: 'Premium Üye', value: loading ? '-' : String(stats.premium), icon: Crown, color: 'text-rose-600', bg: 'bg-rose-50' },
   ];
 
   return (
@@ -58,8 +58,8 @@ export default function AdminStatCards() {
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-8 flex flex-col items-center justify-center text-gray-400">
-        <p className="text-lg font-medium text-gray-500">Grafik Yakin Zamanda</p>
-        <p className="text-sm mt-1">Kullanici buyumesi ve aktivite grafikleri eklenecek</p>
+        <p className="text-lg font-medium text-gray-500">Grafik Yakın Zamanda</p>
+        <p className="text-sm mt-1">Kullanıcı büyümesi ve aktivite grafikleri eklenecek</p>
       </div>
     </div>
   );

@@ -92,7 +92,7 @@ export default function PredictionsListPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <TrendingUp className="w-6 h-6 text-gold-500" />
-            Tum Tahminler
+            Tüm Tahminler
             {activeFilterCount > 0 && (
               <span className="text-xs font-medium bg-navy-100 text-navy-700 px-2 py-0.5 rounded-full">
                 {activeFilterCount} filtre
@@ -119,43 +119,43 @@ export default function PredictionsListPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Erisim Seviyesi</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Erişim Seviyesi</label>
               <select
                 value={accessFilter}
                 onChange={(e) => setAccessFilter(e.target.value as AccessFilter)}
                 className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-700 bg-white focus:ring-2 focus:ring-navy-500 focus:border-navy-500 transition-colors"
               >
-                <option value="all">Tumu</option>
-                <option value="free">Ucretsiz</option>
+                <option value="all">Tümü</option>
+                <option value="free">Ücretsiz</option>
                 <option value="pro">Pro</option>
                 <option value="elite">Elite</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Guven Seviyesi</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Güven Seviyesi</label>
               <select
                 value={confidenceFilter}
                 onChange={(e) => setConfidenceFilter(e.target.value as ConfidenceFilter)}
                 className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-700 bg-white focus:ring-2 focus:ring-navy-500 focus:border-navy-500 transition-colors"
               >
-                <option value="all">Tumu</option>
-                <option value="low">Dusuk</option>
+                <option value="all">Tümü</option>
+                <option value="low">Düşük</option>
                 <option value="medium">Orta</option>
-                <option value="high">Yuksek</option>
+                <option value="high">Yüksek</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Siralama</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Sıralama</label>
               <select
                 value={sortKey}
                 onChange={(e) => setSortKey(e.target.value as SortKey)}
                 className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-700 bg-white focus:ring-2 focus:ring-navy-500 focus:border-navy-500 transition-colors"
               >
                 <option value="date">Tarih (En Yeni)</option>
-                <option value="probability">Olasilik (En Yuksek)</option>
-                <option value="confidence">Guven (En Yuksek)</option>
+                <option value="probability">Olasılık (En Yüksek)</option>
+                <option value="confidence">Güven (En Yüksek)</option>
               </select>
             </div>
           </div>
@@ -188,15 +188,15 @@ export default function PredictionsListPage() {
               </h3>
               <p className="text-sm text-gray-500 leading-relaxed mb-6">
                 {accessFilter === 'elite'
-                  ? 'Elite seviye tahminler, en yuksek dogruluk oranina sahip ozel analizleri icerir. Bu iceriklere erisim icin Elite planina yukseltme yapabilirsiniz.'
-                  : 'Pro seviye tahminler, detayli istatistiksel analizler ve model ciktilari icerir. Erisim icin Pro planina gecis yapabilirsiniz.'}
+                  ? 'Elite seviye tahminler, en yüksek doğruluk oranına sahip özel analizleri içerir. Bu içeriklere erişim için Elite planına yükseltme yapabilirsiniz.'
+                  : 'Pro seviye tahminler, detaylı istatistiksel analizler ve model çıktıları içerir. Erişim için Pro planına geçiş yapabilirsiniz.'}
               </p>
               <Link
                 to="/settings"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-gold-500 to-gold-600 text-navy-900 font-semibold text-sm hover:from-gold-400 hover:to-gold-500 transition-all shadow-sm"
               >
                 <ArrowUpRight className="w-4 h-4" />
-                Planini Yukselt
+                Planını Yükselt
               </Link>
             </div>
           ) : user && accessFilter === 'all' ? (
@@ -208,10 +208,10 @@ export default function PredictionsListPage() {
                 Tahminler Bekleniyor
               </h3>
               <p className="text-sm text-gray-500 leading-relaxed mb-2">
-                Henuz goruntuleyeceginiz tahmin bulunmuyor. Bu durum, tahminlerin henuz olusturulmamis olmasindan veya mevcut erisim seviyenizin disinda kalmasindan kaynaklanabilir.
+                Henüz görüntüleyeceğiniz tahmin bulunmuyor. Bu durum, tahminlerin henüz oluşturulmamış olmasından veya mevcut erişim seviyenizin dışında kalmasından kaynaklanabilir.
               </p>
               <p className="text-xs text-gray-400 mb-6">
-                Pro ve Elite planlarda daha fazla tahmine erisebilirsiniz.
+                Pro ve Elite planlarda daha fazla tahmine erişebilirsiniz.
               </p>
               <div className="flex items-center justify-center gap-3">
                 <Link
@@ -219,28 +219,28 @@ export default function PredictionsListPage() {
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-navy-700 text-white text-sm font-medium hover:bg-navy-600 transition-colors"
                 >
                   <Trophy className="w-4 h-4" />
-                  Maclari Kesfet
+                  Maçları Keşfet
                 </Link>
                 <Link
                   to="/settings"
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white border border-gold-300 text-gold-700 text-sm font-medium hover:bg-gold-50 transition-colors"
                 >
                   <ArrowUpRight className="w-4 h-4" />
-                  Planlari Gor
+                  Planları Gör
                 </Link>
               </div>
             </div>
           ) : (
             <div className="text-center text-gray-400">
               <TrendingUp className="w-12 h-12 mb-3 mx-auto" />
-              <p className="text-lg font-medium text-gray-600">Henuz tahmin bulunmuyor</p>
-              <p className="text-sm mt-1 mb-4">Mac tahminlerini kesfetmek icin maclara goz atin</p>
+              <p className="text-lg font-medium text-gray-600">Henüz tahmin bulunmuyor</p>
+              <p className="text-sm mt-1 mb-4">Maç tahminlerini keşfetmek için maçlara göz atın</p>
               <Link
                 to="/matches"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-navy-700 text-white text-sm font-medium hover:bg-navy-600 transition-colors"
               >
                 <Trophy className="w-4 h-4" />
-                Maclari Kesfet
+                Maçları Keşfet
               </Link>
             </div>
           )}

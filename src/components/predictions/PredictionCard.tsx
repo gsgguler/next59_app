@@ -43,7 +43,7 @@ function ProbabilityMeter({ probability }: { probability: number }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-gray-600">Olasilik</span>
+        <span className="text-sm font-medium text-gray-600">Olasılık</span>
         <span className="text-lg font-bold text-gray-900">%{pct}</span>
       </div>
       <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
@@ -85,7 +85,7 @@ export default function PredictionCard({ prediction, homeTeam, awayTeam, userTie
 
       <div className="pt-4 border-t border-gray-100 grid grid-cols-2 gap-4 text-sm">
         <div>
-          <p className="text-gray-400 text-xs mb-0.5">Olusturulma</p>
+          <p className="text-gray-400 text-xs mb-0.5">Oluşturulma</p>
           <p className="text-gray-700 font-medium">
             {new Date(prediction.generated_at).toLocaleDateString('tr-TR', {
               day: 'numeric',

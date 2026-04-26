@@ -14,7 +14,7 @@ export const mockDebateRounds: DebateRound[] = [
         id: 'mock-po-1a',
         persona: 'veri_analisti',
         analysis_text:
-          'Son 10 macin istatistiksel analizi tamamlandi. Galatasaray\'in ev sahibi performansi dikkat cekici: son 5 mac ortalamasinda 2.4 gol atiyor, 0.8 gol yiyor. xG degerleri 2.1 ortalama ile beklentilerin uzerinde. Fenerbahce deplasman performansi ise 1.2 gol ortalamasi ile daha dusuk. Ancak direkt karsilasma verilerinde son 4 macta 2 beraberlik goruyoruz ki bu durum risk faktorunu arttiriyor. Top sahiplik orani Galatasaray lehine %58 ortalamadir. Korner istatistikleri ve set parcasi basarisi da ev sahibi lehine ciddi fark gostermektedir.',
+          'Son 10 maçın istatistiksel analizi tamamlandı. Galatasaray\'ın ev sahibi performansı dikkat çekici: son 5 maç ortalamasında 2.4 gol atıyor, 0.8 gol yiyor. xG değerleri 2.1 ortalama ile beklentilerin üzerinde. Fenerbahçe deplasman performansı ise 1.2 gol ortalaması ile daha düşük. Ancak direkt karşılaşma verilerinde son 4 maçta 2 beraberlik görüyoruz ki bu durum risk faktörünü arttırıyor. Top sahiplik oranı Galatasaray lehine %58 ortalamadir. Korner istatistikleri ve set parçası başarısı da ev sahibi lehine ciddi fark göstermektedir.',
         vote: 'onay',
         confidence: 0.72,
         tokens_input: 1840,
@@ -25,7 +25,7 @@ export const mockDebateRounds: DebateRound[] = [
         id: 'mock-po-1b',
         persona: 'stratejist',
         analysis_text:
-          'Taktiksel acidan bakildiginda Galatasaray\'in 4-3-3 formasyonu Fenerbahce\'nin 4-2-3-1 dizilisine karsi avantaj saglayabilir. Orta saha uestunlugu kritik olacak. Galatasaray\'in pres yuksekligi Fenerbahce\'nin yapi lanma cikisindan faydalanabilir. Ancak Fenerbahce\'nin kontra atak hizi ve kanatlardaki bireysel kalitesi dengeleyici faktor. Kirmizi kart riski orta seviyede, derbi atmosferi hakem kararlarini etkileyebilir.',
+          'Taktiksel açıdan bakıldığında Galatasaray\'ın 4-3-3 formasyonu Fenerbahçe\'nin 4-2-3-1 dizilişine karşı avantaj sağlayabilir. Orta saha üstünlüğü kritik olacak. Galatasaray\'ın pres yüksekliği Fenerbahçe\'nin yapılanma çıkışından faydalanabilir. Ancak Fenerbahçe\'nin kontra atak hızı ve kanatlardaki bireysel kalitesi dengeleyici faktör. Kırmızı kart riski orta seviyede, derbi atmosferi hakem kararlarını etkileyebilir.',
         vote: 'onay',
         confidence: 0.65,
         tokens_input: 1560,
@@ -36,7 +36,7 @@ export const mockDebateRounds: DebateRound[] = [
         id: 'mock-po-1c',
         persona: 'matematikci',
         analysis_text:
-          'Poisson dagilimi modeline gore ev sahibi galibiyet olasiligi %42.3, beraberlik %26.1, deplasman galibiyeti %31.6. Monte Carlo simulasyonu (10,000 iterasyon) sonuclari bu degerleri destekliyor: EV %43.1, B %25.8, D %31.1. Marjinal fark az olmakla birlikte ev sahibi lehine istatistiksel anlamlilik mevcut (p=0.047). Ust 2.5 gol olasiligi %58.2 olarak hesaplandi.',
+          'Poisson dağılımı modeline göre ev sahibi galibiyet olasılığı %42.3, beraberlik %26.1, deplasman galibiyeti %31.6. Monte Carlo simülasyonu (10,000 iterasyon) sonuçları bu değerleri destekliyor: EV %43.1, B %25.8, D %31.1. Marjinal fark az olmakla birlikte ev sahibi lehine istatistiksel anlamlılık mevcut (p=0.047). Üst 2.5 gol olasılığı %58.2 olarak hesaplandı.',
         vote: 'cekimser',
         confidence: 0.58,
         tokens_input: 2100,
@@ -58,7 +58,7 @@ export const mockDebateRounds: DebateRound[] = [
         id: 'mock-po-2a',
         persona: 'veri_analisti',
         analysis_text:
-          'Matematikci\'nin Poisson modelindeki p=0.047 degeri sinir noktasinda. Ek degiskenler eklendiginde (sakatliklari, form egrileri) model guvenilirligi artabilir. Ev sahibi avantaji faktoru 1.35 ile global ortalama olan 1.2\'nin uzerinde. Takim form endeksini guncelledim: GS 78/100, FB 71/100.',
+          'Matematikçi\'nin Poisson modelindeki p=0.047 değeri sınır noktasında. Ek değişkenler eklendiğinde (sakatlıkları, form eğrileri) model güvenilirliği artabilir. Ev sahibi avantajı faktörü 1.35 ile global ortalama olan 1.2\'nin üzerinde. Takım form endeksini güncelledim: GS 78/100, FB 71/100.',
         vote: 'onay',
         confidence: 0.70,
         tokens_input: 1420,
@@ -69,7 +69,7 @@ export const mockDebateRounds: DebateRound[] = [
         id: 'mock-po-2b',
         persona: 'stratejist',
         analysis_text:
-          'Ikinci tur degerlendirmemde sakat oyuncu faktorunu daha agirlikli ele aldim. Galatasaray\'in sol bek bolgesindeki eksiklik Fenerbahce\'nin sag kanat ataklarini guclendirse de genel resmi degistirmiyor. Mac icerisi senaryolarda erken gol Galatasaray\'a onemli avantaj saglayacaktir. Taktiksel esneklik acisinda her iki takim da alternatif planlara sahip.',
+          'İkinci tur değerlendirmemde sakat oyuncu faktörünü daha ağırlıklı ele aldım. Galatasaray\'ın sol bek bölgesindeki eksiklik Fenerbahçe\'nin sağ kanat ataklarını güçlendirse de genel resmi değiştirmiyor. Maç içerisi senaryolarda erken gol Galatasaray\'a önemli avantaj sağlayacaktır. Taktiksel esneklik açısından her iki takım da alternatif planlara sahip.',
         vote: 'onay',
         confidence: 0.68,
         tokens_input: 1380,
@@ -80,7 +80,7 @@ export const mockDebateRounds: DebateRound[] = [
         id: 'mock-po-2c',
         persona: 'matematikci',
         analysis_text:
-          'Veri analisti\'nin form endeks verileri modele dahil edildiginde Poisson parametreleri guncellendi: lambda_ev = 1.87, lambda_dep = 1.12. Bu guncelleme ev sahibi galibiyet olasaligini %44.8\'e yukseltirken p-degerini 0.032\'ye dusurdu. Istatistiksel anlamlilik artik daha guclu. Olasilik tahminimi 0.65 olarak guncelliyorum.',
+          'Veri analisti\'nin form endeks verileri modele dahil edildiğinde Poisson parametreleri güncellendi: lambda_ev = 1.87, lambda_dep = 1.12. Bu güncelleme ev sahibi galibiyet olasılığını %44.8\'e yükseltirken p-değerini 0.032\'ye düşürdü. İstatistiksel anlamlılık artık daha güçlü. Olasılık tahminimi 0.65 olarak güncelliyorum.',
         vote: 'onay',
         confidence: 0.65,
         tokens_input: 1680,
@@ -95,7 +95,7 @@ export const mockDebateRounds: DebateRound[] = [
     debate_status: 'completed',
     consensus_reached: true,
     consensus_summary:
-      'Panel 3 turda degerlendirmelerini tamamlamistir. Veri analizi, strateji degerlendirmesi ve matematiksel modelleme birlikte ele alindiginda Galatasaray\'in ev sahibi avantaji, istatistiksel uestunlugu ve taktiksel pozisyonu goz onunde bulundurularak %65 olasilikla Galatasaray galibiyeti ongorulmektedir. Panel 3\'e 1 oyla onay vermistir. Riski artiran faktorler: derbi atmosferi, hakem faktoru ve Fenerbahce\'nin kontra atak kalitesi.',
+      'Panel 3 turda değerlendirmelerini tamamlamıştır. Veri analizi, strateji değerlendirmesi ve matematiksel modelleme birlikte ele alındığında Galatasaray\'ın ev sahibi avantajı, istatistiksel üstünlüğü ve taktiksel pozisyonu göz önünde bulundurularak %65 olasılıkla Galatasaray galibiyeti öngörülmektedir. Panel 3\'e 1 oyla onay vermiştir. Riski artıran faktörler: derbi atmosferi, hakem faktörü ve Fenerbahçe\'nin kontra atak kalitesi.',
     started_at: '2026-04-20T14:06:00Z',
     completed_at: '2026-04-20T14:08:45Z',
     persona_outputs: [
@@ -103,7 +103,7 @@ export const mockDebateRounds: DebateRound[] = [
         id: 'mock-po-3a',
         persona: 'veri_analisti',
         analysis_text:
-          'Final degerlendirmem: Tum veriler incelendiginde Galatasaray galibiyeti icin yeterli istatistiksel destek bulunmaktadir. Tavsiyem onay yonundedir.',
+          'Final değerlendirmem: Tüm veriler incelendiğinde Galatasaray galibiyeti için yeterli istatistiksel destek bulunmaktadır. Tavsiyem onay yönündedir.',
         vote: 'onay',
         confidence: 0.72,
         tokens_input: 980,
@@ -114,7 +114,7 @@ export const mockDebateRounds: DebateRound[] = [
         id: 'mock-po-3b',
         persona: 'stratejist',
         analysis_text:
-          'Taktiksel degerlendirmemi onayliyorum. Ev sahibi avantaji ve taktiksel uestunluk tahminimizi destekliyor. Onay.',
+          'Taktiksel değerlendirmemi onaylıyorum. Ev sahibi avantajı ve taktiksel üstünlük tahminimizi destekliyor. Onay.',
         vote: 'onay',
         confidence: 0.70,
         tokens_input: 860,
@@ -125,7 +125,7 @@ export const mockDebateRounds: DebateRound[] = [
         id: 'mock-po-3c',
         persona: 'matematikci',
         analysis_text:
-          'Guncellenmis modeller isiginda olasilik yeterli seviyede. Onay veriyorum.',
+          'Güncellenmiş modeller ışığında olasılık yeterli seviyede. Onay veriyorum.',
         vote: 'onay',
         confidence: 0.67,
         tokens_input: 780,
@@ -136,7 +136,7 @@ export const mockDebateRounds: DebateRound[] = [
         id: 'mock-po-3d',
         persona: 'bas_hakem',
         analysis_text:
-          'Tum panel uyeleri degerlendirmelerini tamamlamistir. Uc turda toplam 9 analiz yapilmis, 8 onay ve 1 cekimser oy kullanilmistir. Istatistiksel, taktiksel ve matematiksel degerlendirmelerin tutarliligi goz onunde bulundurularak tahmini onayliyorum. Risk faktoru orta seviyede degerlendirilmistir. Panel karari: ONAY.',
+          'Tüm panel üyeleri değerlendirmelerini tamamlamıştır. Üç turda toplam 9 analiz yapılmış, 8 onay ve 1 çekimser oy kullanılmıştır. İstatistiksel, taktiksel ve matematiksel değerlendirmelerin tutarlılığı göz önünde bulundurularak tahmini onaylıyorum. Risk faktörü orta seviyede değerlendirilmiştir. Panel kararı: ONAY.',
         vote: 'onay',
         confidence: 0.75,
         tokens_input: 1240,

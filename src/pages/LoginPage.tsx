@@ -38,7 +38,7 @@ export default function LoginPage() {
             <span className="text-4xl font-bold text-white tracking-tight">Next59</span>
           </div>
           <p className="text-navy-200 text-lg leading-relaxed max-w-md">
-            Yapay zeka destekli futbol analiz platformu. Tahminler, analizler ve daha fazlasi.
+            Yapay zekâ destekli futbol analiz platformu. Tahminler, analizler ve daha fazlası.
           </p>
         </div>
       </div>
@@ -50,8 +50,8 @@ export default function LoginPage() {
             <span className="text-2xl font-bold text-navy-700">Next59</span>
           </div>
 
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Giris Yap</h1>
-          <p className="text-gray-500 mb-8">Hesabiniza giris yapin</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Giriş Yap</h1>
+          <p className="text-gray-500 mb-8">Hesabınıza giriş yapın</p>
 
           {error && (
             <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
@@ -77,7 +77,7 @@ export default function LoginPage() {
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
-                Sifre
+                Şifre
               </label>
               <div className="relative">
                 <input
@@ -87,7 +87,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-navy-500 focus:border-navy-500 transition-colors pr-12"
-                  placeholder="Sifrenizi girin"
+                  placeholder="Şifrenizi girin"
                 />
                 <button
                   type="button"
@@ -109,14 +109,14 @@ export default function LoginPage() {
               ) : (
                 <LogIn className="w-5 h-5" />
               )}
-              {loading ? 'Giris yapiliyor...' : 'Giris Yap'}
+              {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
             </button>
           </form>
 
           <p className="mt-8 text-center text-sm text-gray-500">
-            Hesabiniz yok mu?{' '}
+            Hesabınız yok mu?{' '}
             <Link to="/register" className="text-navy-700 font-medium hover:text-navy-600 transition-colors">
-              Kayit Ol
+              Kayıt Ol
             </Link>
           </p>
         </div>

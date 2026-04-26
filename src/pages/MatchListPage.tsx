@@ -99,9 +99,9 @@ export default function MatchListPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Trophy className="w-6 h-6 text-gold-500" />
-            Maclar
+            Maçlar
           </h1>
-          <p className="text-gray-500 mt-1">{total} mac listeleniyor</p>
+          <p className="text-gray-500 mt-1">{total} maç listeleniyor</p>
         </div>
 
         <button
@@ -134,8 +134,8 @@ export default function MatchListPage() {
       ) : filteredMatches.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-gray-400">
           <Calendar className="w-12 h-12 mb-3" />
-          <p className="text-lg font-medium">Mac bulunamadi</p>
-          <p className="text-sm mt-1">Filtreleri degistirmeyi deneyin</p>
+          <p className="text-lg font-medium">Maç bulunamadı</p>
+          <p className="text-sm mt-1">Filtreleri değiştirmeyi deneyin</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

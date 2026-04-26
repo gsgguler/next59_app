@@ -24,7 +24,7 @@ const tierHierarchy: Record<string, number> = {
 };
 
 const accessBadge: Record<string, { label: string; color: string }> = {
-  free: { label: 'Ucretsiz', color: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+  free: { label: 'Ücretsiz', color: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
   pro: { label: 'Pro', color: 'text-blue-700 bg-blue-50 border-blue-200' },
   elite: { label: 'Elite', color: 'text-gold-700 bg-gold-50 border-gold-200' },
   b2b_only: { label: 'B2B', color: 'text-gray-700 bg-gray-50 border-gray-200' },

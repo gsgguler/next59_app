@@ -3,11 +3,11 @@ import { Clock, Eye } from 'lucide-react';
 import type { Match } from '../../pages/MatchListPage';
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
-  scheduled: { label: 'Planli', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200' },
-  live: { label: 'Canli', color: 'text-red-700', bg: 'bg-red-50 border-red-200' },
+  scheduled: { label: 'Planlı', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200' },
+  live: { label: 'Canlı', color: 'text-red-700', bg: 'bg-red-50 border-red-200' },
   finished: { label: 'Bitti', color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200' },
   postponed: { label: 'Ertelendi', color: 'text-orange-700', bg: 'bg-orange-50 border-orange-200' },
-  cancelled: { label: 'Iptal', color: 'text-red-700', bg: 'bg-red-50 border-red-200' },
+  cancelled: { label: 'İptal', color: 'text-red-700', bg: 'bg-red-50 border-red-200' },
 };
 
 function TeamDisplay({ name, tla, colors, side }: { name: string; tla: string; colors: string | null; side: 'home' | 'away' }) {
@@ -106,7 +106,7 @@ export default function MatchCard({ match }: { match: Match }) {
           className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-navy-700 text-white text-sm font-medium hover:bg-navy-600 active:bg-navy-800 transition-colors group-hover:bg-gold-500 group-hover:text-navy-900"
         >
           <Eye className="w-4 h-4" />
-          Tahmin Gor
+          Tahmin Gör
         </Link>
       </div>
     </div>

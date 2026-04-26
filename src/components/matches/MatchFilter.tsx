@@ -8,11 +8,11 @@ interface MatchFilterProps {
 }
 
 const statuses = [
-  { value: 'all', label: 'Tumu' },
-  { value: 'scheduled', label: 'Planli' },
-  { value: 'live', label: 'Canli' },
-  { value: 'finished', label: 'Bitmis' },
-  { value: 'postponed', label: 'Ertelenmis' },
+  { value: 'all', label: 'Tümü' },
+  { value: 'scheduled', label: 'Planlı' },
+  { value: 'live', label: 'Canlı' },
+  { value: 'finished', label: 'Bitmiş' },
+  { value: 'postponed', label: 'Ertelenmiş' },
 ];
 
 export default function MatchFilter({ filters, onChange, competitions }: MatchFilterProps) {
@@ -45,7 +45,7 @@ export default function MatchFilter({ filters, onChange, competitions }: MatchFi
             onChange={(e) => onChange({ ...filters, competition: e.target.value })}
             className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-700 bg-white focus:ring-2 focus:ring-navy-500 focus:border-navy-500 transition-colors"
           >
-            <option value="all">Tumu</option>
+            <option value="all">Tümü</option>
             {competitions.map((c) => (
               <option key={c.code} value={c.code}>{c.name}</option>
             ))}
@@ -53,14 +53,14 @@ export default function MatchFilter({ filters, onChange, competitions }: MatchFi
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1.5">Takim Ara</label>
+          <label className="block text-xs font-medium text-gray-500 mb-1.5">Takım Ara</label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
               value={filters.search}
               onChange={(e) => onChange({ ...filters, search: e.target.value })}
-              placeholder="Takim adi..."
+              placeholder="Takım adı..."
               className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-navy-500 focus:border-navy-500 transition-colors"
             />
           </div>

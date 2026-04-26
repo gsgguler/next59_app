@@ -12,14 +12,14 @@ export default function DisclaimerBanner() {
         <div className="flex items-center gap-2 min-w-0">
           <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
           <p className="text-xs text-amber-200/90 truncate">
-            <span className="font-semibold">Yasal Uyari:</span>{' '}
-            Bu platform yatirim tavsiyesi vermez. Icerikler yalnizca bilgilendirme amacidir.
+            <span className="font-semibold">Yasal Uyarı:</span>{' '}
+            Bu platform yatırım tavsiyesi vermez. İçerikler yalnızca bilgilendirme amaçlıdır.
           </p>
         </div>
         <button
           onClick={() => setDismissed(true)}
           className="text-amber-400/70 hover:text-amber-300 transition-colors shrink-0"
-          aria-label="Uyariyi kapat"
+          aria-label="Uyarıyı kapat"
         >
           <X className="w-4 h-4" />
         </button>

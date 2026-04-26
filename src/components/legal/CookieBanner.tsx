@@ -34,10 +34,10 @@ export default function CookieBanner() {
         <div className="flex items-start gap-3">
           <Cookie className="w-5 h-5 text-gold-500 shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold text-white mb-1">Cerez Kullanimi</h3>
+            <h3 className="text-sm font-semibold text-white mb-1">Çerez Kullanımı</h3>
             <p className="text-xs text-navy-300 leading-relaxed">
-              Deneyiminizi iyilestirmek icin cerezler kullaniyoruz.
-              Devam ederek cerez politikamizi kabul etmis olursunuz.
+              Deneyiminizi iyileştirmek için çerezler kullanıyoruz.
+              Devam ederek çerez politikamızı kabul etmiş olursunuz.
             </p>
             <div className="flex items-center gap-3 mt-3">
               <button
@@ -57,7 +57,7 @@ export default function CookieBanner() {
           <button
             onClick={decline}
             className="text-navy-500 hover:text-navy-300 transition-colors shrink-0"
-            aria-label="Cerezi kapat"
+            aria-label="Çerezi kapat"
           >
             <X className="w-4 h-4" />
           </button>

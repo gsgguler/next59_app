@@ -2,7 +2,7 @@ import { Lock, ArrowUpRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const tierNames: Record<string, string> = {
-  free: 'Ucretsiz',
+  free: 'Ücretsiz',
   pro: 'Pro',
   elite: 'Elite',
   b2b_only: 'B2B',
@@ -31,7 +31,7 @@ export default function AccessLevelLock({ requiredTier, userTier, children }: Ac
             <Lock className="w-7 h-7 text-gray-400" />
           </div>
           <p className="text-base font-semibold text-gray-800 mb-1">
-            Bu icerik <span className="text-gold-600">{reqName}</span> seviyesi gerektirir
+            Bu içerik <span className="text-gold-600">{reqName}</span> seviyesi gerektirir
           </p>
           <p className="text-sm text-gray-500 mb-4">
             Mevcut seviyeniz: {curName}
@@ -40,7 +40,7 @@ export default function AccessLevelLock({ requiredTier, userTier, children }: Ac
             onClick={() => navigate('/settings')}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gold-500 text-navy-900 font-semibold text-sm hover:bg-gold-400 transition-colors"
           >
-            Yukselt
+            Yükselt
             <ArrowUpRight className="w-4 h-4" />
           </button>
         </div>
