@@ -15,15 +15,6 @@ function getSupabase() {
   );
 }
 
-function getIstanbulToday(): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Istanbul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
-
 interface PredictionRow {
   id: string;
   match_id: string;
@@ -99,6 +90,25 @@ Deno.serve(async (req: Request) => {
       .eq("is_current", true)
       .maybeSingle();
 
+    // Fetch team strength ratings for both teams
+    const m = match as MatchRow;
+    const { data: homeRating } = await supabase
+      .from("team_strength_ratings")
+      .select(
+        "elo_rating, form_score, attack_score, defense_score, match_count, confidence_score",
+      )
+      .eq("team_id", m.home_team_id)
+      .maybeSingle();
+
+    const { data: awayRating } = await supabase
+      .from("team_strength_ratings")
+      .select(
+        "elo_rating, form_score, attack_score, defense_score, match_count, confidence_score",
+      )
+      .eq("team_id", m.away_team_id)
+      .maybeSingle();
+
+    // Auth check (for is_authenticated flag only)
     const authHeader = req.headers.get("Authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");
     const {
@@ -106,139 +116,47 @@ Deno.serve(async (req: Request) => {
     } = await supabase.auth.getUser(token);
 
     const matchData = {
-      id: (match as MatchRow).id,
-      home_team_id: (match as MatchRow).home_team_id,
-      away_team_id: (match as MatchRow).away_team_id,
-      kickoff_at: (match as MatchRow).kickoff_at,
-      stage: (match as MatchRow).stage,
-      round_name: (match as MatchRow).round_name,
-      matchweek: (match as MatchRow).matchweek,
-      status: (match as MatchRow).status,
+      id: m.id,
+      home_team_id: m.home_team_id,
+      away_team_id: m.away_team_id,
+      kickoff_at: m.kickoff_at,
+      stage: m.stage,
+      round_name: m.round_name,
+      matchweek: m.matchweek,
+      status: m.status,
     };
 
-    // ANON PATH
-    if (!user) {
-      return new Response(
-        JSON.stringify({
-          match: matchData,
-          prediction: prediction
-            ? buildPredictionPreview(prediction as PredictionRow)
-            : null,
-          analysis: {
-            available_text: null,
-            full_analysis_locked: true,
-            upgrade_cta: "Sign up for free to unlock match analysis",
-          },
-          quota: { views_used: 0, views_remaining: 2, tier: "anon" },
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
+    const p = prediction as PredictionRow | null;
 
-    // Resolve tier
-    const { data: sub } = await supabase
-      .from("user_subscriptions")
-      .select(
-        "tier_id, subscription_tiers(code, tier_code, daily_match_views, analysis_depth, has_full_analysis, has_featured_match)",
-      )
-      .eq("user_id", user.id)
-      .eq("is_active", true)
-      .maybeSingle();
-
-    let tierCode = "free";
-    let dailyLimit = 3;
-    let hasFullAnalysis = false;
-    let hasFeaturedMatch = true;
-
-    if (sub?.subscription_tiers) {
-      const t = sub.subscription_tiers as unknown as {
-        code: string;
-        tier_code: string;
-        daily_match_views: number;
-        analysis_depth: string;
-        has_full_analysis: boolean;
-        has_featured_match: boolean;
-      };
-      tierCode = t.tier_code;
-      dailyLimit = t.daily_match_views;
-      hasFullAnalysis = t.has_full_analysis;
-      hasFeaturedMatch = t.has_featured_match;
-    }
-
-    const today = getIstanbulToday();
-    const { data: usage } = await supabase
-      .from("user_daily_usage")
-      .select("matches_viewed, featured_match_id")
-      .eq("user_id", user.id)
-      .eq("usage_date", today)
-      .maybeSingle();
-
-    const viewsUsed = usage?.matches_viewed ?? 0;
-    const isUnlimited = dailyLimit === -1;
-    const viewsRemaining = isUnlimited
-      ? -1
-      : Math.max(0, dailyLimit - viewsUsed);
-    const featuredMatchId = usage?.featured_match_id ?? null;
-
-    const quota = {
-      views_used: viewsUsed,
-      views_remaining: viewsRemaining,
-      tier: tierCode,
-    };
-
-    // PRO: full analysis
-    if (hasFullAnalysis) {
-      return new Response(
-        JSON.stringify({
-          match: matchData,
-          prediction: prediction
-            ? buildPredictionFull(prediction as PredictionRow)
-            : null,
-          analysis: {
-            available_text: prediction?.model_output_raw ?? null,
-            full_analysis_locked: false,
-            upgrade_cta: null,
-          },
-          quota,
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    // FREE: featured match gets full
-    if (hasFeaturedMatch && featuredMatchId === matchId) {
-      return new Response(
-        JSON.stringify({
-          match: matchData,
-          prediction: prediction
-            ? buildPredictionFull(prediction as PredictionRow)
-            : null,
-          analysis: {
-            available_text: prediction?.model_output_raw ?? null,
-            full_analysis_locked: false,
-            upgrade_cta: null,
-          },
-          quota,
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    // FREE: non-featured, preview only
     return new Response(
       JSON.stringify({
         match: matchData,
-        prediction: prediction
-          ? buildPredictionPreview(prediction as PredictionRow)
+        prediction: p
+          ? {
+              cassandra_code: p.cassandra_code,
+              category: p.category,
+              confidence_label: p.confidence_label,
+              probability: p.probability,
+              model_version: p.model_version,
+              model_output_raw: p.model_output_raw,
+              statement: p.statement,
+            }
           : null,
         analysis: {
-          available_text: prediction
-            ? truncateStatement(prediction as PredictionRow)
-            : null,
-          full_analysis_locked: true,
-          upgrade_cta: "Get Pro for full analysis",
+          available_text: p?.model_output_raw ?? null,
+          full_analysis_locked: false,
+          upgrade_cta: null,
         },
-        quota,
+        elo: {
+          home: homeRating ?? null,
+          away: awayRating ?? null,
+        },
+        quota: {
+          views_used: 0,
+          views_remaining: -1,
+          tier: "free",
+          quota_enforced: false,
+        },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
@@ -252,30 +170,3 @@ Deno.serve(async (req: Request) => {
     );
   }
 });
-
-function buildPredictionPreview(p: PredictionRow) {
-  return {
-    cassandra_code: p.cassandra_code,
-    category: p.category,
-    confidence_label: p.confidence_label,
-    probability: p.probability,
-  };
-}
-
-function buildPredictionFull(p: PredictionRow) {
-  return {
-    cassandra_code: p.cassandra_code,
-    category: p.category,
-    confidence_label: p.confidence_label,
-    probability: p.probability,
-    model_version: p.model_version,
-    model_output_raw: p.model_output_raw,
-    statement: p.statement,
-  };
-}
-
-function truncateStatement(p: PredictionRow): string | null {
-  if (!p.statement) return null;
-  if (p.statement.length <= 200) return p.statement;
-  return p.statement.substring(0, 200) + "...";
-}

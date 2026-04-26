@@ -36,7 +36,10 @@ Deno.serve(async (req: Request) => {
     if (!match_id) {
       return new Response(
         JSON.stringify({ error: "match_id is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -49,172 +52,65 @@ Deno.serve(async (req: Request) => {
     if (!matchExists) {
       return new Response(
         JSON.stringify({ error: "Match not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     const authHeader = req.headers.get("Authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");
-
     const {
       data: { user },
     } = await supabase.auth.getUser(token);
 
-    // ANON PATH
-    if (!user) {
-      return new Response(
-        JSON.stringify({ error: "Sign up required", code: "AUTH_REQUIRED" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
+    // Analytics-only logging (no quota enforcement)
+    if (user) {
+      const today = getIstanbulToday();
 
-    // Resolve tier
-    const { data: sub } = await supabase
-      .from("user_subscriptions")
-      .select(
-        "tier_id, subscription_tiers(code, tier_code, daily_match_views, analysis_depth, has_featured_match)",
-      )
-      .eq("user_id", user.id)
-      .eq("is_active", true)
-      .maybeSingle();
-
-    let tierCode = "free";
-    let dailyLimit = 3;
-    let analysisDepth = "first_30min";
-    let hasFeaturedMatch = true;
-
-    if (sub?.subscription_tiers) {
-      const t = sub.subscription_tiers as unknown as {
-        code: string;
-        tier_code: string;
-        daily_match_views: number;
-        analysis_depth: string;
-        has_featured_match: boolean;
-      };
-      tierCode = t.tier_code;
-      dailyLimit = t.daily_match_views;
-      analysisDepth = t.analysis_depth;
-      hasFeaturedMatch = t.has_featured_match;
-    } else {
-      // Auto-create free subscription
-      const { data: freeTier } = await supabase
-        .from("subscription_tiers")
-        .select("id")
-        .eq("code", "free")
+      const { data: usage } = await supabase
+        .from("user_daily_usage")
+        .select("id, match_ids_viewed")
+        .eq("user_id", user.id)
+        .eq("usage_date", today)
         .maybeSingle();
 
-      if (freeTier) {
-        await supabase.from("user_subscriptions").insert({
-          user_id: user.id,
-          tier_id: freeTier.id,
-          is_active: true,
-        });
+      const viewedIds: string[] = usage?.match_ids_viewed ?? [];
+
+      if (!viewedIds.includes(match_id)) {
+        const newViewedIds = [...viewedIds, match_id];
+
+        if (usage) {
+          await supabase
+            .from("user_daily_usage")
+            .update({
+              match_ids_viewed: newViewedIds,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", usage.id);
+        } else {
+          await supabase.from("user_daily_usage").insert({
+            user_id: user.id,
+            usage_date: today,
+            matches_viewed: 0,
+            match_ids_viewed: newViewedIds,
+            tier_at_time: "free",
+            reset_at: new Date(
+              today + "T00:00:00+03:00",
+            ).toISOString(),
+          });
+        }
       }
     }
-
-    const isUnlimited = dailyLimit === -1;
-    const today = getIstanbulToday();
-
-    const { data: usage } = await supabase
-      .from("user_daily_usage")
-      .select("id, matches_viewed, match_ids_viewed, featured_match_id")
-      .eq("user_id", user.id)
-      .eq("usage_date", today)
-      .maybeSingle();
-
-    const currentViews = usage?.matches_viewed ?? 0;
-    const viewedIds: string[] = usage?.match_ids_viewed ?? [];
-    const existingFeatured = usage?.featured_match_id ?? null;
-
-    // Already viewed -- idempotent
-    if (viewedIds.includes(match_id)) {
-      const isFeatured = existingFeatured === match_id;
-      const effectiveDepth =
-        isFeatured || tierCode === "pro" ? "full" : analysisDepth;
-
-      return new Response(
-        JSON.stringify({
-          allowed: true,
-          views_used: currentViews,
-          views_remaining: isUnlimited
-            ? -1
-            : Math.max(0, dailyLimit - currentViews),
-          analysis_depth: effectiveDepth,
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    // Quota check
-    if (!isUnlimited && currentViews >= dailyLimit) {
-      return new Response(
-        JSON.stringify({
-          error: "Daily limit reached",
-          code: "DAILY_LIMIT_REACHED",
-          allowed: false,
-          views_used: currentViews,
-          views_remaining: 0,
-          analysis_depth: analysisDepth,
-        }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    // Record the view
-    const newViews = currentViews + 1;
-    const newViewedIds = [...viewedIds, match_id];
-
-    let featuredMatchId = existingFeatured;
-    if (hasFeaturedMatch && tierCode === "free" && !existingFeatured) {
-      featuredMatchId = match_id;
-    }
-
-    const isFeatured = featuredMatchId === match_id;
-
-    const resetAt = new Date(today + "T00:00:00+03:00");
-    resetAt.setDate(resetAt.getDate() + 1);
-
-    if (usage) {
-      const { error: updateErr } = await supabase
-        .from("user_daily_usage")
-        .update({
-          matches_viewed: newViews,
-          match_ids_viewed: newViewedIds,
-          featured_match_id: featuredMatchId,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", usage.id);
-
-      if (updateErr)
-        throw new Error(`Failed to update usage: ${updateErr.message}`);
-    } else {
-      const { error: insertErr } = await supabase
-        .from("user_daily_usage")
-        .insert({
-          user_id: user.id,
-          usage_date: today,
-          matches_viewed: newViews,
-          match_ids_viewed: newViewedIds,
-          featured_match_id: featuredMatchId,
-          tier_at_time: tierCode,
-          reset_at: resetAt.toISOString(),
-        });
-
-      if (insertErr)
-        throw new Error(`Failed to insert usage: ${insertErr.message}`);
-    }
-
-    const effectiveDepth =
-      isFeatured || tierCode === "pro" ? "full" : analysisDepth;
 
     return new Response(
       JSON.stringify({
         allowed: true,
-        views_used: newViews,
-        views_remaining: isUnlimited
-          ? -1
-          : Math.max(0, dailyLimit - newViews),
-        analysis_depth: effectiveDepth,
+        views_used: 0,
+        views_remaining: -1,
+        analysis_depth: "full",
+        quota_enforced: false,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
