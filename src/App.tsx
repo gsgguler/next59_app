@@ -6,7 +6,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import PublicRoute from './components/auth/PublicRoute';
 import DashboardLayout from './components/layout/DashboardLayout';
 import PublicLayout from './components/layout/PublicLayout';
-import LandingPage from './pages/LandingPage';
+import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardHome from './pages/DashboardHome';
@@ -33,7 +33,7 @@ export default function App() {
           <ToastProvider>
             <Routes>
               <Route element={<PublicLayout />}>
-                <Route path="/" element={<LandingPage />} />
+                <Route path="/" element={<HomePage />} />
               </Route>
 
               <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
