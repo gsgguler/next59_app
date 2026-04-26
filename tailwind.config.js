@@ -30,9 +30,15 @@ export default {
           900: '#4a3417',
           950: '#2d1f0e',
         },
+        champagne: {
+          DEFAULT: '#d4af37',
+          light: '#e6c866',
+          dark: '#b8961f',
+        },
       },
       fontFamily: {
-        sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', '"Open Sans"', '"Helvetica Neue"', 'sans-serif'],
+        display: ['"Playfair Display"', 'Georgia', 'serif'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
       },
     },
   },

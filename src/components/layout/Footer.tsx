@@ -1,23 +1,23 @@
-import { Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import Logo from '../Logo';
 
-const productLinks = [
-  { label: 'Özellikler', to: '/features' },
-  { label: 'Fiyatlandırma', to: '/pricing' },
-  { label: 'SSS', to: '/faq' },
+const quickLinks = [
+  { label: 'Maclar', to: '/matches' },
+  { label: 'Tahminler', to: '/predictions' },
+  { label: 'Hakkimizda', to: '/about' },
 ];
 
 const legalLinks = [
-  { label: 'Gizlilik Politikası', to: '/privacy' },
-  { label: 'Kullanım Şartları', to: '/terms' },
-  { label: 'KVKK Aydınlatma Metni', to: '/kvkk' },
-  { label: 'Çerez Politikası', to: '/cookies' },
+  { label: 'Gizlilik Politikasi', to: '/privacy' },
+  { label: 'Kullanim Sartlari', to: '/terms' },
+  { label: 'KVKK Aydinlatma Metni', to: '/kvkk' },
+  { label: 'Cerez Politikasi', to: '/cookies' },
 ];
 
 const socialLinks = [
-  { label: 'Twitter / X', to: '#' },
-  { label: 'Instagram', to: '#' },
-  { label: 'Discord', to: '#' },
+  { label: 'Twitter / X', href: '#' },
+  { label: 'Instagram', href: '#' },
+  { label: 'Discord', href: '#' },
 ];
 
 export default function Footer() {
@@ -26,25 +26,27 @@ export default function Footer() {
   return (
     <footer className="bg-navy-900 border-t border-navy-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div className="md:col-span-1">
-            <Link to="/" className="flex items-center gap-2 group">
-              <Shield className="w-7 h-7 text-gold-500 group-hover:text-gold-400 transition-colors" />
-              <span className="text-lg font-bold text-white tracking-tight">Next59</span>
-            </Link>
-            <p className="mt-3 text-sm text-navy-300 leading-relaxed max-w-xs">
-              AI destekli futbol analiz platformu. Maçın 90 dakikasını, maç başlamadan yazıyoruz.
+        {/* Columns */}
+        <div className="py-12 grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12">
+          {/* Brand */}
+          <div className="col-span-2 md:col-span-1">
+            <Logo size="sm" linkTo="/" />
+            <p className="mt-4 text-sm text-navy-300 leading-relaxed max-w-xs">
+              Veri odakli futbol gazeteciligi. Macin 90 dakikasini, mac baslamadan yaziyoruz.
             </p>
           </div>
 
+          {/* Quick Links */}
           <div>
-            <h4 className="text-xs font-semibold text-navy-400 uppercase tracking-wider mb-4">Ürün</h4>
+            <h4 className="text-xs font-semibold text-navy-400 uppercase tracking-wider mb-4">
+              Hizli Linkler
+            </h4>
             <ul className="space-y-2.5">
-              {productLinks.map((link) => (
+              {quickLinks.map((link) => (
                 <li key={link.to}>
                   <Link
                     to={link.to}
-                    className="text-sm text-navy-300 hover:text-gold-400 transition-colors"
+                    className="text-sm text-navy-300 hover:text-champagne transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -53,14 +55,17 @@ export default function Footer() {
             </ul>
           </div>
 
+          {/* Legal */}
           <div>
-            <h4 className="text-xs font-semibold text-navy-400 uppercase tracking-wider mb-4">Yasal</h4>
+            <h4 className="text-xs font-semibold text-navy-400 uppercase tracking-wider mb-4">
+              Yasal
+            </h4>
             <ul className="space-y-2.5">
               {legalLinks.map((link) => (
                 <li key={link.to}>
                   <Link
                     to={link.to}
-                    className="text-sm text-navy-300 hover:text-gold-400 transition-colors"
+                    className="text-sm text-navy-300 hover:text-champagne transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -69,14 +74,17 @@ export default function Footer() {
             </ul>
           </div>
 
+          {/* Social */}
           <div>
-            <h4 className="text-xs font-semibold text-navy-400 uppercase tracking-wider mb-4">Takip Et</h4>
+            <h4 className="text-xs font-semibold text-navy-400 uppercase tracking-wider mb-4">
+              Sosyal
+            </h4>
             <ul className="space-y-2.5">
               {socialLinks.map((link) => (
                 <li key={link.label}>
                   <a
-                    href={link.to}
-                    className="text-sm text-navy-300 hover:text-gold-400 transition-colors"
+                    href={link.href}
+                    className="text-sm text-navy-300 hover:text-champagne transition-colors"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -88,12 +96,13 @@ export default function Footer() {
           </div>
         </div>
 
+        {/* Bottom bar */}
         <div className="py-6 border-t border-navy-800 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-navy-500">
-            &copy; {year} Next59. Tüm hakları saklıdır.
+            &copy; {year} Next59. Tum haklari saklidir.
           </p>
-          <p className="text-xs text-navy-600">
-            Bu platform yatırım tavsiyesi vermez. İçerikler yalnızca bilgilendirme amaçlıdır.
+          <p className="text-xs text-navy-600 text-center sm:text-right max-w-md">
+            Bu platform yatirim tavsiyesi vermez. Icerikler yalnizca bilgilendirme amaclidir.
           </p>
         </div>
       </div>
