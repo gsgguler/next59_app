@@ -7,6 +7,7 @@ import PublicRoute from './components/auth/PublicRoute';
 import DashboardLayout from './components/layout/DashboardLayout';
 import PublicLayout from './components/layout/PublicLayout';
 import HomePage from './pages/HomePage';
+import MatchDetailPage from './pages/MatchDetailPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardHome from './pages/DashboardHome';
@@ -34,6 +35,7 @@ export default function App() {
             <Routes>
               <Route element={<PublicLayout />}>
                 <Route path="/" element={<HomePage />} />
+                <Route path="/mac/:matchId" element={<MatchDetailPage />} />
               </Route>
 
               <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
