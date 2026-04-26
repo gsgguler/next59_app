@@ -31,7 +31,7 @@ function parseDate(dateStr: string): string | null {
   if (parts.length !== 3) return null;
   const [dd, mm, yy] = parts;
   const year = parseInt(yy, 10);
-  const fullYear = year >= 90 ? 1900 + year : 2000 + year;
+  const fullYear = year > 99 ? year : year >= 90 ? 1900 + year : 2000 + year;
   return `${fullYear}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
 }
 
