@@ -1,6 +1,10 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import Logo from '../Logo';
+import { ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { motion, AnimatePresence } from 'framer-motion';
+import Logo from '../Logo';
+import { ManifestoBody } from '../legal/ManifestoBody';
 
 const quickLinks = [
   { label: 'Maçlar', to: '/matches' },
@@ -23,7 +27,8 @@ const socialLinks = [
 
 export default function Footer() {
   const year = new Date().getFullYear();
-  const { t } = useTranslation();
+  const { t } = useTranslation(['common', 'legal']);
+  const [legalOpen, setLegalOpen] = useState(false);
 
   return (
     <footer className="bg-navy-900 border-t border-navy-800">
@@ -100,6 +105,52 @@ export default function Footer() {
             </ul>
           </div>
         </div>
+
+        {/* === LEGAL NOTICE SECTION (always present, expand/collapse) === */}
+        <section
+          aria-label={t('legal:disclaimer.footer_title')}
+          data-testid="footer-legal-section"
+          className="border-t border-white/10 pt-8 mt-12"
+        >
+          <button
+            onClick={() => setLegalOpen(!legalOpen)}
+            aria-expanded={legalOpen}
+            aria-controls="footer-legal-content"
+            className="flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors group"
+          >
+            <span className="font-semibold uppercase tracking-wider">
+              {t('legal:disclaimer.footer_title')}
+            </span>
+            <ChevronDown
+              className={`w-4 h-4 transition-transform group-hover:text-white ${
+                legalOpen ? 'rotate-180' : ''
+              }`}
+            />
+          </button>
+
+          {!legalOpen && (
+            <p className="mt-3 text-sm text-white/50 max-w-3xl">
+              {t('legal:disclaimer.lead_short')}
+            </p>
+          )}
+
+          <AnimatePresence initial={false}>
+            {legalOpen && (
+              <motion.div
+                id="footer-legal-content"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
+                className="overflow-hidden mt-4"
+              >
+                <div className="max-w-3xl pb-4">
+                  <ManifestoBody textTone="neutral" />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </section>
 
         {/* Bottom bar */}
         <div className="py-6 border-t border-navy-800 flex flex-col sm:flex-row items-center justify-between gap-3">
