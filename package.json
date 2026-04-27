@@ -13,22 +13,13 @@
     "diacritic:fix": "npx tsx scripts/diacritic-sweep.ts --fix --confidence=high",
     "diacritic:fix:all": "npx tsx scripts/diacritic-sweep.ts --fix --interactive",
     "lint:diacritic": "npx tsx scripts/diacritic-sweep.ts --check",
-    "build:favicons": "npx tsx scripts/generate-favicons.ts",
-    "sitemap:generate": "tsx scripts/generate-sitemap.ts"
+    "build:favicons": "npx tsx scripts/generate-favicons.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
-    "date-fns": "^4.1.0",
-    "date-fns-tz": "^3.2.0",
-    "framer-motion": "^12.38.0",
-    "i18next": "^26.0.8",
-    "i18next-browser-languagedetector": "^8.2.1",
-    "i18next-http-backend": "^3.0.6",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-helmet-async": "^3.0.0",
-    "react-i18next": "^17.0.4",
     "react-router-dom": "^7.14.2"
   },
   "devDependencies": {

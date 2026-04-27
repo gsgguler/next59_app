@@ -19,7 +19,7 @@ interface PredictionInfo {
 }
 
 export default function DebateDetailPage() {
-  const { predictionId, lang } = useParams<{ predictionId: string; lang: string }>();
+  const { predictionId } = useParams<{ predictionId: string }>();
   const [rounds, setRounds] = useState<DebateRound[]>([]);
   const [prediction, setPrediction] = useState<PredictionInfo | null>(null);
   const [sealKey, setSealKey] = useState<string | null>(null);
@@ -127,14 +127,14 @@ export default function DebateDetailPage() {
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <nav className="flex items-center gap-1.5 text-sm text-gray-400 flex-wrap">
-        <Link to={`/${lang}`} className="hover:text-gray-600 transition-colors">Dashboard</Link>
+        <Link to="/" className="hover:text-gray-600 transition-colors">Dashboard</Link>
         <ChevronRight className="w-3.5 h-3.5" />
-        <Link to={`/${lang}/predictions`} className="hover:text-gray-600 transition-colors">Tahminler</Link>
+        <Link to="/predictions" className="hover:text-gray-600 transition-colors">Tahminler</Link>
         {cassCode && (
           <>
             <ChevronRight className="w-3.5 h-3.5" />
             <Link
-              to={`/${lang}/predictions/${predictionId}`}
+              to={`/predictions/${predictionId}`}
               className="hover:text-gray-600 transition-colors"
             >
               {cassCode}
@@ -185,7 +185,7 @@ export default function DebateDetailPage() {
                 </p>
               </div>
               <Link
-                to={`/${lang}/predictions/${predictionId}`}
+                to={`/predictions/${predictionId}`}
                 className="text-xs font-medium text-navy-600 hover:text-navy-700 transition-colors"
               >
                 Tahmin detayına git

@@ -1,5 +1,5 @@
 import { useState, type FormEvent, useMemo } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { UserPlus, Eye, EyeOff, Loader2, Shield, Check, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -27,7 +27,6 @@ const requirements = [
 export default function RegisterPage() {
   const { signUp } = useAuth();
   const navigate = useNavigate();
-  const { lang } = useParams();
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -51,7 +50,7 @@ export default function RegisterPage() {
       setError(err);
       setLoading(false);
     } else {
-      navigate(`/${lang}`);
+      navigate('/');
     }
   }
 
@@ -188,7 +187,7 @@ export default function RegisterPage() {
 
           <p className="mt-8 text-center text-sm text-gray-500">
             Zaten hesabınız var mı?{' '}
-            <Link to={`/${lang}/login`} className="text-navy-700 font-medium hover:text-navy-600 transition-colors">
+            <Link to="/login" className="text-navy-700 font-medium hover:text-navy-600 transition-colors">
               Giriş Yap
             </Link>
           </p>

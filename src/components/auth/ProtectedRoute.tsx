@@ -1,4 +1,4 @@
-import { Navigate, useParams } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -9,7 +9,6 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children, requireAdmin }: ProtectedRouteProps) {
   const { user, profile, loading } = useAuth();
-  const { lang } = useParams();
 
   if (loading) {
     return (
@@ -20,11 +19,11 @@ export default function ProtectedRoute({ children, requireAdmin }: ProtectedRout
   }
 
   if (!user) {
-    return <Navigate to={`/${lang || 'tr'}/login`} replace />;
+    return <Navigate to="/login" replace />;
   }
 
   if (requireAdmin && !profile?.is_super_admin) {
-    return <Navigate to={`/${lang || 'tr'}`} replace />;
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

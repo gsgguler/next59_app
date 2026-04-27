@@ -1,4 +1,4 @@
-import { NavLink, useParams } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Trophy, TrendingUp, MessageSquare, Newspaper, Settings, Shield, ShieldCheck, CircleUser as UserCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -9,24 +9,22 @@ interface SidebarProps {
   onMobileClose: () => void;
 }
 
+const mainNav = [
+  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/matches', icon: Trophy, label: 'Maçlar' },
+  { to: '/predictions', icon: TrendingUp, label: 'Tahminler' },
+  { to: '/debates', icon: MessageSquare, label: 'AI Debate' },
+  { to: '/news', icon: Newspaper, label: 'Haberler' },
+];
+
+const bottomNav = [
+  { to: '/profile', icon: UserCircle, label: 'Profilim' },
+  { to: '/settings', icon: Settings, label: 'Ayarlar' },
+];
+
 export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarProps) {
   const { profile } = useAuth();
-  const { lang } = useParams();
   const isAdmin = profile?.is_super_admin ?? false;
-  const p = lang ? `/${lang}` : '';
-
-  const mainNav = [
-    { to: `${p}/dashboard`, icon: LayoutDashboard, label: 'Dashboard' },
-    { to: `${p}/matches`, icon: Trophy, label: 'Maçlar' },
-    { to: `${p}/predictions`, icon: TrendingUp, label: 'Tahminler' },
-    { to: `${p}/debates`, icon: MessageSquare, label: 'AI Debate' },
-    { to: `${p}/news`, icon: Newspaper, label: 'Haberler' },
-  ];
-
-  const bottomNav = [
-    { to: `${p}/profile`, icon: UserCircle, label: 'Profilim' },
-    { to: `${p}/settings`, icon: Settings, label: 'Ayarlar' },
-  ];
 
   return (
     <>
@@ -58,7 +56,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
               <NavItem key={item.to} {...item} collapsed={collapsed} onClick={onMobileClose} />
             ))}
             {isAdmin && (
-              <NavItem to={`${p}/admin`} icon={ShieldCheck} label="Yönetim" collapsed={collapsed} onClick={onMobileClose} />
+              <NavItem to="/admin" icon={ShieldCheck} label="Yönetim" collapsed={collapsed} onClick={onMobileClose} />
             )}
           </ul>
 
@@ -93,7 +91,7 @@ function NavItem({ to, icon: Icon, label, collapsed, onClick }: {
     <li>
       <NavLink
         to={to}
-        end={to.endsWith('/dashboard')}
+        end={to === '/'}
         onClick={onClick}
         className={({ isActive }) =>
           `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200

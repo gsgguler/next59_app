@@ -1,23 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, NavLink, useLocation, useParams } from 'react-router-dom';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import { Menu, X, ChevronDown, User, LogOut } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import Logo from '../Logo';
-import { LanguageSelector } from '../LanguageSelector';
 import Countdown from '../Countdown';
 import AuthModal from '../AuthModal';
 import { useAuth } from '../../contexts/AuthContext';
 
+const navItems = [
+  { label: 'Maçlar', to: '/matches' },
+  { label: 'Tahminler', to: '/predictions' },
+  { label: 'Hakkımızda', to: '/about' },
+];
+
 export default function PublicHeader() {
   const { user, profile, signOut, loading } = useAuth();
-  const { t } = useTranslation();
-  const { lang } = useParams();
-
-  const navItems = [
-    { label: t('nav.matches'), to: `/${lang}/matches` },
-    { label: t('nav.predictions'), to: `/${lang}/predictions` },
-    { label: t('nav.about'), to: `/${lang}/about` },
-  ];
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -96,20 +92,19 @@ export default function PublicHeader() {
 
             {/* Right: Auth */}
             <div className="hidden md:flex items-center gap-3">
-              <LanguageSelector />
               {!loading && !user ? (
                 <>
                   <button
                     onClick={() => openAuth('login')}
                     className="text-sm font-medium text-navy-200 hover:text-white transition-colors px-4 py-2 rounded-lg hover:bg-navy-800/50"
                   >
-                    {t('nav.login')}
+                    Giriş Yap
                   </button>
                   <button
                     onClick={() => openAuth('register')}
                     className="text-sm font-semibold bg-champagne hover:bg-champagne-light text-navy-950 px-5 py-2.5 rounded-lg transition-colors"
                   >
-                    {t('nav.signup')}
+                    Ücretsiz Başlat
                   </button>
                 </>
               ) : !loading && user ? (
@@ -128,7 +123,7 @@ export default function PublicHeader() {
                     <div className="absolute right-0 top-full mt-2 w-52 bg-navy-900 border border-navy-700/50 rounded-xl shadow-2xl shadow-navy-950/80 overflow-hidden animate-scale-in">
                       <div className="px-4 py-3 border-b border-navy-800">
                         <p className="text-sm font-medium text-white truncate">
-                          {profile?.display_name ?? t('nav.user')}
+                          {profile?.display_name ?? 'Kullanıcı'}
                         </p>
                         <p className="text-xs text-navy-400 truncate mt-0.5">
                           {user.email}
@@ -136,19 +131,19 @@ export default function PublicHeader() {
                       </div>
                       <div className="py-1">
                         <Link
-                          to={`/${lang}/profile`}
+                          to="/profile"
                           onClick={() => setDropdownOpen(false)}
                           className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-navy-300 hover:text-white hover:bg-navy-800/60 transition-colors"
                         >
                           <User className="w-4 h-4" />
-                          {t('nav.profile')}
+                          Profil
                         </Link>
                         <button
                           onClick={() => { setDropdownOpen(false); signOut(); }}
                           className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-navy-300 hover:text-red-400 hover:bg-navy-800/60 transition-colors"
                         >
                           <LogOut className="w-4 h-4" />
-                          {t('nav.logout')}
+                          Çıkış Yap
                         </button>
                       </div>
                     </div>
@@ -195,31 +190,31 @@ export default function PublicHeader() {
                     onClick={() => openAuth('login')}
                     className="w-full text-center text-sm font-medium text-navy-200 hover:text-white border border-navy-700 py-2.5 rounded-lg transition-colors"
                   >
-                    {t('nav.login')}
+                    Giriş Yap
                   </button>
                   <button
                     onClick={() => openAuth('register')}
                     className="w-full text-center text-sm font-semibold bg-champagne hover:bg-champagne-light text-navy-950 py-2.5 rounded-lg transition-colors"
                   >
-                    {t('nav.start_free')}
+                    Ücretsiz Başlat
                   </button>
                 </div>
               ) : !loading && user ? (
                 <div className="pt-3 flex flex-col gap-2">
                   <Link
-                    to={`/${lang}/profile`}
+                    to="/profile"
                     onClick={() => setMobileOpen(false)}
                     className="flex items-center gap-2.5 text-sm text-navy-300 hover:text-white px-3 py-2.5 rounded-lg hover:bg-navy-800/50 transition-colors"
                   >
                     <User className="w-4 h-4" />
-                    {t('nav.profile')}
+                    Profil
                   </Link>
                   <button
                     onClick={() => { setMobileOpen(false); signOut(); }}
                     className="w-full flex items-center gap-2.5 text-sm text-navy-300 hover:text-red-400 px-3 py-2.5 rounded-lg hover:bg-navy-800/50 transition-colors"
                   >
                     <LogOut className="w-4 h-4" />
-                    {t('nav.logout')}
+                    Çıkış Yap
                   </button>
                 </div>
               ) : null}

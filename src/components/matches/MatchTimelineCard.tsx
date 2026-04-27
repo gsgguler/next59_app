@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import type { MatchData } from '../../data/mockMatches';
 import { generateNarrativePreview } from '../../utils/narrativeEngine';
 
@@ -78,7 +78,6 @@ function EloBar({ homeElo, awayElo }: { homeElo: number | null; awayElo: number 
 
 export default function MatchTimelineCard({ match }: { match: MatchData }) {
   const navigate = useNavigate();
-  const { lang } = useParams();
   const status = statusConfig[match.status] ?? statusConfig.scheduled;
 
   const kickoff = new Date(match.kickoff_at);
@@ -92,7 +91,7 @@ export default function MatchTimelineCard({ match }: { match: MatchData }) {
 
   return (
     <button
-      onClick={() => navigate(`/${lang}/mac/${match.id}`)}
+      onClick={() => navigate(`/mac/${match.id}`)}
       className="w-full text-left bg-navy-900 border border-navy-800 rounded-xl p-4 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-champagne/5 hover:border-champagne/20 transition-all duration-200 group"
     >
       {/* Teams row */}

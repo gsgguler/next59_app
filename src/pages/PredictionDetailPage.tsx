@@ -33,7 +33,7 @@ interface PredictionData {
 }
 
 export default function PredictionDetailPage() {
-  const { id, lang } = useParams<{ id: string; lang: string }>();
+  const { id } = useParams<{ id: string }>();
   const [prediction, setPrediction] = useState<PredictionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -88,7 +88,7 @@ export default function PredictionDetailPage() {
       <div className="flex flex-col items-center justify-center py-24 text-gray-400">
         <BarChart3 className="w-12 h-12 mb-3" />
         <p className="text-lg font-medium text-gray-600">{error || 'Tahmin bulunamadı'}</p>
-        <Link to={`/${lang}/predictions`} className="mt-4 text-sm text-navy-600 hover:text-navy-700 font-medium">
+        <Link to="/predictions" className="mt-4 text-sm text-navy-600 hover:text-navy-700 font-medium">
           Tahminlere dön
         </Link>
       </div>
@@ -103,9 +103,9 @@ export default function PredictionDetailPage() {
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <nav className="flex items-center gap-1.5 text-sm text-gray-400 flex-wrap">
-        <Link to={`/${lang}`} className="hover:text-gray-600 transition-colors">Dashboard</Link>
+        <Link to="/" className="hover:text-gray-600 transition-colors">Dashboard</Link>
         <ChevronRight className="w-3.5 h-3.5" />
-        <Link to={`/${lang}/matches`} className="hover:text-gray-600 transition-colors">Maçlar</Link>
+        <Link to="/matches" className="hover:text-gray-600 transition-colors">Maçlar</Link>
         <ChevronRight className="w-3.5 h-3.5" />
         <span className="text-gray-600">{homeName} vs {awayName}</span>
         <ChevronRight className="w-3.5 h-3.5" />
@@ -162,7 +162,7 @@ export default function PredictionDetailPage() {
           </div>
 
           <Link
-            to={`/${lang}/debates/${prediction.id}`}
+            to={`/debates/${prediction.id}`}
             className="flex items-center gap-3 bg-white rounded-xl border border-gray-200 p-5 hover:border-navy-300 hover:shadow-sm transition-all group"
           >
             <div className="w-10 h-10 rounded-lg bg-navy-50 flex items-center justify-center group-hover:bg-navy-100 transition-colors">

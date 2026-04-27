@@ -16,7 +16,7 @@ const tabs = [
 type TabId = (typeof tabs)[number]['id'];
 
 export default function MatchDetailPage() {
-  const { matchId, lang } = useParams<{ matchId: string; lang: string }>();
+  const { matchId } = useParams<{ matchId: string }>();
   const [activeTab, setActiveTab] = useState<TabId>('oracle');
 
   const match = useMemo(
@@ -46,7 +46,7 @@ export default function MatchDetailPage() {
           Aradığınız maç mevcut değil veya kaldırılmış olabilir.
         </p>
         <Link
-          to={`/${lang}`}
+          to="/"
           className="inline-flex items-center gap-2 text-sm text-champagne hover:text-champagne-light transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />

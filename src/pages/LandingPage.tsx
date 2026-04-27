@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Brain,
   TrendingUp,
@@ -131,7 +131,6 @@ const testimonials = [
 ];
 
 export default function LandingPage() {
-  const { lang } = useParams();
   return (
     <>
       {/* Hero Section */}
@@ -162,7 +161,7 @@ export default function LandingPage() {
 
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
-                to={`/${lang}/register`}
+                to="/register"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gold-500 hover:bg-gold-400 text-navy-950 font-semibold px-8 py-3.5 rounded-xl transition-all hover:shadow-lg hover:shadow-gold-500/20 text-sm"
               >
                 Ücretsiz Başla
@@ -329,7 +328,7 @@ export default function LandingPage() {
                 </ul>
 
                 <Link
-                  to={`/${lang}/register`}
+                  to="/register"
                   className={`block text-center py-2.5 rounded-lg font-semibold text-sm transition-colors ${
                     plan.featured
                       ? 'bg-gold-500 hover:bg-gold-400 text-navy-950'
@@ -354,7 +353,7 @@ export default function LandingPage() {
             Binlerce kullanıcıya katılın ve yapay zekâ destekli futbol analizinin gücünü keşfedin.
           </p>
           <Link
-            to={`/${lang}/register`}
+            to="/register"
             className="inline-flex items-center gap-2 bg-gold-500 hover:bg-gold-400 text-navy-950 font-semibold px-8 py-3.5 rounded-xl transition-all hover:shadow-lg hover:shadow-gold-500/20 text-sm"
           >
             Ücretsiz Hesap Oluştur
