@@ -9,6 +9,16 @@ import LivePulse from '../components/match-detail/LivePulse';
 import MatchDetailSkeleton from '../components/ui/MatchDetailSkeleton';
 import FetchError from '../components/ui/FetchError';
 
+function setMetaTag(attr: 'property' | 'name', key: string, value: string) {
+  let el = document.querySelector<HTMLMetaElement>(`meta[${attr}="${key}"]`);
+  if (!el) {
+    el = document.createElement('meta');
+    el.setAttribute(attr, key);
+    document.head.appendChild(el);
+  }
+  el.setAttribute('content', value);
+}
+
 const tabs = [
   { id: 'oracle' as const, label: 'Mac Oncesi Kehanet', icon: Eye },
   { id: 'power' as const, label: 'Guc Dengesi', icon: BarChart3 },
@@ -24,10 +34,51 @@ export default function MatchDetailPage() {
 
   useEffect(() => {
     if (match) {
-      document.title = `${match.home_team.name} vs ${match.away_team.name} — 2026 Dunya Kupasi Analizi | Next59`;
+      const title = `${match.home_team.name} vs ${match.away_team.name} | next59 Tahmini`;
+      document.title = title;
+
+      const ogParams = new URLSearchParams({
+        homeTeam: match.home_team.name,
+        awayTeam: match.away_team.name,
+        prediction: match.prediction
+          ? match.prediction.home_prob > match.prediction.away_prob
+            ? match.prediction.home_prob > match.prediction.draw_prob ? 'Galibiyet' : 'Beraberlik'
+            : match.prediction.away_prob > match.prediction.draw_prob ? 'Maglubiyet' : 'Beraberlik'
+          : '',
+        probability: match.prediction
+          ? String(Math.round(Math.max(match.prediction.home_prob, match.prediction.draw_prob, match.prediction.away_prob)))
+          : '',
+        matchDate: match.kickoff_at,
+        league: '2026 Dunya Kupasi',
+      });
+      const ogImageUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/og-match?${ogParams.toString()}`;
+      const matchUrl = `https://www.next59.com/mac/${match.id}`;
+      const description = `${match.home_team.name} vs ${match.away_team.name} mac analizi ve tahminleri.`;
+
+      setMetaTag('property', 'og:title', title);
+      setMetaTag('property', 'og:description', description);
+      setMetaTag('property', 'og:image', ogImageUrl);
+      setMetaTag('property', 'og:url', matchUrl);
+      setMetaTag('property', 'og:type', 'article');
+      setMetaTag('name', 'twitter:card', 'summary_large_image');
+      setMetaTag('name', 'twitter:title', title);
+      setMetaTag('name', 'twitter:description', description);
+      setMetaTag('name', 'twitter:image', ogImageUrl);
     } else if (!loading) {
       document.title = 'Mac Bulunamadi | Next59';
     }
+
+    return () => {
+      document.title = 'Next59 \u2014 kehanet k\u00e2tibi';
+      setMetaTag('property', 'og:title', 'Next59 \u2014 kehanet k\u00e2tibi');
+      setMetaTag('property', 'og:description', 'Ma\u00e7\u0131n 90 dakikas\u0131n\u0131, ilk d\u00fcd\u00fckten \u00f6nce yaz\u0131yoruz.');
+      setMetaTag('property', 'og:image', 'https://www.next59.com/favicon-512.png');
+      setMetaTag('property', 'og:url', 'https://www.next59.com');
+      setMetaTag('name', 'twitter:card', 'summary_large_image');
+      setMetaTag('name', 'twitter:title', 'Next59 \u2014 kehanet k\u00e2tibi');
+      setMetaTag('name', 'twitter:description', 'Ma\u00e7\u0131n 90 dakikas\u0131n\u0131, ilk d\u00fcd\u00fckten \u00f6nce yaz\u0131yoruz.');
+      setMetaTag('name', 'twitter:image', 'https://www.next59.com/favicon-512.png');
+    };
   }, [match, loading]);
 
   useEffect(() => {

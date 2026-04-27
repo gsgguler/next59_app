@@ -96,8 +96,8 @@ export default function PredictionDetailPage() {
   }
 
   const match = prediction.match;
-  const homeName = match?.home_team?.short_name ?? 'Ev Sahibi';
-  const awayName = match?.away_team?.short_name ?? 'Konuk';
+  const homeName = match?.home_team?.short_name ?? match?.home_team?.name ?? 'Ev Sahibi';
+  const awayName = match?.away_team?.short_name ?? match?.away_team?.name ?? 'Konuk';
   const compName = match?.competition_season?.competition?.name ?? '';
 
   return (
@@ -230,9 +230,9 @@ function MatchSummaryCard({
       <div className="flex items-center justify-between gap-4">
         <div className="flex-1 text-center">
           <div className="w-14 h-14 rounded-full bg-navy-600 flex items-center justify-center mx-auto mb-2">
-            <span className="text-sm font-bold">{homeTeam?.tla ?? '???'}</span>
+            <span className="text-sm font-bold">{homeTeam?.tla ?? homeTeam?.name?.slice(0, 3).toUpperCase() ?? '???'}</span>
           </div>
-          <p className="font-semibold text-sm">{homeTeam?.short_name ?? 'Ev Sahibi'}</p>
+          <p className="font-semibold text-sm">{homeTeam?.short_name ?? homeTeam?.name ?? 'Ev Sahibi'}</p>
           <p className="text-xs text-navy-300">{homeTeam?.city ?? ''}</p>
         </div>
 
@@ -248,9 +248,9 @@ function MatchSummaryCard({
 
         <div className="flex-1 text-center">
           <div className="w-14 h-14 rounded-full bg-navy-600 flex items-center justify-center mx-auto mb-2">
-            <span className="text-sm font-bold">{awayTeam?.tla ?? '???'}</span>
+            <span className="text-sm font-bold">{awayTeam?.tla ?? awayTeam?.name?.slice(0, 3).toUpperCase() ?? '???'}</span>
           </div>
-          <p className="font-semibold text-sm">{awayTeam?.short_name ?? 'Konuk'}</p>
+          <p className="font-semibold text-sm">{awayTeam?.short_name ?? awayTeam?.name ?? 'Konuk'}</p>
           <p className="text-xs text-navy-300">{awayTeam?.city ?? ''}</p>
         </div>
       </div>

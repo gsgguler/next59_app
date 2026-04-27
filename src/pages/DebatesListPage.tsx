@@ -45,8 +45,8 @@ export default function DebatesListPage() {
           prediction:predictions(
             cassandra_code,
             match:matches(
-              home_team:teams!matches_home_team_id_fkey(short_name, tla),
-              away_team:teams!matches_away_team_id_fkey(short_name, tla)
+              home_team:teams!matches_home_team_id_fkey(name, short_name, tla),
+              away_team:teams!matches_away_team_id_fkey(name, short_name, tla)
             )
           )
         `)
@@ -215,7 +215,7 @@ export default function DebatesListPage() {
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-sm text-gray-900 font-medium">
-                          {entry.homeTeam?.short_name ?? '?'} vs {entry.awayTeam?.short_name ?? '?'}
+                          {entry.homeTeam?.short_name ?? entry.homeTeam?.name ?? '?'} vs {entry.awayTeam?.short_name ?? entry.awayTeam?.name ?? '?'}
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -272,7 +272,7 @@ export default function DebatesListPage() {
                     </span>
                   </div>
                   <p className="text-sm font-medium text-gray-900 mb-1">
-                    {entry.homeTeam?.short_name ?? '?'} vs {entry.awayTeam?.short_name ?? '?'}
+                    {entry.homeTeam?.short_name ?? entry.homeTeam?.name ?? '?'} vs {entry.awayTeam?.short_name ?? entry.awayTeam?.name ?? '?'}
                   </p>
                   <div className="flex items-center justify-between text-xs text-gray-500">
                     <span>{entry.totalRounds}/3 tur</span>

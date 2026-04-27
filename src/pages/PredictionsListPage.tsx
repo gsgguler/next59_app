@@ -40,8 +40,8 @@ export default function PredictionsListPage() {
         id, statement, probability, confidence_label, access_level,
         cassandra_code, generated_at,
         match:matches(
-          home_team:teams!matches_home_team_id_fkey(short_name, tla),
-          away_team:teams!matches_away_team_id_fkey(short_name, tla)
+          home_team:teams!matches_home_team_id_fkey(name, short_name, tla),
+          away_team:teams!matches_away_team_id_fkey(name, short_name, tla)
         )
       `)
       .eq('is_current', true);

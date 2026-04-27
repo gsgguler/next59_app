@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import type { UIMatch } from '../../types/ui-models';
 import { generateNarrativePreview } from '../../utils/narrativeEngine';
+import ShareMatchCard from '../ShareMatchCard';
 
 const statusConfig = {
   scheduled: { label: 'Yaklaşıyor', cls: 'bg-navy-800 text-navy-300 border-navy-700' },
@@ -92,7 +93,7 @@ export default function MatchTimelineCard({ match }: { match: UIMatch }) {
   return (
     <button
       onClick={() => navigate(`/mac/${match.id}`)}
-      className="w-full text-left bg-navy-900 border border-navy-800 rounded-xl p-4 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-champagne/5 hover:border-champagne/20 transition-all duration-200 group"
+      className="relative w-full text-left bg-navy-900 border border-navy-800 rounded-xl p-4 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-champagne/5 hover:border-champagne/20 transition-all duration-200 group"
     >
       {/* Teams row */}
       <div className="flex items-center gap-2">
@@ -129,6 +130,30 @@ export default function MatchTimelineCard({ match }: { match: UIMatch }) {
       <p className="mt-2.5 text-xs text-navy-400 leading-relaxed line-clamp-1 group-hover:text-navy-300 transition-colors">
         {narrative}
       </p>
+
+      <ShareMatchCard
+        matchId={match.id}
+        homeTeam={match.home_team.name}
+        awayTeam={match.away_team.name}
+        prediction={
+          match.prediction
+            ? match.prediction.home_prob > match.prediction.away_prob
+              ? match.prediction.home_prob > match.prediction.draw_prob
+                ? 'Galibiyet'
+                : 'Beraberlik'
+              : match.prediction.away_prob > match.prediction.draw_prob
+                ? 'Maglubiyet'
+                : 'Beraberlik'
+            : ''
+        }
+        probability={
+          match.prediction
+            ? String(Math.round(Math.max(match.prediction.home_prob, match.prediction.draw_prob, match.prediction.away_prob)))
+            : ''
+        }
+        matchDate={match.kickoff_at}
+        league="2026 Dunya Kupasi"
+      />
     </button>
   );
 }

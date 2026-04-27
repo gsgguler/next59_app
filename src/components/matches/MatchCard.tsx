@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Clock, Eye } from 'lucide-react';
 import type { Match } from '../../pages/MatchListPage';
+import ShareMatchCard from '../ShareMatchCard';
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
   scheduled: { label: 'Planlı', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200' },
@@ -43,7 +44,7 @@ export default function MatchCard({ match }: { match: Match }) {
     : '';
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg hover:border-gray-300 transition-all duration-200 group">
+    <div className="relative bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg hover:border-gray-300 transition-all duration-200 group">
       <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-100">
         {compName && (
           <span className="text-xs font-semibold text-navy-600 bg-navy-50 px-2 py-0.5 rounded">
@@ -59,8 +60,8 @@ export default function MatchCard({ match }: { match: Match }) {
         <div className="flex items-center justify-between gap-2">
           <div className="flex-1 min-w-0">
             <TeamDisplay
-              name={match.home_team?.short_name ?? 'Ev Sahibi'}
-              tla={match.home_team?.tla ?? '???'}
+              name={match.home_team?.short_name ?? match.home_team?.name ?? 'Ev Sahibi'}
+              tla={match.home_team?.tla ?? match.home_team?.name?.slice(0, 3).toUpperCase() ?? '???'}
               colors={match.home_team?.club_colors ?? null}
               side="home"
             />
@@ -80,8 +81,8 @@ export default function MatchCard({ match }: { match: Match }) {
 
           <div className="flex-1 min-w-0">
             <TeamDisplay
-              name={match.away_team?.short_name ?? 'Konuk'}
-              tla={match.away_team?.tla ?? '???'}
+              name={match.away_team?.short_name ?? match.away_team?.name ?? 'Konuk'}
+              tla={match.away_team?.tla ?? match.away_team?.name?.slice(0, 3).toUpperCase() ?? '???'}
               colors={match.away_team?.club_colors ?? null}
               side="away"
             />
@@ -109,6 +110,16 @@ export default function MatchCard({ match }: { match: Match }) {
           Tahmin Gör
         </Link>
       </div>
+
+      <ShareMatchCard
+        matchId={match.id}
+        homeTeam={match.home_team?.short_name ?? match.home_team?.name ?? 'Ev Sahibi'}
+        awayTeam={match.away_team?.short_name ?? match.away_team?.name ?? 'Konuk'}
+        prediction=""
+        probability=""
+        matchDate={match.kickoff_at ?? ''}
+        league={compName}
+      />
     </div>
   );
 }

@@ -13,7 +13,9 @@
     "diacritic:fix": "npx tsx scripts/diacritic-sweep.ts --fix --confidence=high",
     "diacritic:fix:all": "npx tsx scripts/diacritic-sweep.ts --fix --interactive",
     "lint:diacritic": "npx tsx scripts/diacritic-sweep.ts --check",
-    "build:favicons": "npx tsx scripts/generate-favicons.ts"
+    "build:favicons": "npx tsx scripts/generate-favicons.ts",
+    "generate:sitemap": "npx tsx scripts/generate-sitemap.ts",
+    "check:fd-mappings": "npx tsx scripts/check-fd-mappings.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

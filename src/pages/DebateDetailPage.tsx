@@ -37,8 +37,8 @@ export default function DebateDetailPage() {
             id, cassandra_code, statement,
             match:matches(
               id,
-              home_team:teams!matches_home_team_id_fkey(short_name),
-              away_team:teams!matches_away_team_id_fkey(short_name)
+              home_team:teams!matches_home_team_id_fkey(name, short_name),
+              away_team:teams!matches_away_team_id_fkey(name, short_name)
             )
           `)
           .eq('id', predictionId)
@@ -98,8 +98,8 @@ export default function DebateDetailPage() {
     );
   }
 
-  const homeName = prediction?.match?.home_team?.short_name ?? '';
-  const awayName = prediction?.match?.away_team?.short_name ?? '';
+  const homeName = prediction?.match?.home_team?.short_name ?? prediction?.match?.home_team?.name ?? '';
+  const awayName = prediction?.match?.away_team?.short_name ?? prediction?.match?.away_team?.name ?? '';
   const cassCode = prediction?.cassandra_code ?? '';
 
   const lastRound = rounds[rounds.length - 1];

@@ -16,12 +16,13 @@ const STATUS_MAP: Record<string, UIMatch['status']> = {
 };
 
 function transformTeam(raw: DbTeam): UITeam {
+  const name = raw?.name ?? 'Bilinmiyor';
   return {
-    id: raw.id,
-    name: raw.name,
-    short_name: raw.short_name ?? raw.tla ?? raw.name.slice(0, 3).toUpperCase(),
-    country_code: raw.country_code,
-    fifa_code: raw.fifa_code ?? raw.tla ?? raw.country_code,
+    id: raw?.id ?? '',
+    name,
+    short_name: raw?.short_name ?? raw?.tla ?? name,
+    country_code: raw?.country_code ?? 'TR',
+    fifa_code: raw?.fifa_code ?? raw?.tla ?? raw?.country_code ?? 'TR',
   };
 }
 

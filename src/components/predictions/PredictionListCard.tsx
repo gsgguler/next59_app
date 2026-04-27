@@ -37,10 +37,10 @@ export default function PredictionListCard({ prediction, userTier }: PredictionL
   const badge = accessBadge[prediction.access_level] ?? accessBadge.free;
 
   const pct = Math.round(prediction.probability * 100);
-  const homeTla = prediction.match?.home_team?.tla ?? '???';
-  const awayTla = prediction.match?.away_team?.tla ?? '???';
-  const homeName = prediction.match?.home_team?.short_name ?? '';
-  const awayName = prediction.match?.away_team?.short_name ?? '';
+  const homeTla = prediction.match?.home_team?.tla ?? prediction.match?.home_team?.name?.slice(0, 3).toUpperCase() ?? '???';
+  const awayTla = prediction.match?.away_team?.tla ?? prediction.match?.away_team?.name?.slice(0, 3).toUpperCase() ?? '???';
+  const homeName = prediction.match?.home_team?.short_name ?? prediction.match?.home_team?.name ?? '';
+  const awayName = prediction.match?.away_team?.short_name ?? prediction.match?.away_team?.name ?? '';
 
   return (
     <Link

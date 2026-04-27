@@ -197,10 +197,10 @@ function UpcomingMatchesList() {
       {matches.map((m) => (
         <div key={m.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
           <div className="flex items-center gap-3">
-            <TeamBadge name={m.home_team?.tla || '?'} />
+            <TeamBadge name={m.home_team?.tla || m.home_team?.name?.slice(0, 3).toUpperCase() || '?'} />
             <div>
               <p className="text-sm font-medium text-gray-900">
-                {m.home_team?.short_name || 'Ev Sahibi'} - {m.away_team?.short_name || 'Konuk'}
+                {m.home_team?.short_name || m.home_team?.name || 'Ev Sahibi'} - {m.away_team?.short_name || m.away_team?.name || 'Konuk'}
               </p>
               <p className="text-xs text-gray-400">
                 {m.kickoff_at ? new Date(m.kickoff_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'TBD'}
