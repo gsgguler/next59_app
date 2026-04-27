@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import Logo from '../Logo';
-import { useTranslation } from '../../locales/hero';
+import { useTranslation } from 'react-i18next';
 
 const quickLinks = [
   { label: 'Maçlar', to: '/matches' },

@@ -1,4 +1,4 @@
-import { useTranslation } from '../locales/hero';
+import { useTranslation } from 'react-i18next';
 
 export function Hero() {
   const { t } = useTranslation();

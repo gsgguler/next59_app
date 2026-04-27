@@ -1,0 +1,64 @@
+{
+  "hero": {
+    "tagline": "kehanet kâtibi",
+    "subtagline": "Maçın 90 dakikasını, ilk düdükten önce yazıyoruz.",
+    "cta_primary": "Maçları Keşfet",
+    "cta_secondary": "Manifestomuzu Okuyun"
+  },
+  "footer": {
+    "tagline_line1": "Maç başlamadan, 90 dakikayı yazıyoruz.",
+    "tagline_line2": "Tarafsız, veriyle çalışan futbol gazeteciliği."
+  },
+  "nav": {
+    "matches": "Maçlar",
+    "teams": "Takımlar",
+    "predictions": "Tahminler",
+    "about": "Hakkımızda",
+    "login": "Giriş Yap",
+    "signup": "Üye Ol",
+    "start_free": "Ücretsiz Başlat",
+    "profile": "Profil",
+    "logout": "Çıkış Yap",
+    "user": "Kullanıcı"
+  },
+  "match": {
+    "vs": "vs",
+    "scheduled": "Yaklaşıyor",
+    "live": "CANLI",
+    "finished": "Tamamlandı",
+    "oracle_tab": "Maç Öncesi Kehanet",
+    "stats_tab": "Güç Dengesi",
+    "live_tab": "Canlı Nabız",
+    "pre_match_lock": "Maç başladığında kehanetler kilitlenir",
+    "general_scenario": "Genel Senaryo",
+    "goal_expectation": "Gol Beklentisi",
+    "mutual_attack": "Karşılıklı Atak Senaryosu",
+    "first_half": "İlk Yarı Analizi",
+    "second_half": "İkinci Yarı Projeksiyonu",
+    "full_time_prediction": "Maç Sonu Tahmini",
+    "disclaimer": "Bu bir veri analizidir, kesin sonuç değildir. Futbolun doğası gereği sürprizler her zaman mümkündür.",
+    "elo_comparison": "Elo Karşılaştırması",
+    "form_status": "Form Durumu",
+    "team_stats": "Takım İstatistikleri",
+    "squad_assessment": "Kadro Değerlendirmesi",
+    "coming_soon": "yakında"
+  },
+  "auth": {
+    "welcome": "Next59'a Hoş Geldiniz",
+    "subtitle": "30 gün boyunca tüm analizlere ücretsiz erişin",
+    "google_login": "Google ile Devam Et",
+    "email": "E-posta adresiniz",
+    "password": "Şifreniz",
+    "login": "Giriş Yap",
+    "signup": "Üye Ol",
+    "toggle_login": "Zaten hesabın var mı? Giriş Yap",
+    "toggle_signup": "Hesabın yok mu? Üye Ol",
+    "terms": "Üye olarak Kullanım Koşulları ve Gizlilik Politikasını kabul etmiş olursunuz."
+  },
+  "prediction": {
+    "correct": "Doğru",
+    "incorrect": "Yanlış",
+    "pending": "Bekleniyor",
+    "accuracy": "Doğruluk Oranı"
+  }
+}
