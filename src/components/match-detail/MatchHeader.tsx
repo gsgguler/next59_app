@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Lock, MapPin } from 'lucide-react';
-import type { MatchData } from '../../data/mockMatches';
+import type { UIMatch } from '../../types/ui-models';
 
 const statusConfig = {
   scheduled: { label: 'Yaklaşıyor', cls: 'bg-navy-800 text-navy-300 border-navy-700' },
@@ -36,7 +36,7 @@ function Flag({ code }: { code: string }) {
   );
 }
 
-export default function MatchHeader({ match }: { match: MatchData }) {
+export default function MatchHeader({ match }: { match: UIMatch }) {
   const status = statusConfig[match.status] ?? statusConfig.scheduled;
   const kickoff = new Date(match.kickoff_at);
   const dateStr = kickoff.toLocaleDateString('tr-TR', {

@@ -1,6 +1,6 @@
-import type { MatchData } from '../../data/mockMatches';
+import type { UIMatch } from '../../types/ui-models';
 
-export default function PowerBalance({ match }: { match: MatchData }) {
+export default function PowerBalance({ match }: { match: UIMatch }) {
   const homeElo = match.home_elo ?? 1500;
   const awayElo = match.away_elo ?? 1500;
   const eloDiff = homeElo - awayElo;

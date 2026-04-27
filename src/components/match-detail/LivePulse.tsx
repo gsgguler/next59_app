@@ -1,5 +1,5 @@
 import { Radio, Clock } from 'lucide-react';
-import type { MatchData } from '../../data/mockMatches';
+import type { UIMatch } from '../../types/ui-models';
 
 const INTERVALS = [
   '0-5', '5-10', '10-15', '15-20', '20-25', '25-30',
@@ -7,7 +7,7 @@ const INTERVALS = [
   '60-65', '65-70', '70-75', '75-80', '80-85', '85-90',
 ];
 
-export default function LivePulse({ match }: { match: MatchData }) {
+export default function LivePulse({ match }: { match: UIMatch }) {
   if (match.status !== 'live') {
     return (
       <div>

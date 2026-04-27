@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, type React
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
-interface Profile {
+export interface Profile {
   id: string;
   email: string;
   display_name: string | null;
@@ -18,11 +18,19 @@ interface AuthState {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
+  isAdmin: boolean;
   loading: boolean;
+  sessionReady: boolean;
   signUp: (email: string, password: string, displayName: string) => Promise<{ error: string | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+}
+
+function deriveIsAdmin(user: User | null): boolean {
+  if (!user) return false;
+  const role = user.app_metadata?.role;
+  return role === 'admin';
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -32,6 +40,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionReady, setSessionReady] = useState(false);
+
+  const isAdmin = deriveIsAdmin(user);
 
   const loadProfile = useCallback(async (userId: string) => {
     const { data } = await supabase
@@ -46,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ?? null);
+      setSessionReady(true);
       if (s?.user) {
         loadProfile(s.user.id).finally(() => setLoading(false));
       } else {
@@ -93,8 +105,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, signUp, signIn, signOut, refreshProfile }}>
-      {children}
+    <AuthContext.Provider value={{ user, session, profile, isAdmin, loading, sessionReady, signUp, signIn, signOut, refreshProfile }}>
+      {loading && !sessionReady ? null : children}
     </AuthContext.Provider>
   );
 }

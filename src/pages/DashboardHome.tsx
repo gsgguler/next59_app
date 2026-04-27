@@ -183,7 +183,7 @@ function UpcomingMatchesList() {
         .order('kickoff_at', { ascending: true })
         .limit(5);
 
-      setMatches(data ?? []);
+      setMatches((data as unknown as UpcomingMatch[]) ?? []);
     }
     fetch();
   }, []);

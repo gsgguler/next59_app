@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../ui/Toast';
 
 export default function ProfileForm() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, isAdmin, refreshProfile } = useAuth();
   const { toast } = useToast();
   const [displayName, setDisplayName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
@@ -68,7 +68,7 @@ export default function ProfileForm() {
         <div>
           <p className="text-lg font-semibold text-gray-900">{displayName || 'Kullanıcı'}</p>
           <p className="text-sm text-gray-500">{user?.email}</p>
-          {profile?.is_super_admin && (
+          {isAdmin && (
             <span className="text-xs font-medium text-navy-700 bg-navy-50 border border-navy-200 px-2 py-0.5 rounded mt-1 inline-block">
               Super Admin
             </span>

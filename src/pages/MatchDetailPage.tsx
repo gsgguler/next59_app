@@ -1,56 +1,66 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Eye, BarChart3, Radio, ArrowLeft } from 'lucide-react';
-import { MOCK_MATCHES } from '../data/mockMatches';
+import { useMatch } from '../hooks/useMatch';
 import MatchHeader from '../components/match-detail/MatchHeader';
 import PreMatchOracle from '../components/match-detail/PreMatchOracle';
 import PowerBalance from '../components/match-detail/PowerBalance';
 import LivePulse from '../components/match-detail/LivePulse';
+import MatchDetailSkeleton from '../components/ui/MatchDetailSkeleton';
+import FetchError from '../components/ui/FetchError';
 
 const tabs = [
-  { id: 'oracle' as const, label: 'Maç Öncesi Kehanet', icon: Eye },
-  { id: 'power' as const, label: 'Güç Dengesi', icon: BarChart3 },
-  { id: 'live' as const, label: 'Canlı Nabız', icon: Radio },
+  { id: 'oracle' as const, label: 'Mac Oncesi Kehanet', icon: Eye },
+  { id: 'power' as const, label: 'Guc Dengesi', icon: BarChart3 },
+  { id: 'live' as const, label: 'Canli Nabiz', icon: Radio },
 ];
 
 type TabId = (typeof tabs)[number]['id'];
 
 export default function MatchDetailPage() {
   const { matchId } = useParams<{ matchId: string }>();
+  const { match, loading, error } = useMatch(matchId);
   const [activeTab, setActiveTab] = useState<TabId>('oracle');
-
-  const match = useMemo(
-    () => MOCK_MATCHES.find((m) => m.id === matchId),
-    [matchId],
-  );
 
   useEffect(() => {
     if (match) {
-      document.title = `${match.home_team.name} vs ${match.away_team.name} — 2026 Dünya Kupası Analizi | Next59`;
-    } else {
-      document.title = 'Maç Bulunamadı | Next59';
+      document.title = `${match.home_team.name} vs ${match.away_team.name} — 2026 Dunya Kupasi Analizi | Next59`;
+    } else if (!loading) {
+      document.title = 'Mac Bulunamadi | Next59';
     }
-  }, [match]);
+  }, [match, loading]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [matchId]);
 
+  if (loading) {
+    return <MatchDetailSkeleton />;
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-20">
+        <FetchError message={error} onRetry={() => window.location.reload()} />
+      </div>
+    );
+  }
+
   if (!match) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-20 text-center">
         <h1 className="font-display text-2xl font-bold text-white mb-3">
-          Maç Bulunamadı
+          Mac Bulunamadi
         </h1>
         <p className="text-sm text-navy-400 mb-6">
-          Aradığınız maç mevcut değil veya kaldırılmış olabilir.
+          Aradiginiz mac mevcut degil veya kaldirilmis olabilir.
         </p>
         <Link
           to="/"
           className="inline-flex items-center gap-2 text-sm text-champagne hover:text-champagne-light transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Tüm Maçlara Dön
+          Tum Maclara Don
         </Link>
       </div>
     );

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import type { MatchData } from '../../data/mockMatches';
+import type { UIMatch } from '../../types/ui-models';
 import { generateNarrativePreview } from '../../utils/narrativeEngine';
 
 const statusConfig = {
@@ -76,7 +76,7 @@ function EloBar({ homeElo, awayElo }: { homeElo: number | null; awayElo: number 
   );
 }
 
-export default function MatchTimelineCard({ match }: { match: MatchData }) {
+export default function MatchTimelineCard({ match }: { match: UIMatch }) {
   const navigate = useNavigate();
   const status = statusConfig[match.status] ?? statusConfig.scheduled;
 

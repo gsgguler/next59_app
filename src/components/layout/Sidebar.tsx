@@ -23,8 +23,7 @@ const bottomNav = [
 ];
 
 export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarProps) {
-  const { profile } = useAuth();
-  const isAdmin = profile?.is_super_admin ?? false;
+  const { isAdmin } = useAuth();
 
   return (
     <>

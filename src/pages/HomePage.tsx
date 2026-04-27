@@ -2,8 +2,10 @@ import { useState, useMemo, useEffect } from 'react';
 import { Search, Filter, ArrowUpDown, Calendar, ChevronDown } from 'lucide-react';
 import { Hero } from '../components/Hero';
 import MatchTimelineCard from '../components/matches/MatchTimelineCard';
-import { MOCK_MATCHES } from '../data/mockMatches';
-import type { MatchData } from '../data/mockMatches';
+import { useHomeMatches } from '../hooks/useHomeMatches';
+import { MatchCardSkeletonGrid } from '../components/ui/MatchCardSkeleton';
+import FetchError from '../components/ui/FetchError';
+import type { UIMatch } from '../types/ui-models';
 import CookieBanner from '../components/legal/CookieBanner';
 
 const DATE_RANGES = [
@@ -38,8 +40,8 @@ function formatDateHeader(dateStr: string): string {
   });
 }
 
-function groupByDate(matches: MatchData[]): Map<string, MatchData[]> {
-  const groups = new Map<string, MatchData[]>();
+function groupByDate(matches: UIMatch[]): Map<string, UIMatch[]> {
+  const groups = new Map<string, UIMatch[]>();
   for (const m of matches) {
     const dateKey = m.kickoff_at.slice(0, 10);
     const arr = groups.get(dateKey);
@@ -50,6 +52,7 @@ function groupByDate(matches: MatchData[]): Map<string, MatchData[]> {
 }
 
 export default function HomePage() {
+  const { matches: allMatches, loading, error } = useHomeMatches();
   const [teamSearch, setTeamSearch] = useState('');
   const [dateRange, setDateRange] = useState(0);
   const [sortBy, setSortBy] = useState<'date' | 'elo_diff'>('date');
@@ -57,7 +60,7 @@ export default function HomePage() {
   const [visibleDates, setVisibleDates] = useState(INITIAL_DATES);
 
   const filtered = useMemo(() => {
-    let list = [...MOCK_MATCHES];
+    let list = [...allMatches];
 
     if (teamSearch.trim()) {
       const q = teamSearch.toLowerCase();
@@ -161,7 +164,11 @@ export default function HomePage() {
 
       {/* Fixture timeline */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        {filtered.length === 0 ? (
+        {loading ? (
+          <MatchCardSkeletonGrid count={9} />
+        ) : error ? (
+          <FetchError message={error} onRetry={() => window.location.reload()} />
+        ) : filtered.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-navy-400 text-sm">Aramanızla eşleşen maç bulunamadı.</p>
             <button
@@ -222,8 +229,8 @@ export default function HomePage() {
             '@context': 'https://schema.org',
             '@type': 'ItemList',
             name: '2026 Dünya Kupası Maç Takvimi',
-            numberOfItems: MOCK_MATCHES.length,
-            itemListElement: MOCK_MATCHES.slice(0, 10).map((m, i) => ({
+            numberOfItems: allMatches.length,
+            itemListElement: allMatches.slice(0, 10).map((m, i) => ({
               '@type': 'ListItem',
               position: i + 1,
               item: {

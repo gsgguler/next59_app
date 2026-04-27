@@ -8,7 +8,7 @@ interface TopBarProps {
 }
 
 export default function TopBar({ onMenuClick }: TopBarProps) {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, isAdmin, signOut } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -29,8 +29,6 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
     .join('')
     .toUpperCase()
     .slice(0, 2);
-
-  const isAdmin = profile?.is_super_admin ?? false;
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 shrink-0">

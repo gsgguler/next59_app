@@ -1,4 +1,4 @@
-import type { MatchData } from '../../data/mockMatches';
+import type { UIMatch } from '../../types/ui-models';
 import { predictionToNarrative } from '../../utils/predictionToNarrative';
 import type { FullPrediction } from '../../utils/predictionToNarrative';
 import NarrativeParagraph from './NarrativeParagraph';
@@ -12,15 +12,15 @@ const sections: { type: 'general' | 'goals' | 'mutual' | 'first_half' | 'second_
   { type: 'full_time', title: 'Maç Sonu Tahmini' },
 ];
 
-export default function PreMatchOracle({ match }: { match: MatchData }) {
+export default function PreMatchOracle({ match }: { match: UIMatch }) {
   const p = match.prediction;
   const fullPrediction: FullPrediction | null = p
     ? {
         home_prob: p.home_prob,
         draw_prob: p.draw_prob,
         away_prob: p.away_prob,
-        over_2_5: p.over_2_5 ?? 0.6,
-        btts: p.btts ?? 0.5,
+        over_2_5: p.high_scoring,
+        btts: p.mutual_scoring,
         confidence: p.confidence,
       }
     : null;
