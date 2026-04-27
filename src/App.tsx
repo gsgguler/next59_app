@@ -25,6 +25,8 @@ import PrivacyPage from './pages/legal/PrivacyPage';
 import TermsPage from './pages/legal/TermsPage';
 import KvkkPage from './pages/legal/KvkkPage';
 import CookiesPage from './pages/legal/CookiesPage';
+import UpdatePrompt from './components/UpdatePrompt';
+import NotificationOptIn from './components/NotificationOptIn';
 
 export default function App() {
   return (
@@ -64,6 +66,8 @@ export default function App() {
 
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
+            <UpdatePrompt />
+            <NotificationOptIn />
           </ToastProvider>
         </AuthProvider>
       </BrowserRouter>
