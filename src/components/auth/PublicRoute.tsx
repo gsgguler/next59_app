@@ -1,9 +1,10 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const { lang } = useParams();
 
   if (loading) {
     return (
@@ -14,7 +15,7 @@ export default function PublicRoute({ children }: { children: React.ReactNode })
   }
 
   if (user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={`/${lang || 'tr'}`} replace />;
   }
 
   return <>{children}</>;

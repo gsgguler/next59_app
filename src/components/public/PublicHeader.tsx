@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation, useParams } from 'react-router-dom';
 import { Menu, X, ChevronDown, User, LogOut } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Logo from '../Logo';
@@ -11,11 +11,12 @@ import { useAuth } from '../../contexts/AuthContext';
 export default function PublicHeader() {
   const { user, profile, signOut, loading } = useAuth();
   const { t } = useTranslation();
+  const { lang } = useParams();
 
   const navItems = [
-    { label: t('nav.matches'), to: '/matches' },
-    { label: t('nav.predictions'), to: '/predictions' },
-    { label: t('nav.about'), to: '/about' },
+    { label: t('nav.matches'), to: `/${lang}/matches` },
+    { label: t('nav.predictions'), to: `/${lang}/predictions` },
+    { label: t('nav.about'), to: `/${lang}/about` },
   ];
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
@@ -135,7 +136,7 @@ export default function PublicHeader() {
                       </div>
                       <div className="py-1">
                         <Link
-                          to="/profile"
+                          to={`/${lang}/profile`}
                           onClick={() => setDropdownOpen(false)}
                           className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-navy-300 hover:text-white hover:bg-navy-800/60 transition-colors"
                         >
@@ -206,7 +207,7 @@ export default function PublicHeader() {
               ) : !loading && user ? (
                 <div className="pt-3 flex flex-col gap-2">
                   <Link
-                    to="/profile"
+                    to={`/${lang}/profile`}
                     onClick={() => setMobileOpen(false)}
                     className="flex items-center gap-2.5 text-sm text-navy-300 hover:text-white px-3 py-2.5 rounded-lg hover:bg-navy-800/50 transition-colors"
                   >

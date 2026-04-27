@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { LogIn, Eye, EyeOff, Loader2, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function LoginPage() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
+  const { lang } = useParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -22,7 +23,7 @@ export default function LoginPage() {
       setError(err);
       setLoading(false);
     } else {
-      navigate('/');
+      navigate(`/${lang}`);
     }
   }
 
@@ -115,7 +116,7 @@ export default function LoginPage() {
 
           <p className="mt-8 text-center text-sm text-gray-500">
             Hesabınız yok mu?{' '}
-            <Link to="/register" className="text-navy-700 font-medium hover:text-navy-600 transition-colors">
+            <Link to={`/${lang}/register`} className="text-navy-700 font-medium hover:text-navy-600 transition-colors">
               Kayıt Ol
             </Link>
           </p>

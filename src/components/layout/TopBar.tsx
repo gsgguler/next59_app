@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { Bell, Search, Menu, LogOut, User, Settings, ShieldCheck, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -9,6 +9,7 @@ interface TopBarProps {
 
 export default function TopBar({ onMenuClick }: TopBarProps) {
   const { user, profile, signOut } = useAuth();
+  const { lang } = useParams();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -83,7 +84,7 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
               </div>
 
               <Link
-                to="/profile"
+                to={`/${lang}/profile`}
                 onClick={() => setDropdownOpen(false)}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
               >
@@ -91,7 +92,7 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
                 Profilim
               </Link>
               <Link
-                to="/settings"
+                to={`/${lang}/settings`}
                 onClick={() => setDropdownOpen(false)}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
               >
@@ -101,7 +102,7 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
 
               {isAdmin && (
                 <Link
-                  to="/admin"
+                  to={`/${lang}/admin`}
                   onClick={() => setDropdownOpen(false)}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-navy-700 hover:bg-navy-50 transition-colors"
                 >

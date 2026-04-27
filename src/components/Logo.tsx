@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 
 interface LogoProps {
   className?: string;
@@ -13,6 +13,9 @@ const sizeClasses = {
 };
 
 export default function Logo({ className = '', size = 'md', linkTo = '/' }: LogoProps) {
+  const { lang } = useParams();
+  const resolvedLink = linkTo === '/' && lang ? `/${lang}` : linkTo;
+
   const content = (
     <span className={`flex items-center gap-2 ${className}`}>
       <svg
@@ -31,8 +34,8 @@ export default function Logo({ className = '', size = 'md', linkTo = '/' }: Logo
     </span>
   );
 
-  if (linkTo) {
-    return <Link to={linkTo} className="inline-flex">{content}</Link>;
+  if (resolvedLink) {
+    return <Link to={resolvedLink} className="inline-flex">{content}</Link>;
   }
 
   return content;

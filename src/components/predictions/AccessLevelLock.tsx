@@ -1,5 +1,5 @@
 import { Lock, ArrowUpRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 const tierNames: Record<string, string> = {
   free: 'Ücretsiz',
@@ -16,6 +16,7 @@ interface AccessLevelLockProps {
 
 export default function AccessLevelLock({ requiredTier, userTier, children }: AccessLevelLockProps) {
   const navigate = useNavigate();
+  const { lang } = useParams();
   const reqName = tierNames[requiredTier] ?? requiredTier;
   const curName = tierNames[userTier] ?? userTier;
 
@@ -37,7 +38,7 @@ export default function AccessLevelLock({ requiredTier, userTier, children }: Ac
             Mevcut seviyeniz: {curName}
           </p>
           <button
-            onClick={() => navigate('/settings')}
+            onClick={() => navigate(`/${lang}/settings`)}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gold-500 text-navy-900 font-semibold text-sm hover:bg-gold-400 transition-colors"
           >
             Yükselt

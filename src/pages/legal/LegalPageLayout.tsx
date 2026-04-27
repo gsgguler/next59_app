@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Shield } from 'lucide-react';
 import type { ReactNode } from 'react';
 
@@ -9,12 +9,13 @@ interface LegalPageLayoutProps {
 }
 
 export default function LegalPageLayout({ title, lastUpdated, children }: LegalPageLayoutProps) {
+  const { lang } = useParams();
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-navy-900 border-b border-navy-800">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
           <Link
-            to="/"
+            to={`/${lang || 'tr'}`}
             className="inline-flex items-center gap-2 text-navy-300 hover:text-gold-400 text-sm font-medium transition-colors mb-6"
           >
             <ArrowLeft className="w-4 h-4" />

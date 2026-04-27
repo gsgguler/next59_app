@@ -1,23 +1,10 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import Logo from '../Logo';
 import { ManifestoBody } from '../legal/ManifestoBody';
-
-const quickLinks = [
-  { label: 'Maçlar', to: '/matches' },
-  { label: 'Tahminler', to: '/predictions' },
-  { label: 'Hakkımızda', to: '/about' },
-];
-
-const legalLinks = [
-  { label: 'Gizlilik Politikası', to: '/privacy' },
-  { label: 'Kullanım Şartları', to: '/terms' },
-  { label: 'KVKK Aydınlatma Metni', to: '/kvkk' },
-  { label: 'Çerez Politikası', to: '/cookies' },
-];
 
 const socialLinks = [
   { label: 'Twitter / X', href: '#' },
@@ -28,6 +15,21 @@ const socialLinks = [
 export default function Footer() {
   const year = new Date().getFullYear();
   const { t } = useTranslation(['common', 'legal']);
+  const { lang } = useParams();
+  const p = lang ? `/${lang}` : '';
+
+  const quickLinks = [
+    { label: 'Maçlar', to: `${p}/matches` },
+    { label: 'Tahminler', to: `${p}/predictions` },
+    { label: 'Hakkımızda', to: `${p}/about` },
+  ];
+
+  const legalLinks = [
+    { label: 'Gizlilik Politikası', to: `${p}/privacy` },
+    { label: 'Kullanım Şartları', to: `${p}/terms` },
+    { label: 'KVKK Aydınlatma Metni', to: `${p}/kvkk` },
+    { label: 'Çerez Politikası', to: `${p}/cookies` },
+  ];
   const [legalOpen, setLegalOpen] = useState(false);
 
   return (

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Lock, MapPin } from 'lucide-react';
 import type { MatchData } from '../../data/mockMatches';
 
@@ -37,6 +37,7 @@ function Flag({ code }: { code: string }) {
 }
 
 export default function MatchHeader({ match }: { match: MatchData }) {
+  const { lang } = useParams();
   const status = statusConfig[match.status] ?? statusConfig.scheduled;
   const kickoff = new Date(match.kickoff_at);
   const dateStr = kickoff.toLocaleDateString('tr-TR', {
@@ -67,7 +68,7 @@ export default function MatchHeader({ match }: { match: MatchData }) {
       <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-8">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs text-navy-500 mb-6">
-          <Link to="/" className="inline-flex items-center gap-1 text-navy-400 hover:text-champagne transition-colors">
+          <Link to={`/${lang}`} className="inline-flex items-center gap-1 text-navy-400 hover:text-champagne transition-colors">
             <ArrowLeft className="w-3.5 h-3.5" />
             Tüm Maçlar
           </Link>
