@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Search, Filter, ArrowUpDown, Calendar, ChevronDown } from 'lucide-react';
-import Countdown from '../components/Countdown';
+import { Hero } from '../components/Hero';
 import MatchTimelineCard from '../components/matches/MatchTimelineCard';
 import { MOCK_MATCHES } from '../data/mockMatches';
 import type { MatchData } from '../data/mockMatches';
@@ -103,43 +103,13 @@ export default function HomePage() {
   }, [teamSearch, dateRange, sortBy, matchday]);
 
   useEffect(() => {
-    document.title = 'Next59 | 2026 Dünya Kupası — AI Futbol Gazetesi';
+    document.title = 'Next59 — kehanet kâtibi';
   }, []);
 
   return (
     <>
-      {/* SEO meta tags set via index.html; title set above */}
-
       {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-navy-950 via-navy-900/40 to-navy-950" />
-        <div
-          className="absolute inset-0 opacity-[0.02]"
-          style={{
-            backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
-            backgroundSize: '48px 48px',
-          }}
-        />
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-10 sm:pt-16 sm:pb-14">
-          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
-            <div>
-              <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight tracking-tight">
-                2026 Dünya Kupası
-              </h1>
-              <p className="mt-3 text-base sm:text-lg text-navy-300 max-w-xl leading-relaxed">
-                Veri odaklı futbol gazeteciliği — 48 takım, 72 maç, AI analiz
-              </p>
-            </div>
-            <div className="shrink-0">
-              <p className="text-[10px] uppercase tracking-widest text-navy-500 mb-2 font-semibold">
-                Başlangıca Kalan Süre
-              </p>
-              <Countdown />
-            </div>
-          </div>
-        </div>
-      </section>
+      <Hero />
 
       {/* Filter bar */}
       <div className="sticky top-16 z-40 bg-navy-950/95 backdrop-blur-md border-b border-navy-800/60">

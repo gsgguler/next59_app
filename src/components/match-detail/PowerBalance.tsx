@@ -178,6 +178,3 @@ function estimateConceded(elo: number): string {
 function estimateCleanSheet(elo: number): string {
   return Math.round(10 + ((elo - 1400) / 400) * 30).toString();
 }
-
-
-export default PowerBalance

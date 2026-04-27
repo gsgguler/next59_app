@@ -37,8 +37,10 @@ export default {
         },
       },
       fontFamily: {
-        display: ['Georgia', '"Times New Roman"', 'serif'],
-        sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+        display: ['"Playfair Display"', 'Georgia', '"Times New Roman"', 'serif'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+        syne: ['Syne', 'sans-serif'],
+        outfit: ['Outfit', 'sans-serif'],
       },
     },
   },
