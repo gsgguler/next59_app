@@ -75,9 +75,6 @@ export default function PublicHeader() {
             {/* Left: Logo */}
             <div className="flex items-center gap-3">
               <Logo size="sm" linkTo="/" />
-              <Link to="/" className="font-display font-bold text-white text-lg tracking-tight hover:text-champagne transition-colors">
-                Next59
-              </Link>
             </div>
 
             {/* Center: Nav + Countdown */}

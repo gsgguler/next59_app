@@ -12,7 +12,8 @@
     "diacritic:scan": "npx tsx scripts/diacritic-sweep.ts --scan",
     "diacritic:fix": "npx tsx scripts/diacritic-sweep.ts --fix --confidence=high",
     "diacritic:fix:all": "npx tsx scripts/diacritic-sweep.ts --fix --interactive",
-    "lint:diacritic": "npx tsx scripts/diacritic-sweep.ts --check"
+    "lint:diacritic": "npx tsx scripts/diacritic-sweep.ts --check",
+    "build:favicons": "npx tsx scripts/generate-favicons.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
@@ -32,6 +33,7 @@
     "eslint-plugin-react-refresh": "^0.4.11",
     "globals": "^15.9.0",
     "postcss": "^8.4.35",
+    "sharp": "^0.34.5",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.3.0",

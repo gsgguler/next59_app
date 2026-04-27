@@ -28,6 +28,3 @@ export function useTranslation() {
 
   return { t, lang, toggleLang };
 }
-
-
-export { useTranslation }
