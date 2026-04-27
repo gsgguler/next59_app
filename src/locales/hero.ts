@@ -5,13 +5,17 @@ export const translations = {
     'hero.tagline': 'kehanet kâtibi',
     'hero.subtagline': 'Maçın 90 dakikasını, ilk düdükten önce yazıyoruz.',
     'hero.cta_primary': 'Maçları Keşfet',
-    'hero.cta_secondary': 'Manifestomuzu Okuyun'
+    'hero.cta_secondary': 'Manifestomuzu Okuyun',
+    'footer.tagline_line1': 'Maç başlamadan, 90 dakikayı yazıyoruz.',
+    'footer.tagline_line2': 'Tarafsız, veriyle çalışan futbol gazeteciliği.'
   },
   en: {
     'hero.tagline': "the oracle's scribe",
     'hero.subtagline': 'We write the 90 minutes before the first whistle.',
     'hero.cta_primary': 'Explore Matches',
-    'hero.cta_secondary': 'Read Our Manifesto'
+    'hero.cta_secondary': 'Read Our Manifesto',
+    'footer.tagline_line1': 'We write the 90 minutes before the match starts.',
+    'footer.tagline_line2': 'Independent, data-driven football journalism.'
   }
 };
 
@@ -24,3 +28,6 @@ export function useTranslation() {
 
   return { t, lang, toggleLang };
 }
+
+
+export { useTranslation }
