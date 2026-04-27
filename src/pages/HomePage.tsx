@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Search, Filter, ArrowUpDown, Calendar, ChevronDown } from 'lucide-react';
 import { Hero } from '../components/Hero';
+import { WorldCupBanner } from '../components/WorldCupBanner';
 import MatchTimelineCard from '../components/matches/MatchTimelineCard';
 import { MOCK_MATCHES } from '../data/mockMatches';
 import type { MatchData } from '../data/mockMatches';
@@ -110,6 +111,9 @@ export default function HomePage() {
     <>
       {/* Hero */}
       <Hero />
+
+      {/* World Cup Countdown */}
+      <WorldCupBanner />
 
       {/* Filter bar */}
       <div className="sticky top-16 z-40 bg-navy-950/95 backdrop-blur-md border-b border-navy-800/60">

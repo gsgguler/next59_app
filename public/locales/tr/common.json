@@ -41,7 +41,21 @@
     "form_status": "Form Durumu",
     "team_stats": "Takım İstatistikleri",
     "squad_assessment": "Kadro Değerlendirmesi",
-    "coming_soon": "yakında"
+    "coming_soon": "yakında",
+    "venue_time": "Stadyum saatiyle {{time}}"
+  },
+  "countdown": {
+    "live": "Şimdi başladı",
+    "days": "Gün",
+    "hours": "Saat",
+    "minutes": "Dakika",
+    "seconds": "Saniye",
+    "short": { "day": "g" },
+    "your_time_zone": "Saat diliminize göre · {{tz}}"
+  },
+  "wc": {
+    "countdown_label": "2026 Dünya Kupası başlangıcına",
+    "in_progress": "2026 Dünya Kupası devam ediyor"
   },
   "auth": {
     "welcome": "Next59'a Hoş Geldiniz",

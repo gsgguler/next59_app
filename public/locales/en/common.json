@@ -41,7 +41,21 @@
     "form_status": "Recent Form",
     "team_stats": "Team Statistics",
     "squad_assessment": "Squad Assessment",
-    "coming_soon": "coming soon"
+    "coming_soon": "coming soon",
+    "venue_time": "Local kickoff: {{time}}"
+  },
+  "countdown": {
+    "live": "Live now",
+    "days": "Days",
+    "hours": "Hours",
+    "minutes": "Minutes",
+    "seconds": "Seconds",
+    "short": { "day": "d" },
+    "your_time_zone": "In your time zone · {{tz}}"
+  },
+  "wc": {
+    "countdown_label": "Until the 2026 World Cup kicks off",
+    "in_progress": "2026 World Cup in progress"
   },
   "auth": {
     "welcome": "Welcome to Next59",
