@@ -8,7 +8,11 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit -p tsconfig.app.json"
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "diacritic:scan": "npx tsx scripts/diacritic-sweep.ts --scan",
+    "diacritic:fix": "npx tsx scripts/diacritic-sweep.ts --fix --confidence=high",
+    "diacritic:fix:all": "npx tsx scripts/diacritic-sweep.ts --fix --interactive",
+    "lint:diacritic": "npx tsx scripts/diacritic-sweep.ts --check"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

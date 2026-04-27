@@ -134,7 +134,7 @@ function FormDisplay({ teamName, shortName, elo }: { teamName: string; shortName
         ))}
       </div>
       <p className="text-[10px] text-navy-600 mt-2">
-        {shortName} son 5 mac: {form.map((r) => (r === 'W' ? 'G' : r === 'D' ? 'B' : 'M')).join('-')}
+        {shortName} son 5 maç: {form.map((r) => (r === 'W' ? 'G' : r === 'D' ? 'B' : 'M')).join('-')}
       </p>
     </div>
   );
@@ -178,3 +178,6 @@ function estimateConceded(elo: number): string {
 function estimateCleanSheet(elo: number): string {
   return Math.round(10 + ((elo - 1400) / 400) * 30).toString();
 }
+
+
+export default PowerBalance

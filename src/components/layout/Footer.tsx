@@ -32,7 +32,7 @@ export default function Footer() {
           <div className="col-span-2 md:col-span-1">
             <Logo size="sm" linkTo="/" />
             <p className="mt-4 text-sm text-navy-300 leading-relaxed max-w-xs">
-              Veri odaklı futbol gazeteciliği. Maçın 90 dakikasını, maç başlamadan yazıyoruz.
+              Maç başlamadan, 90 dakikayı yazıyoruz. Tarafsız, veriyle çalışan futbol gazeteciliği.
             </p>
           </div>
 
