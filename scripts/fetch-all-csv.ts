@@ -1,11 +1,3 @@
-import fetch from 'node-fetch';
-// @ts-ignore
-global.fetch = fetch as any;
-// @ts-ignore
-global.Request = (fetch as any).Request;
-// @ts-ignore
-global.Response = (fetch as any).Response;
-
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { parse } from 'csv-parse/sync';
 
@@ -16,13 +8,7 @@ const BATCH_SIZE = 10;
 const DELAY_FILES = 2000;
 const DELAY_BATCHES = 10000;
 
-interface LeagueConfig {
-  code: string;
-  name: string;
-  seasons: number[];
-}
-
-const LEAGUES: LeagueConfig[] = [
+const LEAGUES = [
   { code: 'E0',  name: 'Premier League',       seasons: Array.from({length: 25}, (_, i) => 2000 + i) },
   { code: 'E1',  name: 'Championship',         seasons: Array.from({length: 25}, (_, i) => 2000 + i) },
   { code: 'E2',  name: 'League One',           seasons: Array.from({length: 25}, (_, i) => 2000 + i) },
@@ -48,48 +34,39 @@ const LEAGUES: LeagueConfig[] = [
 
 const TOTAL_FILES = LEAGUES.reduce((acc, l) => acc + l.seasons.length, 0);
 
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-function seasonToLabel(year: number): string {
+function seasonToLabel(year) {
   const y2 = year % 100;
   const next = (y2 + 1) % 100;
   return String(y2).padStart(2, '0') + String(next).padStart(2, '0');
 }
 
-function buildCsvUrl(code: string, year: number): string {
+function buildCsvUrl(code, year) {
   return `https://www.football-data.co.uk/mmz4281/${seasonToLabel(year)}/${code}.csv`;
 }
 
-function matchId(code: string, sl: string, date: string, home: string, away: string): string {
+function matchId(code, sl, date, home, away) {
   return `${code}|${sl}|${date}|${home}|${away}`;
 }
 
-interface CsvRow {
-  [key: string]: string;
-}
-
-async function fetchCsv(url: string): Promise<CsvRow[] | null> {
+async function fetchCsv(url) {
   try {
     console.log(`  Fetching: ${url}`);
     const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-    if (!res.ok) {
-      if (res.status === 404) { console.log('  404 - dosya yok'); return null; }
-      throw new Error(`HTTP ${res.status}`);
-    }
+    if (!res.ok) { if (res.status === 404) { console.log('  404'); return null; } throw new Error(`HTTP ${res.status}`); }
     const text = await res.text();
-    if (text.trim().length < 100) { console.log('  Bos dosya'); return null; }
-    const records = parse(text, { columns: true, skip_empty_lines: true, trim: true }) as CsvRow[];
+    if (text.trim().length < 100) { console.log('  Bos'); return null; }
+    const records = parse(text, { columns: true, skip_empty_lines: true, trim: true, relax_column_count: true });
     console.log(`  ${records.length} satir`);
     return records;
   } catch (err) {
-    console.error(`  Hata: ${err instanceof Error ? err.message : '?'}`);
+    console.error(`  Hata: ${err.message}`);
     return null;
   }
 }
 
-async function insertBatch(supabase: SupabaseClient, records: CsvRow[], code: string, sl: string, file: string) {
+async function insertBatch(supabase, records, code, sl, file) {
   let inserted = 0;
   let errors = 0;
   const CHUNK = 500;
@@ -99,7 +76,7 @@ async function insertBatch(supabase: SupabaseClient, records: CsvRow[], code: st
       const home = row['HomeTeam'] || row['Home'] || null;
       const away = row['AwayTeam'] || row['Away'] || null;
       const dateRaw = row['Date'] || null;
-      let matchDate: string | null = null;
+      let matchDate = null;
       if (dateRaw) {
         if (dateRaw.includes('/')) {
           const [d, m, y] = dateRaw.split('/');
@@ -115,7 +92,7 @@ async function insertBatch(supabase: SupabaseClient, records: CsvRow[], code: st
         home_score: row['FTHG'] ? parseInt(row['FTHG']) : null,
         away_score: row['FTAG'] ? parseInt(row['FTAG']) : null,
         referee: row['Referee'] || null,
-        raw_data: row as Record<string, unknown>,
+        raw_data: row,
       };
     });
     const { error } = await supabase.from('staging_football_data_uk_raw').upsert(rows, {
@@ -137,7 +114,7 @@ async function main() {
   console.log('Supabase OK\n');
 
   const { data: src } = await supabase.from('data_sources').select('id').eq('name', 'football-data.co.uk').single();
-  if (!src) { console.error('Seed data eksik!'); process.exit(1); }
+  if (!src) { console.error('Seed eksik!'); process.exit(1); }
   const sourceId = src.id;
 
   let totalInserted = 0;
