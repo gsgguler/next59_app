@@ -15,9 +15,9 @@ async function main() {
   });
 
   // Staging'deki tum satirlari basa al (geriye donuk doldurma)
-  console.log('Staging satirlari hazirlaniyor...');
+    console.log('Staging satirlari hazirlaniyor...');
   const { error: ue } = await supabase.rpc('exec_sql', {
-    p_sql: `UPDATE staging_football_data_uk_raw SET is_processed = false, processed_at = NULL, canonical_match_id = NULL WHERE id > 0`
+    p_sql: `UPDATE staging_football_data_uk_raw SET is_processed = false, processed_at = NULL, canonical_match_id = NULL WHERE id IS NOT NULL`
   });
   if (ue) { console.error('HATA:', ue.message); process.exit(1); }
 
