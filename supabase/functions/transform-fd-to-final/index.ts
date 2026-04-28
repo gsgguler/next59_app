@@ -14,7 +14,7 @@ const LEAGUE_COMP_MAP: Record<string, string> = {
   T1: "T1", E0: "PL", E1: "ELC", E2: "EL1", E3: "EL2",
   SP1: "LL", SP2: "SD", D1: "BL", D2: "BL2",
   I1: "SA", I2: "SB", F1: "L1", F2: "L2",
-  N1: "ED", P1: "PPL", B1: "JPL", SC0: "SPL", G1: "GSL",
+  N1: "ED", P1: "PPL", B1: "JPL", SC0: "SPL", G1: "SL",
 };
 
 const STAGING_SELECT = [
