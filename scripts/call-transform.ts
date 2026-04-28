@@ -35,7 +35,13 @@ async function main() {
   const { count: tc } = await supabase.from('teams').select('*', { count: 'exact', head: true });
   const { count: st } = await supabase.from('match_stats').select('*', { count: 'exact', head: true });
   const { count: oc } = await supabase.from('match_odds').select('*', { count: 'exact', head: true });
+  const { count: goc } = await supabase.from('match_goals_odds').select('*', { count: 'exact', head: true });
+  const { count: ahc } = await supabase.from('match_ah_odds').select('*', { count: 'exact', head: true });
   console.log(`\n=== TAMAM ${((Date.now() - t0) / 60000).toFixed(1)}dk | Proc:${tp} ===`);
-  console.log(`Matches:${mc} | Teams:${tc} | Stats:${st} | Odds:${oc}\n`);
+  console.log(`Matches:${mc} | Teams:${tc} | Stats:${st} | Odds:${oc} | O/U:${goc} | AH:${ahc}\n`);
+
+  // IS BITTI - KENDINI DURDUR
+  console.log('=== IS TAMAMLANDI - CIKILIYOR ===');
+  process.exit(0);
 }
 main().catch(console.error);
