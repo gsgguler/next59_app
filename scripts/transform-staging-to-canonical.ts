@@ -20,8 +20,8 @@ import { createClient } from '@supabase/supabase-js';
 // ============================================
 // CONFIG
 // ============================================
-const SUPABASE_URL = process.env.SUPABASE_URL || '';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const SUPABASE_URL = 'https://jsordrrshzivxayryryi.supabase.co';
+const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impzb3JkcnJzaHppdnhheXJ5cnlpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Njk3NDg0MiwiZXhwIjoyMDkyNTUwODQyfQ.CIiKagCt1nJD74I3LR3MUym-MYSIrPyjHEz5VxylaN4';
 const BATCH_SIZE = 500; // her seferde kac staging satiri islenecek
 
 // football-data.co.uk → DB provider mapping
