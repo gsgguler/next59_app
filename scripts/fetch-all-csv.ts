@@ -1,3 +1,11 @@
+import fetch from 'node-fetch';
+// @ts-ignore
+global.fetch = fetch as any;
+// @ts-ignore
+global.Request = (fetch as any).Request;
+// @ts-ignore
+global.Response = (fetch as any).Response;
+
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { parse } from 'csv-parse/sync';
 
