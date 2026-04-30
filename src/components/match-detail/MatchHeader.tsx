@@ -30,7 +30,7 @@ const flagMap: Record<string, string> = {
 
 function Flag({ code }: { code: string }) {
   return (
-    <span className="text-5xl sm:text-7xl leading-none">
+    <span className="text-3xl sm:text-5xl lg:text-7xl leading-none">
       {flagMap[code.toUpperCase()] ?? '\u{1F3F3}\u{FE0F}'}
     </span>
   );

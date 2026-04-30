@@ -115,7 +115,7 @@ export default function HomePage() {
       <Hero />
 
       {/* Filter bar */}
-      <div className="sticky top-16 z-40 bg-navy-950/95 backdrop-blur-md border-b border-navy-800/60">
+      <div className="sticky top-14 sm:top-16 z-40 bg-navy-950/95 backdrop-blur-md border-b border-navy-800/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-1.5 text-xs font-semibold text-navy-400 uppercase tracking-wider shrink-0">

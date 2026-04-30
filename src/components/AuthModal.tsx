@@ -80,7 +80,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'register' }:
           <X className="w-5 h-5" />
         </button>
 
-        <div className="px-8 pt-8 pb-2 text-center">
+        <div className="px-6 sm:px-8 pt-6 sm:pt-8 pb-2 text-center">
           <h2 className="font-display text-2xl font-bold text-white">
             Next59'a Hoş Geldiniz
           </h2>
@@ -89,7 +89,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'register' }:
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="px-8 pb-8 pt-4 space-y-4">
+        <form onSubmit={handleSubmit} className="px-6 sm:px-8 pb-6 sm:pb-8 pt-4 space-y-4">
           {mode === 'register' && (
             <div>
               <label htmlFor="auth-name" className="block text-xs font-medium text-navy-300 mb-1.5">

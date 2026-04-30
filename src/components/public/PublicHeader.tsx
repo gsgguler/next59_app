@@ -363,7 +363,7 @@ export default function PublicHeader() {
 
         {/* Mobile drawer */}
         {mobileOpen && (
-          <div className="lg:hidden border-t border-navy-800/50 bg-navy-950/98 backdrop-blur-lg animate-fade-in max-h-[80vh] overflow-y-auto">
+          <div className="lg:hidden border-t border-navy-800/50 bg-navy-950/98 backdrop-blur-lg animate-fade-in max-h-[calc(100dvh-64px)] overflow-y-auto">
             <div className="max-w-7xl mx-auto px-4 py-4 space-y-1">
               {NAV.map((item) => (
                 <MobileNavItem

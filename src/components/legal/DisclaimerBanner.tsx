@@ -19,7 +19,7 @@ export default function DisclaimerBanner() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <button
           onClick={() => setExpanded(prev => !prev)}
-          className="w-full py-2.5 flex items-center justify-between gap-3 text-left"
+          className="w-full py-3.5 flex items-center justify-between gap-3 text-left"
           aria-expanded={expanded}
         >
           <div className="flex items-center gap-2 min-w-0">

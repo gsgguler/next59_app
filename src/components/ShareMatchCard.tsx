@@ -173,7 +173,7 @@ export default function ShareMatchCard(props: ShareMatchCardProps) {
           e.stopPropagation();
           setOpen(!open);
         }}
-        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg ${
+        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg ${
           open
             ? 'bg-white/20 text-white rotate-45'
             : 'bg-navy-800/80 text-navy-400 hover:bg-champagne/20 hover:text-champagne'

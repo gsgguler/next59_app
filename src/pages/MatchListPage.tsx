@@ -167,7 +167,7 @@ export default function MatchListPage() {
                 <button
                   key={pageNum}
                   onClick={() => setPage(pageNum)}
-                  className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors
+                  className={`w-10 h-10 sm:w-9 sm:h-9 rounded-lg text-sm font-medium transition-colors
                     ${page === pageNum
                       ? 'bg-navy-700 text-white'
                       : 'text-gray-600 hover:bg-gray-100'

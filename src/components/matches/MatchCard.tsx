@@ -110,7 +110,7 @@ export default function MatchCard({ match }: { match: Match }) {
       <div className="px-4 pb-4">
         <Link
           to={`/matches/${match.id}`}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-navy-700 text-white text-sm font-medium hover:bg-navy-600 active:bg-navy-800 transition-colors group-hover:bg-gold-500 group-hover:text-navy-900"
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-navy-700 text-white text-sm font-medium hover:bg-navy-600 active:bg-navy-800 transition-colors group-hover:bg-gold-500 group-hover:text-navy-900"
         >
           <Eye className="w-4 h-4" />
           Maçı İncele

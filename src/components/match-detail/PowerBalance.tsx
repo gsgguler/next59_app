@@ -83,7 +83,7 @@ export default function PowerBalance({ match }: { match: UIMatch }) {
 
       {/* Team Stats */}
       <Section title="Takım İstatistikleri">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <StatCard label="Maç Başı Gol (Ev)" home={estimateGoals(homeElo)} away={estimateGoals(awayElo)} />
           <StatCard label="Maç Başı Yenilen Gol" home={estimateConceded(homeElo)} away={estimateConceded(awayElo)} />
           <StatCard label="Kalesini Kapama %" home={`${estimateCleanSheet(homeElo)}%`} away={`${estimateCleanSheet(awayElo)}%`} />

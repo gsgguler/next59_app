@@ -27,7 +27,7 @@ export default function CookieBanner() {
   if (!visible) return null;
 
   return (
-    <div className="fixed bottom-0 inset-x-0 z-50 p-4 sm:p-6 pointer-events-none">
+    <div className="fixed bottom-0 inset-x-0 z-50 p-4 sm:p-6 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] sm:pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] pointer-events-none">
       <div
         className="max-w-lg mx-auto sm:mx-0 sm:ml-auto bg-navy-800 border border-navy-700 rounded-xl shadow-2xl p-5 pointer-events-auto animate-slide-up"
       >
