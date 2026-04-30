@@ -14,7 +14,7 @@ export default function TermsPage() {
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-3">2. Hizmet Tanımı</h2>
         <p>
-          Next59, yapay zeka destekli futbol analiz ve tahmin platformudur. Platform, istatistiksel
+          Next59, yapay zeka destekli futbol analiz ve maç hikâyesi platformudur. Platform, istatistiksel
           modeller ve makine öğrenmesi teknikleri kullanılarak oluşturulan içerikler sunmaktadır.
         </p>
       </section>
@@ -22,7 +22,7 @@ export default function TermsPage() {
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-3">3. Sorumluluk Sınırlaması</h2>
         <p>
-          Platformumuzda sunulan tahmin ve analizler yalnızca bilgilendirme amacıdır. Bu içerikler
+          Platformumuzda sunulan analizler ve maç hikâyeleri yalnızca bilgilendirme amacıdır. Bu içerikler
           yatırım, bahis veya finansal karar tavsiyesi niteliğinde değildir. Kullanıcılar, platform
           içeriklerine dayanarak aldıkları kararların tüm sorumluluğunun kendilerine ait olduğunu
           kabul eder.

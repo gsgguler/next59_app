@@ -111,7 +111,7 @@ export default function DebatesListPage() {
                   AI Panel Degerlendirmesi
                 </h2>
                 <p className="text-gray-400 leading-relaxed mb-8 max-w-md mx-auto">
-                  Birden fazla yapay zeka modelinin tahminleri tartistigi, oylama yaptigi ve uzlasma aradigi ozel degerlendirme surecimize erisim kazanin.
+                  Birden fazla yapay zeka modelinin değerlendirmeleri tartıştığı, oylama yaptığı ve uzlaşma aradığı özel inceleme sürecimize erişim kazanın.
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">

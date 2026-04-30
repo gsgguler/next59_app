@@ -70,7 +70,7 @@ export default function DashboardHome() {
       bgColor: 'bg-blue-50',
     },
     {
-      title: 'Doğruluk Oranı',
+      title: 'Model Başarısı',
       value: loading ? '-' : `%${stats.accuracy}`,
       change: '+2.1% geçen aya göre',
       trend: 'up',

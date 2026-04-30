@@ -105,7 +105,7 @@ export default function PredictionCard({ prediction, homeTeam, awayTeam, userTie
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-gold-200 px-6 py-4 text-center shadow-lg">
               <p className="text-sm font-semibold text-gray-900">Elite Icerik</p>
-              <p className="text-xs text-gray-500 mt-1">Bu tahmine erismek icin Elite plana yukseltme yapin</p>
+              <p className="text-xs text-gray-500 mt-1">Bu analize erişmek için Elite plana yükseltme yapın</p>
             </div>
           </div>
         </div>

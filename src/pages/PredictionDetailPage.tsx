@@ -154,7 +154,7 @@ export default function PredictionDetailPage() {
                 <span className="text-lg font-bold text-emerald-600">68%</span>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Bu model icin ortalama dogruluk orani</p>
+                <p className="text-sm text-gray-600">Bu model için ortalama model başarısı</p>
                 <p className="text-xs text-gray-400 mt-1">Son 100 analize dayanmaktadır</p>
               </div>
             </div>
@@ -274,7 +274,7 @@ function AccessLevelCard({ isEliteOnly }: { isEliteOnly: boolean }) {
           <div className={`w-2 h-2 rounded-full ${!isEliteOnly ? 'bg-gold-500' : 'bg-gray-200'}`} />
           Ucretsiz
           {!isEliteOnly && (
-            <span className="ml-auto text-xs bg-gold-100 text-gold-700 px-2 py-0.5 rounded">Bu tahmin</span>
+            <span className="ml-auto text-xs bg-gold-100 text-gold-700 px-2 py-0.5 rounded">Bu analiz</span>
           )}
         </div>
         <div className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${
@@ -283,7 +283,7 @@ function AccessLevelCard({ isEliteOnly }: { isEliteOnly: boolean }) {
           <div className={`w-2 h-2 rounded-full ${isEliteOnly ? 'bg-gold-500' : 'bg-gray-200'}`} />
           Elite
           {isEliteOnly && (
-            <span className="ml-auto text-xs bg-gold-100 text-gold-700 px-2 py-0.5 rounded">Bu tahmin</span>
+            <span className="ml-auto text-xs bg-gold-100 text-gold-700 px-2 py-0.5 rounded">Bu analiz</span>
           )}
         </div>
       </div>

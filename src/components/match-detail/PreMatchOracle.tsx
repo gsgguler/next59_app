@@ -89,7 +89,7 @@ export default function PreMatchOracle({ match }: { match: UIMatch }) {
         <div className="mt-6 p-4 bg-navy-900/60 border border-navy-800 rounded-xl">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-navy-400 uppercase tracking-wider">
-              Doğruluk Oranı
+              Model Başarısı
             </span>
             <span className="text-sm font-mono font-bold text-champagne tabular-nums">
               -- / 6
