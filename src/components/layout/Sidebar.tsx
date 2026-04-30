@@ -1,5 +1,5 @@
-import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Trophy, TrendingUp, MessageSquare, Newspaper, Settings, Shield, ShieldCheck, CircleUser as UserCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { NavLink, Link } from 'react-router-dom';
+import { LayoutDashboard, Trophy, TrendingUp, MessageSquare, Newspaper, Settings, ShieldCheck, CircleUser as UserCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface SidebarProps {
@@ -11,7 +11,7 @@ interface SidebarProps {
 
 const mainNav = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/matches', icon: Trophy, label: 'Maçlar' },
+  { to: '/matches', icon: Trophy, label: 'Ma\u00e7lar' },
   { to: '/predictions', icon: TrendingUp, label: 'Tahminler' },
   { to: '/debates', icon: MessageSquare, label: 'AI Debate' },
   { to: '/news', icon: Newspaper, label: 'Haberler' },
@@ -42,12 +42,16 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
           lg:translate-x-0 lg:static lg:z-auto
         `}
       >
-        <div className={`flex items-center h-16 px-4 border-b border-navy-600 ${collapsed ? 'justify-center' : 'gap-3'}`}>
-          <Shield className="w-8 h-8 text-gold-500 shrink-0" />
+        <Link to="/" className={`flex items-center h-16 px-4 border-b border-navy-600 hover:opacity-80 transition-opacity ${collapsed ? 'justify-center' : 'gap-2.5'}`}>
+          <svg viewBox="0 0 32 32" className="h-8 w-8 shrink-0" aria-label="Next59 logo">
+            <rect width="32" height="32" rx="6" fill="#0f1d2a" />
+            <path d="M9 8 L9 24 L12 24 L12 13.5 L20 24 L23 24 L23 8 L20 8 L20 18.5 L12 8 Z" fill="#ffffff" />
+            <circle cx="25" cy="7" r="2.5" fill="#F2A623" />
+          </svg>
           {!collapsed && (
-            <span className="text-xl font-bold text-white tracking-tight">Next59</span>
+            <span className="text-xl font-semibold tracking-tight" style={{ color: '#F2A623' }}>Next59</span>
           )}
-        </div>
+        </Link>
 
         <nav className="flex-1 py-4 overflow-y-auto">
           <ul className="space-y-1 px-3">
@@ -55,7 +59,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
               <NavItem key={item.to} {...item} collapsed={collapsed} onClick={onMobileClose} />
             ))}
             {isAdmin && (
-              <NavItem to="/admin" icon={ShieldCheck} label="Yönetim" collapsed={collapsed} onClick={onMobileClose} />
+              <NavItem to="/admin" icon={ShieldCheck} label="Y\u00f6netim" collapsed={collapsed} onClick={onMobileClose} />
             )}
           </ul>
 

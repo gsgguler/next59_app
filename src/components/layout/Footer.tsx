@@ -3,16 +3,16 @@ import Logo from '../Logo';
 import { useTranslation } from '../../locales/hero';
 
 const quickLinks = [
-  { label: 'Maçlar', to: '/matches' },
+  { label: 'Ma\u00e7lar', to: '/matches' },
   { label: 'Tahminler', to: '/predictions' },
-  { label: 'Hakkımızda', to: '/about' },
+  { label: 'Hakk\u0131m\u0131zda', to: '/about' },
 ];
 
 const legalLinks = [
-  { label: 'Gizlilik Politikası', to: '/privacy' },
-  { label: 'Kullanım Şartları', to: '/terms' },
-  { label: 'KVKK Aydınlatma Metni', to: '/kvkk' },
-  { label: 'Çerez Politikası', to: '/cookies' },
+  { label: 'Gizlilik Politikas\u0131', to: '/privacy' },
+  { label: 'Kullan\u0131m \u015eartlar\u0131', to: '/terms' },
+  { label: 'KVKK Ayd\u0131nlatma Metni', to: '/kvkk' },
+  { label: '\u00c7erez Politikas\u0131', to: '/cookies' },
 ];
 
 const socialLinks = [
@@ -44,7 +44,7 @@ export default function Footer() {
           {/* Quick Links */}
           <div>
             <h4 className="text-xs font-semibold text-navy-400 uppercase tracking-wider mb-4">
-              Hızlı Linkler
+              H\u0131zl\u0131 Linkler
             </h4>
             <ul className="space-y-2.5">
               {quickLinks.map((link) => (
@@ -104,10 +104,10 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="py-6 border-t border-navy-800 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-navy-500">
-            &copy; {year} Next59. Tüm hakları saklıdır.
+            &copy; {year} Next59. T\u00fcm haklar\u0131 sakl\u0131d\u0131r.
           </p>
           <p className="text-xs text-navy-600 text-center sm:text-right max-w-md">
-            Bu platform yatırım tavsiyesi vermez. İçerikler yalnızca bilgilendirme amaçlıdır.
+            Bu platform yat\u0131r\u0131m tavsiyesi vermez. \u0130\u00e7erikler yaln\u0131zca bilgilendirme ama\u00e7l\u0131d\u0131r.
           </p>
         </div>
       </div>
