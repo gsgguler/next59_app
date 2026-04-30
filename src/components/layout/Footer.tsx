@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import Logo from '../Logo';
-import { useTranslation } from '../../locales/hero';
 
 const quickLinks = [
   { label: 'Maçlar', to: '/matches' },
@@ -23,7 +22,6 @@ const socialLinks = [
 
 export default function Footer() {
   const year = new Date().getFullYear();
-  const { t } = useTranslation();
 
   return (
     <footer className="bg-navy-900 border-t border-navy-800">
@@ -35,8 +33,8 @@ export default function Footer() {
             <Logo size="sm" linkTo="/" />
             <div className="footer-tagline max-w-xs">
               <p className="mt-4 text-sm text-white/60 leading-relaxed">
-                {t('footer.tagline_line1')}<br />
-                {t('footer.tagline_line2')}
+                Maç başlamadan, 90 dakikanın hikâyesini yazıyoruz.<br />
+                Tarafsız ve veriye dayalı futbol analitiği.
               </p>
             </div>
           </div>
