@@ -7,9 +7,9 @@ import AuthModal from '../AuthModal';
 import { useAuth } from '../../contexts/AuthContext';
 
 const navItems = [
-  { label: 'Ma\u00e7lar', to: '/matches' },
+  { label: 'Maçlar', to: '/matches' },
   { label: 'Tahminler', to: '/predictions' },
-  { label: 'Hakk\u0131m\u0131zda', to: '/about' },
+  { label: 'Hakkımızda', to: '/about' },
 ];
 
 export default function PublicHeader() {
@@ -98,13 +98,13 @@ export default function PublicHeader() {
                     onClick={() => openAuth('login')}
                     className="text-sm font-medium text-navy-200 hover:text-white transition-colors px-4 py-2 rounded-lg hover:bg-navy-800/50"
                   >
-                    Giri\u015f Yap
+                    Giriş Yap
                   </button>
                   <button
                     onClick={() => openAuth('register')}
                     className="text-sm font-semibold bg-champagne hover:bg-champagne-light text-navy-950 px-5 py-2.5 rounded-lg transition-colors"
                   >
-                    \u00dccretsiz Ba\u015flat
+                    Ücretsiz Başlat
                   </button>
                 </>
               ) : !loading && user ? (
@@ -123,7 +123,7 @@ export default function PublicHeader() {
                     <div className="absolute right-0 top-full mt-2 w-52 bg-navy-900 border border-navy-700/50 rounded-xl shadow-2xl shadow-navy-950/80 overflow-hidden animate-scale-in">
                       <div className="px-4 py-3 border-b border-navy-800">
                         <p className="text-sm font-medium text-white truncate">
-                          {profile?.display_name ?? 'Kullan\u0131c\u0131'}
+                          {profile?.display_name ?? 'Kullanıcı'}
                         </p>
                         <p className="text-xs text-navy-400 truncate mt-0.5">
                           {user.email}
@@ -143,7 +143,7 @@ export default function PublicHeader() {
                           className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-navy-300 hover:text-red-400 hover:bg-navy-800/60 transition-colors"
                         >
                           <LogOut className="w-4 h-4" />
-                          \u00c7\u0131k\u0131\u015f Yap
+                          Çıkış Yap
                         </button>
                       </div>
                     </div>
@@ -190,13 +190,13 @@ export default function PublicHeader() {
                     onClick={() => openAuth('login')}
                     className="w-full text-center text-sm font-medium text-navy-200 hover:text-white border border-navy-700 py-2.5 rounded-lg transition-colors"
                   >
-                    Giri\u015f Yap
+                    Giriş Yap
                   </button>
                   <button
                     onClick={() => openAuth('register')}
                     className="w-full text-center text-sm font-semibold bg-champagne hover:bg-champagne-light text-navy-950 py-2.5 rounded-lg transition-colors"
                   >
-                    \u00dccretsiz Ba\u015flat
+                    Ücretsiz Başlat
                   </button>
                 </div>
               ) : !loading && user ? (
@@ -214,7 +214,7 @@ export default function PublicHeader() {
                     className="w-full flex items-center gap-2.5 text-sm text-navy-300 hover:text-red-400 px-3 py-2.5 rounded-lg hover:bg-navy-800/50 transition-colors"
                   >
                     <LogOut className="w-4 h-4" />
-                    \u00c7\u0131k\u0131\u015f Yap
+                    Çıkış Yap
                   </button>
                 </div>
               ) : null}

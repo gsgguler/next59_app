@@ -11,7 +11,7 @@ interface SidebarProps {
 
 const mainNav = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/matches', icon: Trophy, label: 'Ma\u00e7lar' },
+  { to: '/matches', icon: Trophy, label: 'Maçlar' },
   { to: '/predictions', icon: TrendingUp, label: 'Tahminler' },
   { to: '/debates', icon: MessageSquare, label: 'AI Debate' },
   { to: '/news', icon: Newspaper, label: 'Haberler' },
@@ -59,7 +59,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
               <NavItem key={item.to} {...item} collapsed={collapsed} onClick={onMobileClose} />
             ))}
             {isAdmin && (
-              <NavItem to="/admin" icon={ShieldCheck} label="Y\u00f6netim" collapsed={collapsed} onClick={onMobileClose} />
+              <NavItem to="/admin" icon={ShieldCheck} label="Yönetim" collapsed={collapsed} onClick={onMobileClose} />
             )}
           </ul>
 
