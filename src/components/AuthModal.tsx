@@ -113,6 +113,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'register' }:
             <input
               id="auth-email"
               type="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="E-posta adresiniz"
@@ -128,6 +129,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'register' }:
             <input
               id="auth-password"
               type="password"
+              autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Şifreniz"

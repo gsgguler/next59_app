@@ -68,6 +68,7 @@ export default function PasswordChangeForm() {
         <label className="block text-sm font-medium text-gray-700 mb-1.5">Yeni Şifre</label>
         <input
           type="password"
+          autoComplete="new-password"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
           className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 focus:ring-2 focus:ring-navy-500 focus:border-navy-500 transition-colors"
@@ -101,6 +102,7 @@ export default function PasswordChangeForm() {
         <label className="block text-sm font-medium text-gray-700 mb-1.5">Şifre Tekrar</label>
         <input
           type="password"
+          autoComplete="new-password"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 focus:ring-2 focus:ring-navy-500 focus:border-navy-500 transition-colors"
