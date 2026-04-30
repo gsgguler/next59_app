@@ -92,25 +92,14 @@ export default function ModelLabMacIncelemePage() {
     setPrediction(null);
     setEvaluation(null);
 
-    const { data: predData } = await supabase
-      .schema('model_lab' as never)
-      .from('match_model_predictions')
-      .select('*, model_versions(version_key)')
-      .eq('match_id', matchId)
-      .maybeSingle();
+    const { data: result } = await supabase.rpc('ml_get_match_prediction', {
+      p_match_id: matchId,
+    });
 
-    if (predData) {
-      const pred = predData as PredictionRow;
-      setPrediction(pred);
-
-      const { data: evalData } = await supabase
-        .schema('model_lab' as never)
-        .from('match_model_evaluations')
-        .select('*')
-        .eq('prediction_id', pred.id)
-        .maybeSingle();
-
-      setEvaluation(evalData as EvaluationRow | null);
+    const payload = result as { prediction: PredictionRow | null; evaluation: EvaluationRow | null } | null;
+    if (payload?.prediction) {
+      setPrediction(payload.prediction);
+      setEvaluation(payload.evaluation ?? null);
     }
     setLoadingDetail(false);
   }

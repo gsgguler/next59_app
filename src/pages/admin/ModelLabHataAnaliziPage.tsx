@@ -42,80 +42,17 @@ export default function ModelLabHataAnaliziPage() {
   const load = useCallback(async () => {
     setLoading(true);
 
-    const base = supabase
-      .schema('model_lab' as never)
-      .from('match_model_evaluations')
-      .select(
-        `id, match_id, actual_result, is_result_correct, brier_1x2, log_loss_1x2,
-         over_2_5_correct, btts_correct, error_category, error_notes,
-         match_model_predictions!inner(
-           match_date, competition_name, season_label,
-           home_team_name, away_team_name,
-           predicted_result, confidence_score, confidence_grade
-         )`,
-        { count: 'exact' },
-      )
-      .eq('is_result_correct', false)
-      .order('brier_1x2', { ascending: false })
-      .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
-
-    const withCat = categoryFilter !== 'all'
-      ? base.eq('error_category', categoryFilter)
-      : base;
-
-    const withGrade = gradeFilter
-      ? withCat.eq('match_model_predictions.confidence_grade', gradeFilter)
-      : withCat;
-
-    const { data, count } = await withGrade;
-    const mapped: ErrorRow[] = ((data as unknown[]) ?? []).map((r: unknown) => {
-      const row = r as {
-        id: string;
-        match_id: string;
-        actual_result: string;
-        is_result_correct: boolean;
-        brier_1x2: number;
-        log_loss_1x2: number;
-        over_2_5_correct: boolean;
-        btts_correct: boolean;
-        error_category: string;
-        error_notes: string;
-        match_model_predictions: {
-          match_date: string;
-          competition_name: string;
-          season_label: string;
-          home_team_name: string;
-          away_team_name: string;
-          predicted_result: string;
-          confidence_score: number;
-          confidence_grade: string;
-        };
-      };
-      const p = row.match_model_predictions;
-      return {
-        id: row.id,
-        match_id: row.match_id,
-        actual_result: row.actual_result,
-        is_result_correct: row.is_result_correct,
-        brier_1x2: row.brier_1x2,
-        log_loss_1x2: row.log_loss_1x2,
-        over_2_5_correct: row.over_2_5_correct,
-        btts_correct: row.btts_correct,
-        error_category: row.error_category,
-        error_notes: row.error_notes,
-        match_date: p?.match_date ?? '',
-        competition_name: p?.competition_name ?? '',
-        season_label: p?.season_label ?? '',
-        home_team_name: p?.home_team_name ?? '',
-        away_team_name: p?.away_team_name ?? '',
-        predicted_result: p?.predicted_result ?? '',
-        confidence_score: p?.confidence_score ?? 0,
-        confidence_grade: p?.confidence_grade ?? '',
-      };
+    const { data: result } = await supabase.rpc('ml_get_error_analysis_rows', {
+      p_run_id: null,
+      p_error_category: categoryFilter !== 'all' ? categoryFilter : null,
+      p_grade: gradeFilter || null,
+      p_offset: page * PAGE_SIZE,
+      p_limit: PAGE_SIZE,
     });
 
-    setRows(mapped);
-    setTotal(count ?? null);
+    const payload = result as { rows: ErrorRow[]; total: number } | null;
+    setRows(payload?.rows ?? []);
+    setTotal(payload?.total ?? 0);
     setLoading(false);
   }, [page, categoryFilter, gradeFilter]);
 

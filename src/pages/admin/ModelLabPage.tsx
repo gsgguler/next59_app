@@ -30,36 +30,27 @@ interface BacktestRun {
   completed_at: string | null;
 }
 
+interface DashboardData {
+  active_model: ModelVersion | null;
+  run_counts: Record<string, number>;
+  latest_runs: BacktestRun[];
+  archive_count: number;
+}
+
 export default function ModelLabPage() {
-  const [archiveCount, setArchiveCount] = useState<number | null>(null);
-  const [activeModel, setActiveModel] = useState<ModelVersion | null>(null);
-  const [latestRuns, setLatestRuns] = useState<BacktestRun[]>([]);
+  const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = 'Model Lab | Admin | Next59';
     async function load() {
-      const [countRes, modelRes, runsRes] = await Promise.all([
-        supabase
-          .from('v_historical_match_archive')
-          .select('*', { count: 'exact', head: true }),
-        supabase
-          .schema('model_lab' as never)
-          .from('model_versions')
-          .select('*')
-          .eq('is_active', true)
-          .maybeSingle(),
-        supabase
-          .schema('model_lab' as never)
-          .from('backtest_runs')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(5),
-      ]);
-
-      setArchiveCount(countRes.count ?? null);
-      setActiveModel((modelRes.data as ModelVersion | null));
-      setLatestRuns(((runsRes.data as BacktestRun[]) ?? []));
+      const { data: result, error: err } = await supabase.rpc('ml_get_model_lab_dashboard');
+      if (err) {
+        setError(err.message);
+      } else {
+        setData(result as DashboardData);
+      }
       setLoading(false);
     }
     load();
@@ -72,9 +63,13 @@ export default function ModelLabPage() {
     { label: 'Hata Analizi', to: '/admin/model-lab/hata-analizi', icon: Shield, desc: 'Yanlış tahminlerin ve yüksek güven hatalarının analizi' },
   ];
 
+  const completedRuns = data?.run_counts?.completed ?? 0;
+  const totalRuns = Object.values(data?.run_counts ?? {}).reduce((s, v) => s + v, 0);
+  const latestRuns = data?.latest_runs ?? [];
+  const activeModel = data?.active_model ?? null;
+
   return (
     <div className="min-h-screen bg-navy-950 p-6">
-      {/* Admin warning banner */}
       <div className="max-w-5xl mx-auto">
         <div className="bg-amber-500/10 border border-amber-500/25 rounded-xl px-5 py-3 mb-8 flex items-start gap-3">
           <Shield className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
@@ -95,6 +90,12 @@ export default function ModelLabPage() {
           </div>
         </div>
 
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/25 rounded-xl px-4 py-3 mb-6 text-xs text-red-400 font-mono">
+            RPC Hatası: {error}
+          </div>
+        )}
+
         {loading ? (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -103,19 +104,23 @@ export default function ModelLabPage() {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-            <StatCard label="Arşiv Kaydı" value={archiveCount?.toLocaleString('tr-TR') ?? '–'} />
+            <StatCard label="Arşiv Kaydı" value={data?.archive_count != null ? Number(data.archive_count).toLocaleString('tr-TR') : '–'} />
             <StatCard label="Aktif Model" value={activeModel?.version_key?.split('_v')[0]?.replace(/_/g, ' ') ?? '–'} small />
-            <StatCard label="Toplam Backtest" value={String(latestRuns.length > 0 ? '≥1 çalışma' : 'Henüz yok')} small />
             <StatCard
-              label="Veri Kaynağı"
-              value="v_historical_match_archive"
+              label="Toplam Backtest"
+              value={totalRuns > 0 ? String(totalRuns) : 'Henüz yok'}
+              small
+            />
+            <StatCard
+              label="Tamamlanan"
+              value={completedRuns > 0 ? String(completedRuns) : '0'}
               small
             />
           </div>
         )}
 
         {/* Active model version */}
-        {activeModel && (
+        {!loading && activeModel && (
           <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-5 mb-6">
             <h2 className="text-xs font-semibold text-navy-500 uppercase tracking-wider mb-3">
               Aktif Model Versiyonu
@@ -156,7 +161,13 @@ export default function ModelLabPage() {
           <h2 className="text-xs font-semibold text-navy-500 uppercase tracking-wider mb-4">
             Son Backtest Çalışmaları
           </h2>
-          {latestRuns.length === 0 ? (
+          {loading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-8 bg-navy-800/40 rounded animate-pulse" />
+              ))}
+            </div>
+          ) : latestRuns.length === 0 ? (
             <p className="text-sm text-navy-600">Henüz backtest çalışması oluşturulmadı.</p>
           ) : (
             <div className="space-y-2">
@@ -215,3 +226,6 @@ function StatusBadge({ status }: { status: string }) {
     </span>
   );
 }
+
+
+export default ModelLabPage

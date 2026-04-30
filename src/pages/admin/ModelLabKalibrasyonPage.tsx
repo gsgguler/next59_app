@@ -115,13 +115,11 @@ export default function ModelLabKalibrasyonPage() {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const { data } = await (supabase as ReturnType<typeof supabase.schema>)
-        .schema('model_lab' as never)
-        .from('calibration_summary')
-        .select('*')
-        .eq('group_type', groupType)
-        .order('sample_size', { ascending: false });
-      setRows((data as CalibrationRow[]) ?? []);
+      const { data } = await supabase.rpc('ml_get_calibration_summary', {
+        p_run_id: null,
+        p_group_type: groupType,
+      });
+      setRows(((data as unknown[]) ?? []) as CalibrationRow[]);
       setLoading(false);
     }
     if (tab === 'summary') load();
@@ -130,12 +128,8 @@ export default function ModelLabKalibrasyonPage() {
   useEffect(() => {
     async function loadAdj() {
       setAdjLoading(true);
-      const { data } = await (supabase as ReturnType<typeof supabase.schema>)
-        .schema('model_lab' as never)
-        .from('calibration_adjustments')
-        .select('*')
-        .order('confidence', { ascending: false });
-      setAdjustments((data as AdjustmentRow[]) ?? []);
+      const { data } = await supabase.rpc('ml_get_calibration_adjustments', { p_run_id: null });
+      setAdjustments(((data as unknown[]) ?? []) as AdjustmentRow[]);
       setAdjLoading(false);
     }
     if (tab === 'adjustments') loadAdj();

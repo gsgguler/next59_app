@@ -121,13 +121,8 @@ function RunCard({
 
   const loadChunks = useCallback(async () => {
     setChunksLoading(true);
-    const { data } = await supabase
-      .schema('model_lab' as never)
-      .from('backtest_run_chunks')
-      .select('*')
-      .eq('backtest_run_id', run.id)
-      .order('chunk_index');
-    setChunks((data as Chunk[]) ?? []);
+    const { data } = await supabase.rpc('ml_get_backtest_run_chunks_admin', { p_run_id: run.id });
+    setChunks(((data as unknown[]) ?? []) as Chunk[]);
     setChunksLoading(false);
   }, [run.id]);
 
@@ -278,13 +273,8 @@ export default function ModelLabBacktestPage() {
 
   const loadRuns = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
-      .schema('model_lab' as never)
-      .from('backtest_runs')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(20);
-    setRuns((data as BacktestRun[]) ?? []);
+    const { data } = await supabase.rpc('ml_get_backtest_runs', { p_limit: 20 });
+    setRuns(((data as unknown[]) ?? []) as BacktestRun[]);
     setLoading(false);
   }, []);
 
@@ -309,18 +299,13 @@ export default function ModelLabBacktestPage() {
     let result: Record<string, unknown>;
     try {
       if (action === 'run_chunk') {
-        // Find next pending chunk index
-        const { data: pending } = await supabase
-          .schema('model_lab' as never)
-          .from('backtest_run_chunks')
-          .select('chunk_index')
-          .eq('backtest_run_id', runId)
-          .eq('status', 'pending')
-          .order('chunk_index')
-          .limit(1)
-          .maybeSingle();
+        // Find next pending chunk index via admin RPC
+        const { data: allChunks } = await supabase.rpc('ml_get_backtest_run_chunks_admin', { p_run_id: runId });
+        const pending = ((allChunks as unknown[]) ?? []).find(
+          (c) => (c as Record<string, unknown>).status === 'pending'
+        ) as Record<string, number> | undefined;
         if (!pending) { setLog('Bekleyen chunk bulunamadı.'); setActionLoading(null); return; }
-        const idx = (pending as Record<string, number>).chunk_index;
+        const idx = pending.chunk_index;
         setLog(`Chunk ${idx} çalıştırılıyor...`);
         result = await callFn({ mode: 'run_chunk', run_id: runId, chunk_index: idx }) as Record<string, unknown>;
         setLog(`Chunk ${idx} tamamlandı: ${result.processed_matches} işlendi, ${result.failed_matches} başarısız, Brier: ${Number(result.average_brier_1x2).toFixed(4)}`);
