@@ -78,9 +78,26 @@ interface SimulationRow {
   actual_away_rate: number | null;
   per_competition_metrics: Record<string, unknown>;
   per_confidence_metrics: Record<string, unknown>;
+  // decision-layer columns
+  raw_decision_distribution_json: Record<string, number> | null;
+  adjusted_decision_distribution_json: Record<string, number> | null;
+  decision_rule_config: Record<string, unknown> | null;
+  scenario_class_distribution_json: Record<string, number> | null;
+  probability_unchanged: boolean | null;
+  draw_capture_rate: number | null;
+  home_overcall_reduction: number | null;
+  confusion_matrix_json: Record<string, number> | null;
   notes: string | null;
   created_at: string;
 }
+
+const DECISION_MODES = [
+  'draw_margin_rule_05',
+  'draw_margin_rule_08',
+  'draw_margin_rule_10',
+  'draw_floor_plus_competition_bias',
+  'scenario_class_v1',
+];
 
 const GROUP_TYPES = [
   'overall', 'competition', 'season', 'era_bucket', 'confidence_grade',
@@ -180,11 +197,13 @@ export default function ModelLabKalibrasyonPage() {
   const [rows, setRows] = useState<CalibrationRow[]>([]);
   const [adjustments, setAdjustments] = useState<AdjustmentRow[]>([]);
   const [simulations, setSimulations] = useState<SimulationRow[]>([]);
+  const [decisionSims, setDecisionSims] = useState<SimulationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [adjLoading, setAdjLoading] = useState(true);
   const [simLoading, setSimLoading] = useState(true);
+  const [decisionLoading, setDecisionLoading] = useState(true);
   const [groupType, setGroupType] = useState('overall');
-  const [tab, setTab] = useState<'summary' | 'adjustments' | 'simulations'>('summary');
+  const [tab, setTab] = useState<'summary' | 'adjustments' | 'simulations' | 'decision'>('summary');
 
   useEffect(() => {
     document.title = 'Kalibrasyon | Model Lab | Admin | Next59';
@@ -217,10 +236,22 @@ export default function ModelLabKalibrasyonPage() {
     async function loadSims() {
       setSimLoading(true);
       const { data } = await supabase.rpc('ml_get_adjustment_simulations', { p_run_id: null });
-      setSimulations(((data as unknown[]) ?? []) as SimulationRow[]);
+      const all = ((data as unknown[]) ?? []) as SimulationRow[];
+      setSimulations(all.filter(s => !DECISION_MODES.includes(s.simulation_key)));
       setSimLoading(false);
     }
     if (tab === 'simulations') loadSims();
+  }, [tab]);
+
+  useEffect(() => {
+    async function loadDecision() {
+      setDecisionLoading(true);
+      const { data } = await supabase.rpc('ml_get_adjustment_simulations', { p_run_id: null });
+      const all = ((data as unknown[]) ?? []) as SimulationRow[];
+      setDecisionSims(all.filter(s => DECISION_MODES.includes(s.simulation_key)));
+      setDecisionLoading(false);
+    }
+    if (tab === 'decision') loadDecision();
   }, [tab]);
 
   const showPva    = groupType === 'predicted_vs_actual';
@@ -254,18 +285,21 @@ export default function ModelLabKalibrasyonPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-navy-800 pb-px">
-          {(['summary', 'adjustments', 'simulations'] as const).map((t) => (
+        <div className="flex gap-2 mb-6 border-b border-navy-800 pb-px flex-wrap">
+          {(['summary', 'adjustments', 'simulations', 'decision'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`text-sm font-medium px-4 py-2 border-b-2 transition-all -mb-px ${
+              className={`text-sm font-medium px-4 py-2 border-b-2 transition-all -mb-px whitespace-nowrap ${
                 tab === t
                   ? 'border-champagne text-champagne'
                   : 'border-transparent text-navy-500 hover:text-white'
               }`}
             >
-              {t === 'summary' ? 'Kalibrasyon Özeti' : t === 'adjustments' ? 'Düzeltme Adayları' : 'Adjustment Simülasyonları'}
+              {t === 'summary' ? 'Kalibrasyon Özeti'
+                : t === 'adjustments' ? 'Düzeltme Adayları'
+                : t === 'simulations' ? 'Olasılık Simülasyonları'
+                : 'Decision Calibration'}
             </button>
           ))}
         </div>
@@ -562,6 +596,182 @@ export default function ModelLabKalibrasyonPage() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── Decision Calibration ─────────────────────────────────────────────── */}
+        {tab === 'decision' && (
+          <>
+            <div className="bg-navy-900/60 border border-navy-800 rounded-xl px-4 py-3 mb-5 text-xs text-navy-400">
+              Decision-layer kalibrasyonu: olasılıklar sabit tutularak veya önce kompetisyon düzeltmesi uygulanarak tahmin kararı (H/D/A) yeniden belirlenir.
+              Orijinal tahminler ve değerlendirmeler değiştirilmez. Hiçbir kural otomatik aktif edilmez.
+            </div>
+
+            {decisionLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="h-36 bg-navy-900/50 rounded-xl animate-pulse" />
+                ))}
+              </div>
+            ) : decisionSims.length === 0 ? (
+              <div className="flex flex-col items-center py-16 gap-3">
+                <RefreshCw className="w-8 h-8 text-navy-700" />
+                <p className="text-sm text-navy-500">Henüz decision simülasyonu yok.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {decisionSims.map((sim) => {
+                  const isScenario = sim.simulation_key === 'scenario_class_v1';
+                  const accImproved = Number(sim.adjusted_result_accuracy ?? 0) > Number(sim.raw_result_accuracy ?? 1);
+                  const drawRateOk  = Number(sim.adjusted_pred_draw_rate ?? 0) >= 0.05;
+                  const drawCapture = sim.draw_capture_rate !== null ? Number(sim.draw_capture_rate) : null;
+                  const homeReduction = sim.home_overcall_reduction !== null ? Number(sim.home_overcall_reduction) : null;
+                  const hasGoodNote = sim.notes?.includes('GOOD');
+                  const hasRisk     = sim.notes?.includes('RISK') || sim.notes?.includes('WARNING');
+
+                  return (
+                    <div key={sim.id} className="bg-navy-900/60 border border-navy-800 rounded-xl p-5">
+                      {/* Header */}
+                      <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-bold text-white font-mono">{sim.simulation_key}</span>
+                          <span className="text-xs text-navy-500">N={sim.sample_size.toLocaleString('tr-TR')}</span>
+                          {sim.probability_unchanged && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-sky-500/10 border border-sky-500/20 text-sky-400">
+                              prob unchanged
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {hasGoodNote && !hasRisk
+                            ? <span className="flex items-center gap-1 text-xs font-medium text-emerald-400"><CheckCircle className="w-3.5 h-3.5" />Promising</span>
+                            : hasRisk
+                            ? <span className="flex items-center gap-1 text-xs font-medium text-red-400"><AlertTriangle className="w-3.5 h-3.5" />Risk flags</span>
+                            : <span className="flex items-center gap-1 text-xs font-medium text-navy-500"><Minus className="w-3.5 h-3.5" />Neutral</span>
+                          }
+                        </div>
+                      </div>
+
+                      {isScenario ? (
+                        /* Scenario class distribution */
+                        <div className="bg-navy-800/30 rounded-xl p-3 mb-3">
+                          <p className="text-[10px] text-navy-500 font-medium uppercase tracking-wider mb-2">Scenario Sınıf Dağılımı</p>
+                          <div className="flex flex-wrap gap-2">
+                            {sim.scenario_class_distribution_json && Object.entries(sim.scenario_class_distribution_json)
+                              .sort((a, b) => b[1] - a[1])
+                              .map(([cls, cnt]) => (
+                                <div key={cls} className="flex items-center gap-1.5 px-2.5 py-1.5 bg-navy-800 rounded-lg text-xs">
+                                  <span className={
+                                    cls === 'home_control' ? 'text-amber-400'
+                                    : cls === 'away_control' ? 'text-sky-400'
+                                    : cls === 'volatile' ? 'text-red-400'
+                                    : cls === 'balanced' ? 'text-emerald-400'
+                                    : 'text-navy-300'
+                                  }>{cls}</span>
+                                  <span className="text-white font-medium tabular-nums">{cnt}</span>
+                                  <span className="text-navy-500">({((cnt / sim.sample_size) * 100).toFixed(1)}%)</span>
+                                </div>
+                              ))}
+                          </div>
+                          <p className="text-xs text-navy-500 mt-2">
+                            home_control dominates ({sim.scenario_class_distribution_json?.home_control ?? 0}/{sim.sample_size} = {((Number(sim.scenario_class_distribution_json?.home_control ?? 0)/sim.sample_size)*100).toFixed(0)}%) — confirms structural home bias in raw model output.
+                          </p>
+                        </div>
+                      ) : (
+                        <>
+                          {/* Metric row */}
+                          <div className="grid grid-cols-2 gap-3 mb-4 sm:grid-cols-4">
+                            <div className="bg-navy-800/50 rounded-xl p-3 text-xs">
+                              <p className="text-[10px] text-navy-500 uppercase tracking-wider mb-1.5">Doğruluk</p>
+                              <p className="text-navy-400">Ham: <span className="text-navy-300 tabular-nums">{(Number(sim.raw_result_accuracy)*100).toFixed(2)}%</span></p>
+                              <p className="text-navy-400">Adj: <span className={`tabular-nums font-medium ${accImproved ? 'text-emerald-400' : 'text-red-400'}`}>{(Number(sim.adjusted_result_accuracy)*100).toFixed(2)}%</span></p>
+                            </div>
+                            <div className="bg-navy-800/50 rounded-xl p-3 text-xs">
+                              <p className="text-[10px] text-navy-500 uppercase tracking-wider mb-1.5">Draw Yakalama</p>
+                              <p className={`text-lg font-bold tabular-nums ${drawCapture !== null && drawCapture > 0.10 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {drawCapture !== null ? (drawCapture * 100).toFixed(1) + '%' : '0%'}
+                              </p>
+                              <p className="text-navy-500">gerçek berabere tahmini</p>
+                            </div>
+                            <div className="bg-navy-800/50 rounded-xl p-3 text-xs">
+                              <p className="text-[10px] text-navy-500 uppercase tracking-wider mb-1.5">Home Overcall Azaltma</p>
+                              <p className={`text-lg font-bold tabular-nums ${homeReduction !== null && homeReduction > 0.05 ? 'text-emerald-400' : 'text-navy-400'}`}>
+                                {homeReduction !== null ? (homeReduction * 100).toFixed(1) + 'pp' : '0pp'}
+                              </p>
+                              <p className="text-navy-500">ev tahmin azalması</p>
+                            </div>
+                            <div className={`rounded-xl p-3 text-xs ${drawRateOk ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-navy-800/50'}`}>
+                              <p className="text-[10px] text-navy-500 uppercase tracking-wider mb-1.5">Pred D Rate</p>
+                              <p className={`text-lg font-bold tabular-nums ${drawRateOk ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {(Number(sim.adjusted_pred_draw_rate ?? 0)*100).toFixed(1)}%
+                              </p>
+                              <p className="text-navy-500">Gerçek: {(Number(sim.actual_draw_rate ?? 0)*100).toFixed(1)}%</p>
+                            </div>
+                          </div>
+
+                          {/* H/D/A distribution */}
+                          <div className="bg-navy-800/30 rounded-xl p-3 mb-3">
+                            <p className="text-[10px] text-navy-500 font-medium uppercase tracking-wider mb-2">
+                              Tahmin Dağılımı (Ham → Düzeltilmiş | Gerçek)
+                            </p>
+                            <div className="space-y-1.5">
+                              <RateBar raw={sim.raw_pred_home_rate} adj={sim.adjusted_pred_home_rate} actual={sim.actual_home_rate} label="H" />
+                              <RateBar raw={sim.raw_pred_draw_rate} adj={sim.adjusted_pred_draw_rate} actual={sim.actual_draw_rate} label="D" />
+                              <RateBar raw={sim.raw_pred_away_rate} adj={sim.adjusted_pred_away_rate} actual={sim.actual_away_rate} label="A" />
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      <SimNotes notes={sim.notes} />
+                    </div>
+                  );
+                })}
+
+                {/* Summary comparison table */}
+                <div className="bg-navy-900/60 border border-navy-800 rounded-xl p-5 mt-2">
+                  <p className="text-xs font-semibold text-white mb-3">Karşılaştırma Özeti</p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-navy-800">
+                          <th className="text-left text-navy-500 font-medium px-2 py-2">Mod</th>
+                          <th className="text-right text-navy-500 font-medium px-2 py-2">Accuracy</th>
+                          <th className="text-right text-navy-500 font-medium px-2 py-2">Pred D%</th>
+                          <th className="text-right text-navy-500 font-medium px-2 py-2">Draw Capture</th>
+                          <th className="text-right text-navy-500 font-medium px-2 py-2">Home Reduction</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-navy-800/40">
+                        {decisionSims.filter(s => s.simulation_key !== 'scenario_class_v1').map((sim) => (
+                          <tr key={sim.id} className="hover:bg-navy-900/40 transition-colors">
+                            <td className="px-2 py-2 text-white font-mono">{sim.simulation_key}</td>
+                            <td className="px-2 py-2 text-right tabular-nums">
+                              <span className={Number(sim.adjusted_result_accuracy ?? 0) > Number(sim.raw_result_accuracy ?? 0) ? 'text-emerald-400' : 'text-navy-400'}>
+                                {(Number(sim.adjusted_result_accuracy ?? 0)*100).toFixed(2)}%
+                              </span>
+                            </td>
+                            <td className="px-2 py-2 text-right tabular-nums">
+                              <span className={Number(sim.adjusted_pred_draw_rate ?? 0) >= 0.05 ? 'text-emerald-400' : 'text-red-400'}>
+                                {(Number(sim.adjusted_pred_draw_rate ?? 0)*100).toFixed(1)}%
+                              </span>
+                            </td>
+                            <td className="px-2 py-2 text-right tabular-nums">
+                              <span className={Number(sim.draw_capture_rate ?? 0) > 0.10 ? 'text-emerald-400' : 'text-navy-400'}>
+                                {sim.draw_capture_rate !== null ? (Number(sim.draw_capture_rate)*100).toFixed(1)+'%' : '0%'}
+                              </span>
+                            </td>
+                            <td className="px-2 py-2 text-right tabular-nums text-navy-300">
+                              {sim.home_overcall_reduction !== null ? (Number(sim.home_overcall_reduction)*100).toFixed(1)+'pp' : '0pp'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             )}
           </>
