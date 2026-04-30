@@ -51,7 +51,7 @@ export default function MatchHeader({ match }: { match: UIMatch }) {
     hour12: false,
   });
 
-  const roundLabel = match.round_name.replace('Group Stage - ', 'Grup A\u015famas\u0131 - Ma\u00e7 G\u00fcn\u00fc ');
+  const roundLabel = match.round_name.replace('Group Stage - ', 'Grup Aşaması - Maç Günü ');
 
   return (
     <div className="relative overflow-hidden">
@@ -69,7 +69,7 @@ export default function MatchHeader({ match }: { match: UIMatch }) {
         <div className="flex items-center gap-2 text-xs text-navy-500 mb-6">
           <Link to="/" className="inline-flex items-center gap-1 text-navy-400 hover:text-champagne transition-colors">
             <ArrowLeft className="w-3.5 h-3.5" />
-            T\u00fcm Ma\u00e7lar
+            Tüm Maçlar
           </Link>
           <span>/</span>
           <span className="text-navy-400 truncate">
@@ -125,7 +125,7 @@ export default function MatchHeader({ match }: { match: UIMatch }) {
             </span>
           )}
           <span>{roundLabel}</span>
-          <span className="bg-navy-800 text-navy-400 px-2 py-0.5 rounded">Tarafs\u0131z Saha</span>
+          <span className="bg-navy-800 text-navy-400 px-2 py-0.5 rounded">Tarafsız Saha</span>
         </div>
 
         {/* Pre-match lock badge */}
@@ -133,7 +133,7 @@ export default function MatchHeader({ match }: { match: UIMatch }) {
           <div className="mt-5 flex justify-center">
             <div className="inline-flex items-center gap-1.5 text-[11px] text-champagne/70 bg-champagne/5 border border-champagne/10 rounded-full px-3.5 py-1.5">
               <Lock className="w-3 h-3" />
-              Ma\u00e7 ba\u015flad\u0131\u011f\u0131nda kehanetler kilitlenir
+              Maç başladığında kehanetler kilitlenir
             </div>
           </div>
         )}
