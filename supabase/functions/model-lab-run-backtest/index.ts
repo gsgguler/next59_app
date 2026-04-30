@@ -442,6 +442,14 @@ Deno.serve(async (req: Request) => {
       p_avg_log_loss: avgLL,
     });
 
+    // ── Post-run: compute calibration summary across all 13 group dimensions ─
+    const { data: calResult, error: calErr } = await sb.rpc("ml_compute_calibration_summary", { p_run_id: runId });
+    const calibrationRows = calErr ? 0 : ((calResult as { rows_inserted?: number })?.rows_inserted ?? 0);
+
+    // ── Post-run: generate candidate adjustments (never auto-activated) ──────
+    const { data: adjResult, error: adjErr } = await sb.rpc("ml_generate_candidate_adjustments", { p_run_id: runId });
+    const adjustmentsGenerated = adjErr ? 0 : ((adjResult as { adjustments_generated?: number })?.adjustments_generated ?? 0);
+
     return Response.json({
       success: true,
       run_id: runId,
@@ -452,6 +460,8 @@ Deno.serve(async (req: Request) => {
       predictions_inserted: insertedPreds.length,
       average_brier_1x2: avgBrier,
       average_log_loss_1x2: avgLL,
+      calibration_summary_rows: calibrationRows,
+      candidate_adjustments: adjustmentsGenerated,
     }, { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (err) {
