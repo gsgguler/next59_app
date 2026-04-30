@@ -74,8 +74,8 @@ export function Hero() {
           {/* Event badge */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gold-500/10 border border-gold-500/20 mb-8">
             <Trophy className="w-3.5 h-3.5 text-gold-400" />
-            <span className="text-xs font-semibold text-gold-400 uppercase tracking-wider">
-              FIFA Dunya Kupasi 2026
+            <span className="text-lg font-semibold text-gold-400 uppercase tracking-wider">
+              FIFA DÜNYA KUPASI 2026
             </span>
           </div>
 
