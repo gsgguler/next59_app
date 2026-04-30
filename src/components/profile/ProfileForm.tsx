@@ -9,21 +9,18 @@ export default function ProfileForm() {
   const { toast } = useToast();
   const [displayName, setDisplayName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
-  const [locale, setLocale] = useState('tr');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (profile) {
       setDisplayName(profile.display_name ?? '');
       setAvatarUrl(profile.avatar_url ?? '');
-      setLocale(profile.preferred_locale ?? 'tr');
     }
   }, [profile]);
 
   function reset() {
     setDisplayName(profile?.display_name ?? '');
     setAvatarUrl(profile?.avatar_url ?? '');
-    setLocale(profile?.preferred_locale ?? 'tr');
   }
 
   async function handleSave() {
@@ -34,7 +31,6 @@ export default function ProfileForm() {
       .update({
         display_name: displayName || null,
         avatar_url: avatarUrl || null,
-        preferred_locale: locale,
         updated_at: new Date().toISOString(),
       })
       .eq('id', user.id);
@@ -106,17 +102,6 @@ export default function ProfileForm() {
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">Dil</label>
-          <select
-            value={locale}
-            onChange={(e) => setLocale(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 focus:ring-2 focus:ring-navy-500 focus:border-navy-500 transition-colors"
-          >
-            <option value="tr">Türkçe</option>
-            <option value="en">English</option>
-          </select>
-        </div>
       </div>
 
       <div className="flex items-center gap-3 pt-2">

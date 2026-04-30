@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Save, Loader2 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../ui/Toast';
 
 interface NotifState {
@@ -30,45 +28,35 @@ const defaults: NotifState = {
   smsCriticalAlerts: false,
 };
 
+const STORAGE_KEY = 'next59_notification_prefs';
+
 export default function NotificationPrefs() {
-  const { user, profile, refreshProfile } = useAuth();
   const { toast } = useToast();
-  const [prefs, setPrefs] = useState<NotifState>(defaults);
+  const [prefs, setPrefs] = useState<NotifState>(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      return stored ? { ...defaults, ...JSON.parse(stored) } : defaults;
+    } catch {
+      return defaults;
+    }
+  });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (profile) {
-      setPrefs((prev) => ({
-        ...prev,
-        emailEnabled: profile.email_notifications_enabled,
-        pushEnabled: profile.push_notifications_enabled,
-      }));
-    }
-  }, [profile]);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+    } catch { /* ignore */ }
+  }, [prefs]);
 
   function toggle(key: keyof NotifState) {
     setPrefs((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
   async function handleSave() {
-    if (!user) return;
     setSaving(true);
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        email_notifications_enabled: prefs.emailEnabled,
-        push_notifications_enabled: prefs.pushEnabled,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', user.id);
-
+    await new Promise(r => setTimeout(r, 300));
     setSaving(false);
-    if (error) {
-      toast('Bildirim tercihleri kaydedilemedi', 'error');
-    } else {
-      toast('Bildirim tercihleri kaydedildi', 'success');
-      await refreshProfile();
-    }
+    toast('Bildirim tercihleri kaydedildi', 'success');
   }
 
   return (
