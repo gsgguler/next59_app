@@ -68,6 +68,11 @@ import PredictionDetailPage from './pages/PredictionDetailPage';
 import DebatesListPage from './pages/DebatesListPage';
 import DebateDetailPage from './pages/DebateDetailPage';
 import AdminPage from './pages/AdminPage';
+import ModelLabPage from './pages/admin/ModelLabPage';
+import ModelLabBacktestPage from './pages/admin/ModelLabBacktestPage';
+import ModelLabMacIncelemePage from './pages/admin/ModelLabMacIncelemePage';
+import ModelLabKalibrasyonPage from './pages/admin/ModelLabKalibrasyonPage';
+import ModelLabHataAnaliziPage from './pages/admin/ModelLabHataAnaliziPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import PlaceholderPage from './pages/PlaceholderPage';
@@ -165,6 +170,12 @@ export default function App() {
                 <Route path="icerik-yonetimi" element={<PlaceholderPage title="İçerik Yönetimi" />} />
                 <Route path="kullanicilar" element={<PlaceholderPage title="Kullanıcılar" />} />
                 <Route path="sistem-sagligi" element={<PlaceholderPage title="Sistem Sağlığı" />} />
+                {/* Model Lab */}
+                <Route path="model-lab" element={<ModelLabPage />} />
+                <Route path="model-lab/backtest" element={<ModelLabBacktestPage />} />
+                <Route path="model-lab/mac-inceleme" element={<ModelLabMacIncelemePage />} />
+                <Route path="model-lab/kalibrasyon" element={<ModelLabKalibrasyonPage />} />
+                <Route path="model-lab/hata-analizi" element={<ModelLabHataAnaliziPage />} />
               </Route>
 
               <Route path="*" element={<NotFoundPage />} />
