@@ -26,7 +26,7 @@ export default function LegalPageLayout({ title, lastUpdated, children }: LegalP
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-white">{title}</h1>
           <p className="text-sm text-navy-400 mt-2">
-            Son g\u00fcncelleme: {lastUpdated}
+            Son güncelleme: {lastUpdated}
           </p>
         </div>
       </header>
@@ -40,11 +40,11 @@ export default function LegalPageLayout({ title, lastUpdated, children }: LegalP
 
         <div className="mt-8 text-center">
           <p className="text-xs text-gray-400">
-            Sorular\u0131n\u0131z i\u00e7in{' '}
+            Sorularınız için{' '}
             <a href="mailto:legal@next59.com" className="text-navy-600 hover:underline">
               legal@next59.com
             </a>{' '}
-            adresinden bize ula\u015fabilirsiniz.
+            adresinden bize ulaşabilirsiniz.
           </p>
         </div>
       </main>
