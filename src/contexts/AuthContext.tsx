@@ -7,10 +7,7 @@ export interface Profile {
   email: string;
   display_name: string | null;
   avatar_url: string | null;
-  preferred_locale: string | null;
-  is_super_admin: boolean;
-  email_notifications_enabled: boolean;
-  push_notifications_enabled: boolean;
+  role: string;
   personal_organization_id: string | null;
 }
 
@@ -27,8 +24,9 @@ interface AuthState {
   refreshProfile: () => Promise<void>;
 }
 
-function deriveIsAdmin(user: User | null): boolean {
+function deriveIsAdmin(user: User | null, profile: Profile | null): boolean {
   if (!user) return false;
+  if (profile?.role === 'admin') return true;
   const role = user.app_metadata?.role;
   return role === 'admin';
 }
@@ -42,43 +40,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [sessionReady, setSessionReady] = useState(false);
 
-  const isAdmin = deriveIsAdmin(user);
+  const isAdmin = deriveIsAdmin(user, profile);
 
   const loadProfile = useCallback(async (userId: string) => {
     const { data } = await supabase
       .from('profiles')
-      .select('id, email, display_name, avatar_url, preferred_locale, is_super_admin, email_notifications_enabled, push_notifications_enabled, personal_organization_id')
+      .select('id, email, display_name, avatar_url, role, personal_organization_id')
       .eq('id', userId)
       .maybeSingle();
     setProfile(data as Profile | null);
   }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setUser(s?.user ?? null);
+    let subscription: { unsubscribe: () => void } | null = null;
+
+    const timeout = setTimeout(() => {
       setSessionReady(true);
-      if (s?.user) {
-        loadProfile(s.user.id).finally(() => setLoading(false));
-      } else {
-        setLoading(false);
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user) {
-        (async () => {
-          await loadProfile(s.user.id);
-        })();
-      } else {
-        setProfile(null);
-      }
       setLoading(false);
-    });
+    }, 3000);
 
-    return () => subscription.unsubscribe();
+    try {
+      supabase.auth.getSession().then(({ data: { session: s } }) => {
+        clearTimeout(timeout);
+        setSession(s);
+        setUser(s?.user ?? null);
+        setSessionReady(true);
+        if (s?.user) {
+          loadProfile(s.user.id).finally(() => setLoading(false));
+        } else {
+          setLoading(false);
+        }
+      }).catch(() => {
+        clearTimeout(timeout);
+        setSessionReady(true);
+        setLoading(false);
+      });
+
+      const { data } = supabase.auth.onAuthStateChange((_event, s) => {
+        setSession(s);
+        setUser(s?.user ?? null);
+        if (s?.user) {
+          (async () => {
+            await loadProfile(s.user.id);
+          })();
+        } else {
+          setProfile(null);
+        }
+        setLoading(false);
+      });
+      subscription = data.subscription;
+    } catch {
+      clearTimeout(timeout);
+      setSessionReady(true);
+      setLoading(false);
+    }
+
+    return () => {
+      clearTimeout(timeout);
+      subscription?.unsubscribe();
+    };
   }, [loadProfile]);
 
   async function signUp(email: string, password: string, displayName: string) {
@@ -106,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ user, session, profile, isAdmin, loading, sessionReady, signUp, signIn, signOut, refreshProfile }}>
-      {loading && !sessionReady ? null : children}
+      {children}
     </AuthContext.Provider>
   );
 }
