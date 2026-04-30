@@ -204,7 +204,7 @@ export default function ApiTokenPanel() {
       >
         {generatedToken ? (
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">Bu token sadece bir kez gösterilecektir. Şimdi kopyalıyın.</p>
+            <p className="text-sm text-gray-600">Bu token sadece bir kez gösterilecektir. Şimdi kopyalayın.</p>
             <div className="flex items-center gap-2">
               <code className="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono break-all select-all">
                 {generatedToken}
