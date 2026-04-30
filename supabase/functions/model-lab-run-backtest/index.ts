@@ -237,6 +237,18 @@ Deno.serve(async (req: Request) => {
       try {
         const targetDate = target.match_date as string;
 
+        // Frozen validation mode: feature_cutoff_date is always the model's trained_until date,
+        // never the match date. This is the permanent audit-correct behaviour for B3 backbone runs.
+        // Walk-forward/rolling mode would use max(prior_match.match_date) < targetDate instead.
+        const featureCutoffDate = TRAINED_UNTIL;
+
+        // Guard: cutoff must be strictly before match date — fail fast, never silently insert invalid audit record
+        if (featureCutoffDate >= targetDate) {
+          failed++;
+          console.error(`LEAKAGE_GUARD: match ${target.match_id} date=${targetDate} cutoff=${featureCutoffDate} — skipped`);
+          continue;
+        }
+
         // Filter prior to strictly before this match — enforces no data leakage
         const prior = allPrior.filter((m) => (m.match_date as string) < targetDate);
 
@@ -256,7 +268,7 @@ Deno.serve(async (req: Request) => {
         const decisionSummary = `${target.home_team_name} - ${target.away_team_name} | ${predictedResult} (${(Math.max(pH, pD, pA) * 100).toFixed(1)}%) | Grade: ${confGrade} | xG: ${eHG.toFixed(2)}-${eAG.toFixed(2)}`;
 
         const featureSnapshot = {
-          cutoffDate: targetDate,
+          cutoffDate: featureCutoffDate,  // frozen: trained_until_date, never match_date
           eraBucket: era,
           leagueAverages: { sampleSize: la.n, homeGoalAvg: la.hg, awayGoalAvg: la.ag, homeWinRate: la.hwr, drawRate: la.dr, awayWinRate: la.awr },
           homeTeam: { teamId: target.home_team_id, sampleSize: ht.n, homeAttack: ht.ha, homeDefense: ht.hd, awayAttack: ht.aa, awayDefense: ht.ad, homeGoalRate: ht.hgr, awayGoalRate: ht.agr },
@@ -269,7 +281,7 @@ Deno.serve(async (req: Request) => {
         snapshotPayloads.push({
           match_id: target.match_id,
           model_version_id: modelVersionId,
-          feature_cutoff_date: targetDate,
+          feature_cutoff_date: featureCutoffDate,  // frozen: trained_until_date
           era_bucket: era,
           competition_id: target.competition_id,
           season_id: target.season_id,
@@ -296,7 +308,7 @@ Deno.serve(async (req: Request) => {
           model_version_id: modelVersionId,
           match_id: target.match_id,
           match_date: targetDate,
-          feature_cutoff_date: targetDate,
+          feature_cutoff_date: featureCutoffDate,  // frozen: trained_until_date, never match_date
           trained_until_date: TRAINED_UNTIL,
           era_bucket: era,
           competition_id: target.competition_id,
