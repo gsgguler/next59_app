@@ -7,15 +7,15 @@ interface UserRow {
   email: string;
   display_name: string | null;
   avatar_url: string | null;
-  is_super_admin: boolean;
+  role: string;
   created_at: string;
-  last_seen_at: string | null;
+  updated_at: string | null;
 }
 
 const PAGE_SIZE = 20;
 
-const roleBadge = (isAdmin: boolean) =>
-  isAdmin
+const roleBadge = (role: string) =>
+  role === 'admin'
     ? 'text-navy-700 bg-navy-50 border-navy-200'
     : 'text-gray-600 bg-gray-50 border-gray-200';
 
@@ -30,7 +30,7 @@ export default function UserTable() {
     setLoading(true);
     let query = supabase
       .from('profiles')
-      .select('id, email, display_name, avatar_url, is_super_admin, created_at, last_seen_at', { count: 'exact' })
+      .select('id, email, display_name, avatar_url, role, created_at, updated_at', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
@@ -81,7 +81,7 @@ export default function UserTable() {
                 <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Email</th>
                 <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Rol</th>
                 <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Kayıt</th>
-                <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Son Giriş</th>
+                <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Son Güncelleme</th>
               </tr>
             </thead>
             <tbody>
@@ -101,16 +101,16 @@ export default function UserTable() {
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600 truncate max-w-[200px]">{u.email}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded border ${roleBadge(u.is_super_admin)}`}>
-                      {u.is_super_admin ? 'Super Admin' : 'Kullanıcı'}
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded border ${roleBadge(u.role)}`}>
+                      {u.role === 'admin' ? 'Admin' : 'Kullanıcı'}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">
                     {new Date(u.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">
-                    {u.last_seen_at
-                      ? new Date(u.last_seen_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                    {u.updated_at
+                      ? new Date(u.updated_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
                       : '-'}
                   </td>
                 </tr>
