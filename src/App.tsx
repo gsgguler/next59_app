@@ -1,4 +1,3 @@
-import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './components/ui/Toast';
@@ -27,8 +26,7 @@ import TermsPage from './pages/legal/TermsPage';
 import KvkkPage from './pages/legal/KvkkPage';
 import CookiesPage from './pages/legal/CookiesPage';
 import NotificationOptIn from './components/NotificationOptIn';
-
-const UpdatePrompt = lazy(() => import('./components/UpdatePrompt'));
+import UpdatePrompt from './components/UpdatePrompt';
 
 export default function App() {
   return (
@@ -68,9 +66,7 @@ export default function App() {
 
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
-            <Suspense fallback={null}>
-              <UpdatePrompt />
-            </Suspense>
+            <UpdatePrompt />
             <NotificationOptIn />
           </ToastProvider>
         </AuthProvider>
