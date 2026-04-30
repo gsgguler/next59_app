@@ -23,9 +23,4 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
-  server: {
-    headers: {
-      'Content-Type': 'text/html; charset=utf-8',
-    },
-  },
 });
