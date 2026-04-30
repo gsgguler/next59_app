@@ -1,32 +1,21 @@
 import { useState, useEffect } from 'react';
+import { getWorldCupCountdown } from '../lib/worldCupCountdown';
 
 interface CountdownProps {
   compact?: boolean;
 }
 
-const WC_KICKOFF = new Date('2026-06-11T00:00:00-04:00').getTime();
-
-function calcRemaining() {
-  const diff = Math.max(0, WC_KICKOFF - Date.now());
-  return {
-    days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-    hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
-    minutes: Math.floor((diff / (1000 * 60)) % 60),
-    seconds: Math.floor((diff / 1000) % 60),
-  };
-}
-
 export default function Countdown({ compact = false }: CountdownProps) {
-  const [time, setTime] = useState(calcRemaining);
+  const [time, setTime] = useState(() => getWorldCupCountdown());
 
   useEffect(() => {
-    const id = setInterval(() => setTime(calcRemaining()), 1000);
+    const id = setInterval(() => setTime(getWorldCupCountdown()), 1000);
     return () => clearInterval(id);
   }, []);
 
   const blocks = [
-    { value: time.days, label: 'GUN' },
-    { value: time.hours, label: 'SAAT' },
+    { value: time.days,    label: 'GUN' },
+    { value: time.hours,   label: 'SAAT' },
     { value: time.minutes, label: 'DAK' },
     { value: time.seconds, label: 'SAN' },
   ];

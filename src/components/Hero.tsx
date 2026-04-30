@@ -1,41 +1,30 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '../locales/hero';
 import { Trophy, Clock } from 'lucide-react';
-
-const WC_KICKOFF = new Date('2026-06-11T21:00:00-04:00').getTime();
-
-const FIRST_MATCH = {
-  teamA: 'Meksika',
-  teamB: 'TBD',
-  venue: 'Estadio Azteca, Mexico City',
-  date: '11 Haziran 2026',
-};
-
-function calcRemaining() {
-  const diff = Math.max(0, WC_KICKOFF - Date.now());
-  return {
-    days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-    hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
-    minutes: Math.floor((diff / (1000 * 60)) % 60),
-    seconds: Math.floor((diff / 1000) % 60),
-  };
-}
+import {
+  getWorldCupCountdown,
+  formatOpeningKickoffForUser,
+  getUserTimeZone,
+} from '../lib/worldCupCountdown';
 
 export function Hero() {
   const { t } = useTranslation();
-  const [time, setTime] = useState(calcRemaining);
+  const [time, setTime] = useState(() => getWorldCupCountdown());
 
   useEffect(() => {
-    const id = setInterval(() => setTime(calcRemaining()), 1000);
+    const id = setInterval(() => setTime(getWorldCupCountdown()), 1000);
     return () => clearInterval(id);
   }, []);
 
   const blocks = [
-    { value: time.days, label: 'GUN' },
-    { value: time.hours, label: 'SAAT' },
-    { value: time.minutes, label: 'DAKiKA' },
-    { value: time.seconds, label: 'SANiYE' },
+    { value: time.days,    label: 'GÜN' },
+    { value: time.hours,   label: 'SAAT' },
+    { value: time.minutes, label: 'DAKİKA' },
+    { value: time.seconds, label: 'SANİYE' },
   ];
+
+  const localKickoff = formatOpeningKickoffForUser('tr-TR');
+  const userTz       = getUserTimeZone();
 
   return (
     <section className="hero relative min-h-[92vh] flex items-center justify-center bg-navy-950 overflow-hidden">
@@ -106,11 +95,27 @@ export function Hero() {
           </div>
 
           {/* First match info */}
-          <div className="mt-8 flex items-center justify-center gap-2 text-navy-400">
-            <Clock className="w-3.5 h-3.5" />
-            <span className="text-xs sm:text-sm font-medium">
-              Ilk mac: <span className="text-white/80">{FIRST_MATCH.teamA}</span> — {FIRST_MATCH.venue}
-            </span>
+          <div className="mt-8 flex flex-col items-center gap-1.5">
+            <div className="flex items-center gap-2 text-navy-400">
+              <Clock className="w-3.5 h-3.5 shrink-0" />
+              <span className="text-xs sm:text-sm font-medium">
+                İlk maç:{' '}
+                <span className="text-white/80">Meksika - Güney Afrika</span>
+                {' '}· Estadio Azteca, Mexico City
+              </span>
+            </div>
+            <p className="text-xs text-navy-500">
+              Türkiye saatiyle:{' '}
+              <span className="text-navy-300">11 Haziran 2026, 22:00</span>
+            </p>
+            {userTz !== 'Europe/Istanbul' && (
+              <p className="text-[11px] text-navy-600">
+                Yerel saat diliminiz:{' '}
+                <span className="text-navy-400">{userTz}</span>
+                {' '}· Yerel başlama saati:{' '}
+                <span className="text-navy-400">{localKickoff}</span>
+              </p>
+            )}
           </div>
         </div>
 
