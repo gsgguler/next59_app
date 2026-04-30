@@ -9,6 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 const navItems = [
   { label: 'Maçlar', to: '/matches' },
   { label: 'Tahminler', to: '/predictions' },
+  { label: 'Maç Arşivi', to: '/mac-arsivi' },
   { label: 'Hakkımızda', to: '/about' },
 ];
 

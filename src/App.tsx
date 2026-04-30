@@ -21,6 +21,7 @@ import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import PlaceholderPage from './pages/PlaceholderPage';
 import NotFoundPage from './pages/NotFoundPage';
+import ArchivePage from './pages/ArchivePage';
 import PrivacyPage from './pages/legal/PrivacyPage';
 import TermsPage from './pages/legal/TermsPage';
 import KvkkPage from './pages/legal/KvkkPage';
@@ -38,6 +39,8 @@ export default function App() {
               <Route element={<PublicLayout />}>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/mac/:matchId" element={<MatchDetailPage />} />
+                <Route path="/archive" element={<ArchivePage />} />
+                <Route path="/mac-arsivi" element={<ArchivePage />} />
               </Route>
 
               <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
