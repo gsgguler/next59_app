@@ -82,11 +82,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (s?.user) {
           (async () => {
             await loadProfile(s.user.id);
+            setLoading(false);
           })();
         } else {
           setProfile(null);
+          setLoading(false);
         }
-        setLoading(false);
       });
       subscription = data.subscription;
     } catch {

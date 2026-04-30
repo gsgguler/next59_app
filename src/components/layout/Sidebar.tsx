@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Settings,
   ShieldCheck,
+  FlaskConical,
   CircleUser as UserCircle,
   ChevronLeft,
   ChevronRight,
@@ -77,13 +78,22 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
               <NavItem key={item.to} {...item} collapsed={collapsed} onClick={onMobileClose} />
             ))}
             {isAdmin && (
-              <NavItem
-                to="/admin"
-                icon={ShieldCheck}
-                label="Yönetim"
-                collapsed={collapsed}
-                onClick={onMobileClose}
-              />
+              <>
+                <NavItem
+                  to="/admin"
+                  icon={ShieldCheck}
+                  label="Yönetim"
+                  collapsed={collapsed}
+                  onClick={onMobileClose}
+                />
+                <NavItem
+                  to="/admin/model-lab"
+                  icon={FlaskConical}
+                  label="Model Lab"
+                  collapsed={collapsed}
+                  onClick={onMobileClose}
+                />
+              </>
             )}
           </ul>
 
