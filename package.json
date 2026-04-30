@@ -15,7 +15,8 @@
     "lint:diacritic": "npx tsx scripts/diacritic-sweep.ts --check",
     "build:favicons": "npx tsx scripts/generate-favicons.ts",
     "generate:sitemap": "npx tsx scripts/generate-sitemap.ts",
-    "check:fd-mappings": "npx tsx scripts/check-fd-mappings.ts"
+    "check:fd-mappings": "npx tsx scripts/check-fd-mappings.ts",
+    "audit:copy-risk": "node scripts/audit-copy-risk.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
