@@ -2,12 +2,12 @@ import { useState } from 'react';
 
 export const translations = {
   tr: {
-    'hero.tagline': 'kehanet k\u00e2tibi',
-    'hero.subtagline': 'Ma\u00e7\u0131n 90 dakikas\u0131n\u0131, ilk d\u00fcd\u00fckten \u00f6nce yaz\u0131yoruz.',
-    'hero.cta_primary': 'Ma\u00e7lar\u0131 Ke\u015ffet',
+    'hero.tagline': 'kehanet kâtibi',
+    'hero.subtagline': 'Maçın 90 dakikasını, ilk düdükten önce yazıyoruz.',
+    'hero.cta_primary': 'Maçları Keşfet',
     'hero.cta_secondary': 'Manifestomuzu Okuyun',
-    'footer.tagline_line1': 'Ma\u00e7 ba\u015flamadan, 90 dakikay\u0131 yaz\u0131yoruz.',
-    'footer.tagline_line2': 'Tarafs\u0131z, veriyle \u00e7al\u0131\u015fan futbol gazetecili\u011fi.'
+    'footer.tagline_line1': 'Maç başlamadan, 90 dakikayı yazıyoruz.',
+    'footer.tagline_line2': 'Tarafsız, veriyle çalışan futbol gazeteciliği.'
   },
   en: {
     'hero.tagline': "the oracle's scribe",
