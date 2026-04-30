@@ -20,14 +20,12 @@ if (isWebContainer) {
 
 precacheAndRoute(self.__WB_MANIFEST);
 
-// HTML / navigation requests: network-first so users always get the latest shell
 const htmlStrategy = new NetworkFirst({
   cacheName: 'pages-cache',
   networkTimeoutSeconds: 3,
 });
 registerRoute(new NavigationRoute(htmlStrategy));
 
-// Images: cache-first with 30-day expiration, max 100 entries
 registerRoute(
   ({ request }) => request.destination === 'image',
   new CacheFirst({
@@ -41,7 +39,6 @@ registerRoute(
   }),
 );
 
-// Supabase API: network-first with 5s timeout
 registerRoute(
   ({ url }) => url.hostname.endsWith('.supabase.co'),
   new NetworkFirst({
@@ -56,7 +53,6 @@ registerRoute(
   }),
 );
 
-// Push event listener (prepared for Prompt 12)
 self.addEventListener('push', (event) => {
   const data = event.data?.json() ?? {};
   const title = data.title ?? 'Next59';
