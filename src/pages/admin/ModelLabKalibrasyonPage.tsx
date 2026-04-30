@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FlaskConical, ChevronRight, AlertCircle, Shield, TrendingDown, TrendingUp, Minus } from 'lucide-react';
+import {
+  FlaskConical, ChevronRight, AlertCircle, Shield,
+  TrendingDown, TrendingUp, Minus, RefreshCw,
+  CheckCircle, AlertTriangle,
+} from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface CalibrationRow {
@@ -50,20 +54,38 @@ interface AdjustmentRow {
   is_active: boolean;
 }
 
+interface SimulationRow {
+  id: string;
+  source_backtest_run_id: string;
+  simulation_key: string;
+  simulation_status: string;
+  applied_adjustments: unknown[];
+  sample_size: number;
+  raw_avg_brier_1x2: number | null;
+  adjusted_avg_brier_1x2: number | null;
+  raw_avg_log_loss_1x2: number | null;
+  adjusted_avg_log_loss_1x2: number | null;
+  raw_result_accuracy: number | null;
+  adjusted_result_accuracy: number | null;
+  raw_pred_home_rate: number | null;
+  raw_pred_draw_rate: number | null;
+  raw_pred_away_rate: number | null;
+  adjusted_pred_home_rate: number | null;
+  adjusted_pred_draw_rate: number | null;
+  adjusted_pred_away_rate: number | null;
+  actual_home_rate: number | null;
+  actual_draw_rate: number | null;
+  actual_away_rate: number | null;
+  per_competition_metrics: Record<string, unknown>;
+  per_confidence_metrics: Record<string, unknown>;
+  notes: string | null;
+  created_at: string;
+}
+
 const GROUP_TYPES = [
-  'overall',
-  'competition',
-  'season',
-  'era_bucket',
-  'confidence_grade',
-  'error_category',
-  'predicted_result',
-  'actual_result',
-  'predicted_vs_actual',
-  'high_confidence_wrong',
-  'home_prediction_bias',
-  'draw_prediction_bias',
-  'away_prediction_bias',
+  'overall', 'competition', 'season', 'era_bucket', 'confidence_grade',
+  'error_category', 'predicted_result', 'actual_result', 'predicted_vs_actual',
+  'high_confidence_wrong', 'home_prediction_bias', 'draw_prediction_bias', 'away_prediction_bias',
 ];
 
 function BiasChip({ value }: { value: number | null }) {
@@ -100,13 +122,69 @@ function StatusBadge({ status }: { status: string }) {
   return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-navy-700 text-navy-400">{status}</span>;
 }
 
+function DeltaCell({ raw, adj }: { raw: number | null; adj: number | null }) {
+  if (raw === null || adj === null) return <span className="text-navy-600">–</span>;
+  const delta = Number(adj) - Number(raw);
+  const improved = delta < 0;
+  return (
+    <span className={`tabular-nums ${improved ? 'text-emerald-400' : 'text-red-400'}`}>
+      {delta > 0 ? '+' : ''}{delta.toFixed(6)}
+    </span>
+  );
+}
+
+function DeltaAccCell({ raw, adj }: { raw: number | null; adj: number | null }) {
+  if (raw === null || adj === null) return <span className="text-navy-600">–</span>;
+  const delta = Number(adj) - Number(raw);
+  const improved = delta > 0;
+  return (
+    <span className={`tabular-nums ${improved ? 'text-emerald-400' : 'text-red-400'}`}>
+      {delta > 0 ? '+' : ''}{(delta * 100).toFixed(2)}pp
+    </span>
+  );
+}
+
+function RateBar({ raw, adj, actual, label }: { raw: number | null; adj: number | null; actual: number | null; label: string }) {
+  return (
+    <div className="flex items-center gap-2 text-xs">
+      <span className="text-navy-500 w-3">{label}</span>
+      <span className="text-navy-400 tabular-nums w-10">{(Number(raw ?? 0) * 100).toFixed(1)}%</span>
+      <span className="text-navy-600">→</span>
+      <span className="text-white tabular-nums w-10">{(Number(adj ?? 0) * 100).toFixed(1)}%</span>
+      <span className="text-navy-600">(actual:</span>
+      <span className="text-champagne tabular-nums">{(Number(actual ?? 0) * 100).toFixed(1)}%)</span>
+    </div>
+  );
+}
+
+function SimNotes({ notes }: { notes: string | null }) {
+  if (!notes) return (
+    <span className="text-emerald-400 text-xs flex items-center gap-1">
+      <CheckCircle className="w-3 h-3" />No risk flags
+    </span>
+  );
+  const isRisk = notes.includes('RISK') || notes.includes('WARNING');
+  return (
+    <div className={`flex items-start gap-1.5 text-xs rounded-lg px-2 py-1.5 ${
+      isRisk
+        ? 'bg-red-500/10 border border-red-500/20 text-red-300'
+        : 'bg-amber-500/10 border border-amber-500/20 text-amber-300'
+    }`}>
+      <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
+      <span>{notes}</span>
+    </div>
+  );
+}
+
 export default function ModelLabKalibrasyonPage() {
   const [rows, setRows] = useState<CalibrationRow[]>([]);
   const [adjustments, setAdjustments] = useState<AdjustmentRow[]>([]);
+  const [simulations, setSimulations] = useState<SimulationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [adjLoading, setAdjLoading] = useState(true);
+  const [simLoading, setSimLoading] = useState(true);
   const [groupType, setGroupType] = useState('overall');
-  const [tab, setTab] = useState<'summary' | 'adjustments'>('summary');
+  const [tab, setTab] = useState<'summary' | 'adjustments' | 'simulations'>('summary');
 
   useEffect(() => {
     document.title = 'Kalibrasyon | Model Lab | Admin | Next59';
@@ -135,13 +213,25 @@ export default function ModelLabKalibrasyonPage() {
     if (tab === 'adjustments') loadAdj();
   }, [tab]);
 
-  const showPva = groupType === 'predicted_vs_actual';
-  const showBias = ['overall', 'competition', 'home_prediction_bias', 'draw_prediction_bias', 'away_prediction_bias', 'predicted_result', 'actual_result', 'high_confidence_wrong'].includes(groupType);
-  const showMarkets = ['overall', 'competition', 'season', 'era_bucket', 'confidence_grade'].includes(groupType);
+  useEffect(() => {
+    async function loadSims() {
+      setSimLoading(true);
+      const { data } = await supabase.rpc('ml_get_adjustment_simulations', { p_run_id: null });
+      setSimulations(((data as unknown[]) ?? []) as SimulationRow[]);
+      setSimLoading(false);
+    }
+    if (tab === 'simulations') loadSims();
+  }, [tab]);
+
+  const showPva    = groupType === 'predicted_vs_actual';
+  const showBias   = ['overall','competition','home_prediction_bias','draw_prediction_bias','away_prediction_bias','predicted_result','actual_result','high_confidence_wrong'].includes(groupType);
+  const showMarkets = ['overall','competition','season','era_bucket','confidence_grade'].includes(groupType);
 
   return (
     <div className="min-h-screen bg-navy-950 p-6">
       <div className="max-w-6xl mx-auto">
+
+        {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs text-navy-500 mb-6">
           <Link to="/admin/model-lab" className="hover:text-champagne transition-colors">Model Lab</Link>
           <ChevronRight className="w-3 h-3" />
@@ -159,13 +249,13 @@ export default function ModelLabKalibrasyonPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white font-display">Kalibrasyon</h1>
-            <p className="text-sm text-navy-400 mt-1">13 grup boyutunda kalibrasyon özeti ve düzeltme adayları.</p>
+            <p className="text-sm text-navy-400 mt-1">13 grup boyutunda kalibrasyon özeti, düzeltme adayları ve simülasyonlar.</p>
           </div>
         </div>
 
-        {/* Tab selector */}
+        {/* Tabs */}
         <div className="flex gap-2 mb-6 border-b border-navy-800 pb-px">
-          {(['summary', 'adjustments'] as const).map((t) => (
+          {(['summary', 'adjustments', 'simulations'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -175,14 +265,14 @@ export default function ModelLabKalibrasyonPage() {
                   : 'border-transparent text-navy-500 hover:text-white'
               }`}
             >
-              {t === 'summary' ? 'Kalibrasyon Özeti' : 'Düzeltme Adayları'}
+              {t === 'summary' ? 'Kalibrasyon Özeti' : t === 'adjustments' ? 'Düzeltme Adayları' : 'Adjustment Simülasyonları'}
             </button>
           ))}
         </div>
 
+        {/* ── Summary ─────────────────────────────────────────────────────────── */}
         {tab === 'summary' && (
           <>
-            {/* Group type tabs */}
             <div className="flex flex-wrap gap-2 mb-5">
               {GROUP_TYPES.map((g) => (
                 <button
@@ -232,9 +322,7 @@ export default function ModelLabKalibrasyonPage() {
                       </>}
                       <th className="text-right text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">HCW%</th>
                       <th className="text-right text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Cal Err</th>
-                      {showPva && (
-                        <th className="text-left text-navy-500 font-medium px-3 py-2.5">Matris</th>
-                      )}
+                      {showPva && <th className="text-left text-navy-500 font-medium px-3 py-2.5">Matris</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-navy-800/40">
@@ -266,9 +354,9 @@ export default function ModelLabKalibrasyonPage() {
                         </td>
                         {showPva && (
                           <td className="px-3 py-2.5">
-                            {r.predicted_vs_actual_json ? (
-                              <span className="text-navy-500 font-mono">{JSON.stringify(r.predicted_vs_actual_json)}</span>
-                            ) : '–'}
+                            {r.predicted_vs_actual_json
+                              ? <span className="text-navy-500 font-mono">{JSON.stringify(r.predicted_vs_actual_json)}</span>
+                              : '–'}
                           </td>
                         )}
                       </tr>
@@ -278,7 +366,6 @@ export default function ModelLabKalibrasyonPage() {
               </div>
             )}
 
-            {/* Error category JSON expansion for relevant groups */}
             {!loading && rows.length > 0 && rows[0].error_category_json && (
               <div className="mt-4 p-4 bg-navy-900/60 rounded-xl border border-navy-800">
                 <p className="text-xs font-medium text-navy-400 mb-2">Hata Kategorisi Dağılımı ({rows[0].group_key})</p>
@@ -295,6 +382,7 @@ export default function ModelLabKalibrasyonPage() {
           </>
         )}
 
+        {/* ── Adjustments ─────────────────────────────────────────────────────── */}
         {tab === 'adjustments' && (
           <>
             {adjLoading ? (
@@ -329,7 +417,6 @@ export default function ModelLabKalibrasyonPage() {
                         </span>
                       </div>
                     </div>
-
                     <div className="grid grid-cols-3 gap-3 mb-2 text-xs">
                       <div className="bg-navy-800/60 rounded-lg p-2">
                         <p className="text-navy-500 mb-0.5">Ölçülen bias</p>
@@ -346,7 +433,6 @@ export default function ModelLabKalibrasyonPage() {
                         <p className="text-navy-300 font-mono tabular-nums">{adj.before_metric !== null ? Number(adj.before_metric).toFixed(4) : '–'}</p>
                       </div>
                     </div>
-
                     {adj.reason && (
                       <p className="text-xs text-navy-400 leading-relaxed">{adj.reason}</p>
                     )}
@@ -356,6 +442,131 @@ export default function ModelLabKalibrasyonPage() {
             )}
           </>
         )}
+
+        {/* ── Simulations ─────────────────────────────────────────────────────── */}
+        {tab === 'simulations' && (
+          <>
+            <div className="bg-navy-900/60 border border-navy-800 rounded-xl px-4 py-3 mb-5 text-xs text-navy-400">
+              Simülasyonlar, orijinal tahminleri veya değerlendirmeleri değiştirmez. Yalnızca aday düzeltmelerin uygulandığı durumda ne olacağını hesaplar.
+              Hiçbir aday otomatik aktif edilmez.
+            </div>
+
+            {simLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="h-40 bg-navy-900/50 rounded-xl animate-pulse" />
+                ))}
+              </div>
+            ) : simulations.length === 0 ? (
+              <div className="flex flex-col items-center py-16 gap-3">
+                <RefreshCw className="w-8 h-8 text-navy-700" />
+                <p className="text-sm text-navy-500">Henüz simülasyon yok.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {simulations.map((sim) => {
+                  const brierImproved = Number(sim.adjusted_avg_brier_1x2 ?? 1) < Number(sim.raw_avg_brier_1x2 ?? 0);
+                  const llImproved    = Number(sim.adjusted_avg_log_loss_1x2 ?? 1) < Number(sim.raw_avg_log_loss_1x2 ?? 0);
+                  const accImproved   = Number(sim.adjusted_result_accuracy ?? 0) > Number(sim.raw_result_accuracy ?? 1);
+
+                  return (
+                    <div key={sim.id} className="bg-navy-900/60 border border-navy-800 rounded-xl p-5">
+                      {/* Header */}
+                      <div className="flex items-center justify-between gap-4 mb-4">
+                        <div>
+                          <span className="text-sm font-bold text-white font-mono">{sim.simulation_key}</span>
+                          <span className="ml-2 text-xs text-navy-500">N={sim.sample_size.toLocaleString('tr-TR')}</span>
+                        </div>
+                        {brierImproved && llImproved && accImproved
+                          ? <span className="flex items-center gap-1 text-xs font-medium text-emerald-400"><CheckCircle className="w-3.5 h-3.5" />Tüm metrikler iyileşti</span>
+                          : <span className="flex items-center gap-1 text-xs font-medium text-amber-400"><AlertTriangle className="w-3.5 h-3.5" />Kısmi iyileşme</span>
+                        }
+                      </div>
+
+                      {/* Metric cards */}
+                      <div className="grid grid-cols-3 gap-3 mb-4">
+                        <div className="bg-navy-800/50 rounded-xl p-3">
+                          <p className="text-[10px] text-navy-500 font-medium uppercase tracking-wider mb-2">Brier 1X2</p>
+                          <div className="space-y-1 text-xs">
+                            <div className="flex justify-between">
+                              <span className="text-navy-400">Ham</span>
+                              <span className="tabular-nums text-navy-300">{Number(sim.raw_avg_brier_1x2).toFixed(6)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-navy-400">Düzeltilmiş</span>
+                              <span className={`tabular-nums font-medium ${brierImproved ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {Number(sim.adjusted_avg_brier_1x2).toFixed(6)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between border-t border-navy-700/50 pt-1">
+                              <span className="text-navy-500">Δ</span>
+                              <DeltaCell raw={sim.raw_avg_brier_1x2} adj={sim.adjusted_avg_brier_1x2} />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-navy-800/50 rounded-xl p-3">
+                          <p className="text-[10px] text-navy-500 font-medium uppercase tracking-wider mb-2">Log Loss</p>
+                          <div className="space-y-1 text-xs">
+                            <div className="flex justify-between">
+                              <span className="text-navy-400">Ham</span>
+                              <span className="tabular-nums text-navy-300">{Number(sim.raw_avg_log_loss_1x2).toFixed(6)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-navy-400">Düzeltilmiş</span>
+                              <span className={`tabular-nums font-medium ${llImproved ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {Number(sim.adjusted_avg_log_loss_1x2).toFixed(6)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between border-t border-navy-700/50 pt-1">
+                              <span className="text-navy-500">Δ</span>
+                              <DeltaCell raw={sim.raw_avg_log_loss_1x2} adj={sim.adjusted_avg_log_loss_1x2} />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-navy-800/50 rounded-xl p-3">
+                          <p className="text-[10px] text-navy-500 font-medium uppercase tracking-wider mb-2">Doğruluk</p>
+                          <div className="space-y-1 text-xs">
+                            <div className="flex justify-between">
+                              <span className="text-navy-400">Ham</span>
+                              <span className="tabular-nums text-navy-300">{(Number(sim.raw_result_accuracy) * 100).toFixed(2)}%</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-navy-400">Düzeltilmiş</span>
+                              <span className={`tabular-nums font-medium ${accImproved ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {(Number(sim.adjusted_result_accuracy) * 100).toFixed(2)}%
+                              </span>
+                            </div>
+                            <div className="flex justify-between border-t border-navy-700/50 pt-1">
+                              <span className="text-navy-500">Δ</span>
+                              <DeltaAccCell raw={sim.raw_result_accuracy} adj={sim.adjusted_result_accuracy} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Class distribution */}
+                      <div className="bg-navy-800/30 rounded-xl p-3 mb-3">
+                        <p className="text-[10px] text-navy-500 font-medium uppercase tracking-wider mb-2">
+                          Tahmin Dağılımı (Ham → Düzeltilmiş | Gerçek)
+                        </p>
+                        <div className="space-y-1.5">
+                          <RateBar raw={sim.raw_pred_home_rate} adj={sim.adjusted_pred_home_rate} actual={sim.actual_home_rate} label="H" />
+                          <RateBar raw={sim.raw_pred_draw_rate} adj={sim.adjusted_pred_draw_rate} actual={sim.actual_draw_rate} label="D" />
+                          <RateBar raw={sim.raw_pred_away_rate} adj={sim.adjusted_pred_away_rate} actual={sim.actual_away_rate} label="A" />
+                        </div>
+                      </div>
+
+                      <SimNotes notes={sim.notes} />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+
       </div>
     </div>
   );
