@@ -315,6 +315,7 @@ async function modeCreateRun(
   modelKey: string,
   chunkSize: number,
   totalLimit: number,
+  customScope?: string,
 ): Promise<Response> {
   const { data: mvRaw, error: mvErr } = await sb.rpc("ml_get_model_version", { p_version_key: modelKey });
   if (mvErr || !mvRaw) return Response.json({ error: `Model version not found: ${modelKey}` }, { headers: corsHeaders, status: 400 });
@@ -333,11 +334,12 @@ async function modeCreateRun(
 
   const total = Math.min(totalCount ?? 0, totalLimit > 0 ? totalLimit : (totalCount ?? 0));
 
-  const runKey = `${modelKey}_chunked_${chunkSize}_${Date.now()}`;
+  const resolvedScope = customScope || `chunked_${chunkSize}`;
+  const runKey = `${modelKey}_${resolvedScope}_${Date.now()}`;
   const { data: runRaw, error: runErr } = await sb.rpc("ml_insert_backtest_run", {
     p_model_version_id: modelVersionId,
     p_run_key: runKey,
-    p_run_scope: `chunked_${chunkSize}`,
+    p_run_scope: resolvedScope,
     p_competition_scope: COMPETITIONS,
     p_era_scope: ["bridge_2018_2019"],
   });
@@ -573,6 +575,7 @@ Deno.serve(async (req: Request) => {
     const totalLimit = parseInt(url.searchParams.get("limit") ?? "0", 10); // 0 = no limit
     const runId     = url.searchParams.get("run_id") ?? "";
     const chunkIndex = parseInt(url.searchParams.get("chunk_index") ?? "0", 10);
+    const customScope = url.searchParams.get("run_scope") ?? undefined;
 
     const sb = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -580,7 +583,7 @@ Deno.serve(async (req: Request) => {
     );
 
     // ── Chunked modes ─────────────────────────────────────────────────────────
-    if (mode === "create_run") return await modeCreateRun(sb, modelKey, chunkSize, totalLimit);
+    if (mode === "create_run") return await modeCreateRun(sb, modelKey, chunkSize, totalLimit, customScope);
     if (mode === "run_chunk") {
       if (!runId) return Response.json({ error: "run_id required" }, { headers: corsHeaders, status: 400 });
       return await modeRunChunk(sb, runId, chunkIndex);
