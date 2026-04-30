@@ -61,7 +61,7 @@ export default function DashboardHome() {
       bgColor: 'bg-emerald-50',
     },
     {
-      title: 'Yayınlanan Tahminler',
+      title: 'Yayınlanan Analizler',
       value: loading ? '-' : String(stats.predictions),
       change: '+12 bu ay',
       trend: 'up',
@@ -142,7 +142,7 @@ export default function DashboardHome() {
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Son Tahminler</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Son Analizler</h2>
           <div className="space-y-3">
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => (
@@ -249,9 +249,9 @@ function RecentPredictionsList() {
         <div className="mx-auto w-10 h-10 rounded-xl bg-gold-50 border border-gold-200 flex items-center justify-center mb-3">
           <Lock className="w-5 h-5 text-gold-500" />
         </div>
-        <p className="text-sm font-medium text-gray-600 mb-1">Tahmin bulunamadı</p>
+        <p className="text-sm font-medium text-gray-600 mb-1">Analiz bulunamadı</p>
         <p className="text-xs text-gray-400 mb-3">
-          Daha fazla tahmine erişmek için planını yükseltebilirsin.
+          Daha fazla analize erişmek için planını yükseltebilirsin.
         </p>
         <Link
           to="/settings"

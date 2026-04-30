@@ -123,10 +123,10 @@ export function Hero() {
             {t('hero.cta_primary')}
           </a>
           <a
-            href="/tahminler"
+            href="/maclar"
             className="px-8 py-3.5 border border-white/15 text-white/80 font-medium rounded-lg hover:bg-white/5 hover:border-white/25 transition-all"
           >
-            Tahminleri Gor
+            Maçları Keşfet
           </a>
         </div>
       </div>

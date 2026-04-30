@@ -9,7 +9,7 @@ const sections: { type: 'general' | 'goals' | 'mutual' | 'first_half' | 'second_
   { type: 'mutual', title: 'Karşılıklı Atak Senaryosu' },
   { type: 'first_half', title: 'İlk Yarı Analizi' },
   { type: 'second_half', title: 'İkinci Yarı Projeksiyonu' },
-  { type: 'full_time', title: 'Maç Sonu Tahmini' },
+  { type: 'full_time', title: 'Maç Sonu Senaryosu' },
 ];
 
 export default function PreMatchOracle({ match }: { match: UIMatch }) {

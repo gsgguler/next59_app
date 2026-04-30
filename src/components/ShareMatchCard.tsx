@@ -33,7 +33,7 @@ function buildMatchUrl(matchId: string): string {
 function buildShareText(props: ShareMatchCardProps): string {
   const matchUrl = buildMatchUrl(props.matchId);
   return [
-    `\u{1F3C6} ${props.homeTeam} vs ${props.awayTeam} | next59 tahmini: ${props.prediction} (${props.probability}%)`,
+    `\u{1F3C6} ${props.homeTeam} vs ${props.awayTeam} | next59 senaryosu: ${props.prediction} (${props.probability}%)`,
     `\u{1F52E} ${props.matchDate} \u{2014} ${props.league}`,
     `\u{1F449} ${matchUrl}`,
   ].join('\n');

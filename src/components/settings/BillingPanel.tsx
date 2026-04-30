@@ -19,19 +19,19 @@ const planData: Record<string, { name: string; price: string; features: string[]
     name: 'Ücretsiz',
     price: 'Ücretsiz',
     badge: 'text-gray-600 bg-gray-50 border-gray-200',
-    features: ['Sınırlı tahmin erişimi', 'Temel maç verileri', 'Topluluk desteği'],
+    features: ['Sınırlı analiz erişimi', 'Temel maç verileri', 'Topluluk desteği'],
   },
   pro: {
     name: 'Pro',
     price: '299 TL/ay',
     badge: 'text-blue-700 bg-blue-50 border-blue-200',
-    features: ['Tüm tahminlere erişim', 'AI Debate görüntülemesi', 'Öncelikli destek', 'API erişimi (1000 istek/ay)'],
+    features: ['Tüm analizlere erişim', 'AI Debate görüntülemesi', 'Öncelikli destek', 'API erişimi (1000 istek/ay)'],
   },
   elite: {
     name: 'Elite',
     price: '999 TL/ay',
     badge: 'text-gold-700 bg-gold-50 border-gold-200',
-    features: ['Sınırsız tahmin erişimi', 'Gerçek zamanlı bildirimler', 'Özel raporlama', 'API erişimi (sınırsız)', 'Özel destek yöneticisi'],
+    features: ['Sınırsız analiz erişimi', 'Gerçek zamanlı bildirimler', 'Özel raporlama', 'API erişimi (sınırsız)', 'Özel destek yöneticisi'],
   },
   b2b_only: {
     name: 'B2B',

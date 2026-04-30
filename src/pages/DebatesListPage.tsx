@@ -146,13 +146,13 @@ export default function DebatesListPage() {
           <div className="flex flex-col items-center justify-center py-20 text-gray-400">
             <MessageSquare className="w-12 h-12 mb-3" />
             <p className="text-lg font-medium text-gray-600">Henuz panel degerlendirmesi yok</p>
-            <p className="text-sm mt-1 mb-4">Tahminler olusturuldukca burada gorunecektir</p>
+            <p className="text-sm mt-1 mb-4">Analizler olusturuldukca burada gorunecektir</p>
             <Link
               to="/predictions"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-navy-700 text-white text-sm font-medium hover:bg-navy-600 transition-colors"
             >
               <TrendingUp className="w-4 h-4" />
-              Tahminlere Git
+              Analizlere Git
             </Link>
           </div>
         )

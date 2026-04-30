@@ -61,9 +61,9 @@ export default function PredictionDetailPage() {
         .maybeSingle();
 
       if (err) {
-        setError('Tahmin yuklenirken hata olustu');
+        setError('Analiz yuklenirken hata olustu');
       } else if (!data) {
-        setError('Tahmin bulunamadi');
+        setError('Analiz bulunamadi');
       } else {
         setPrediction(data as unknown as PredictionData);
       }
@@ -85,9 +85,9 @@ export default function PredictionDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-gray-400">
         <BarChart3 className="w-12 h-12 mb-3" />
-        <p className="text-lg font-medium text-gray-600">{error || 'Tahmin bulunamadi'}</p>
+        <p className="text-lg font-medium text-gray-600">{error || 'Analiz bulunamadi'}</p>
         <Link to="/predictions" className="mt-4 text-sm text-navy-600 hover:text-navy-700 font-medium">
-          Tahminlere don
+          Analizlere Dön
         </Link>
       </div>
     );
@@ -107,12 +107,12 @@ export default function PredictionDetailPage() {
         <ChevronRight className="w-3.5 h-3.5" />
         <span className="text-gray-600">{homeName} vs {awayName}</span>
         <ChevronRight className="w-3.5 h-3.5" />
-        <span className="text-gray-900 font-medium">Tahmin</span>
+        <span className="text-gray-900 font-medium">Analiz</span>
       </nav>
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Mac Tahmini</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Maç Analizi</h1>
           <p className="text-gray-500 mt-0.5">{compName && `${compName} - `}{homeName} vs {awayName}</p>
         </div>
         <span className="text-sm font-mono text-gold-600 bg-gold-50 border border-gold-200 px-3 py-1.5 rounded-lg self-start">
@@ -155,7 +155,7 @@ export default function PredictionDetailPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Bu model icin ortalama dogruluk orani</p>
-                <p className="text-xs text-gray-400 mt-1">Son 100 tahmine dayanmaktadir</p>
+                <p className="text-xs text-gray-400 mt-1">Son 100 analize dayanmaktadır</p>
               </div>
             </div>
           </div>

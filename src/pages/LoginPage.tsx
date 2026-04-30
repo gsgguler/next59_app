@@ -38,7 +38,7 @@ export default function LoginPage() {
             <Logo size="lg" linkTo="/" />
           </div>
           <p className="text-navy-200 text-lg leading-relaxed max-w-md">
-            Yapay zekâ destekli futbol analiz platformu. Tahminler, analizler ve daha fazlası.
+            Yapay zekâ destekli futbol analiz platformu. Senaryolar, analizler ve daha fazlası.
           </p>
         </div>
       </div>

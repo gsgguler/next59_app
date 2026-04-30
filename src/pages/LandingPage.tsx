@@ -36,8 +36,8 @@ const features = [
   },
   {
     icon: TrendingUp,
-    title: 'Canlı Tahmin Takibi',
-    description: 'Tahminlerinizi gerçek zamanlı takip edin. Başarı oranlarınızı, ROI metriklerinizi ve trend analizlerinizi görüntüleyin.',
+    title: 'Analiz Arşivi',
+    description: 'Maç analizlerini gerçek zamanlı takip edin. Analiz geçmişinizi ve trend verilerini görüntüleyin.',
   },
   {
     icon: BarChart3,
@@ -58,7 +58,7 @@ const features = [
 
 const howItWorks = [
   { step: '01', title: 'Maç Seçin', description: 'Analiz etmek istediğiniz maçı listeden seçin.' },
-  { step: '02', title: 'AI Analiz Eder', description: 'Yapay zekâ modellerimiz tüm verileri işler ve tahmin oluşturur.' },
+  { step: '02', title: 'AI Analiz Eder', description: 'Yapay zekâ modellerimiz tüm verileri işler ve maç senaryosu oluşturur.' },
   { step: '03', title: 'Debate İzleyin', description: 'AI personalar maç hakkında farklı bakış açılarını tartışır.' },
   { step: '04', title: 'Karar Verin', description: 'Kapsamlı analize dayanarak bilinçli kararlar verin.' },
 ];

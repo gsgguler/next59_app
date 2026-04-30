@@ -84,12 +84,12 @@ export function predictionToNarrative(
     case 'full_time': {
       const scorePred = predictScore(p);
       if (maxProb > 0.5) {
-        return `Veri bülteni: ${favorite} takımının galibiyeti yüksek ihtimal. Skor tahmini: ${scorePred}. *Bu bir veri analizidir, kesin sonuç değildir. Futbolun doğası gereği sürprizler her zaman mümkündür.`;
+        return `Veri bülteni: ${favorite} takımı veri dengesinde öne çıkıyor. Olası skor: ${scorePred}. *Bu bir veri analizidir, kesin sonuç değildir. Futbolun doğası gereği sürprizler her zaman mümkündür.`;
       }
       if (isDraw) {
-        return `Veri bülteni: Beraberlik en yüksek olasılıklı senaryo olarak öne çıkıyor. Skor tahmini: ${scorePred}. *Bu bir veri analizidir, kesin sonuç değildir. Futbolun doğası gereği sürprizler her zaman mümkündür.`;
+        return `Veri bülteni: Beraberlik en yüksek olasılıklı senaryo olarak öne çıkıyor. Olası skor: ${scorePred}. *Bu bir veri analizidir, kesin sonuç değildir. Futbolun doğası gereği sürprizler her zaman mümkündür.`;
       }
-      return `Veri bülteni: ${favorite} hafif favorili görünüyor ancak skor tablosu her iki yöne de dönebilir. Skor tahmini: ${scorePred}. *Bu bir veri analizidir, kesin sonuç değildir. Futbolun doğası gereği sürprizler her zaman mümkündür.`;
+      return `Veri bülteni: ${favorite} hafif veri avantajı taşıyor ancak skor tablosu her iki yöne de dönebilir. Olası skor: ${scorePred}. *Bu bir veri analizidir, kesin sonuç değildir. Futbolun doğası gereği sürprizler her zaman mümkündür.`;
     }
   }
 }

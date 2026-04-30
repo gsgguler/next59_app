@@ -80,14 +80,14 @@ export default function PredictionsListPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <TrendingUp className="w-6 h-6 text-gold-500" />
-            Tüm Tahminler
+            Tüm Analizler
             {activeFilterCount > 0 && (
               <span className="text-xs font-medium bg-navy-100 text-navy-700 px-2 py-0.5 rounded-full">
                 {activeFilterCount} filtre
               </span>
             )}
           </h1>
-          <p className="text-gray-500 mt-1">{predictions.length} tahmin listeleniyor</p>
+          <p className="text-gray-500 mt-1">{predictions.length} analiz listeleniyor</p>
         </div>
 
         <button
@@ -156,12 +156,12 @@ export default function PredictionsListPage() {
                 <Lock className="w-7 h-7 text-gold-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {accessFilter === 'elite' ? 'Elite' : 'Pro'} Tahminler Kilitli
+                {accessFilter === 'elite' ? 'Elite' : 'Pro'} Analizler Kilitli
               </h3>
               <p className="text-sm text-gray-500 leading-relaxed mb-6">
                 {accessFilter === 'elite'
-                  ? 'Elite seviye tahminler, en yüksek doğruluk oranına sahip özel analizleri içerir. Bu içeriklere erişim için Elite planına yükseltme yapabilirsiniz.'
-                  : 'Pro seviye tahminler, detaylı istatistiksel analizler ve model çıktıları içerir. Erişim için Pro planına geçiş yapabilirsiniz.'}
+                  ? 'Elite seviye analizler, derin istatistiksel incelemeler ve özel maç senaryoları içerir. Bu içeriklere erişim için Elite planına yükseltme yapabilirsiniz.'
+                  : 'Pro seviye analizler, detaylı istatistiksel incelemeler ve model çıktıları içerir. Erişim için Pro planına geçiş yapabilirsiniz.'}
               </p>
               <Link
                 to="/settings"
@@ -177,13 +177,13 @@ export default function PredictionsListPage() {
                 <Sparkles className="w-7 h-7 text-navy-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Tahminler Bekleniyor
+                Analizler Hazırlanıyor
               </h3>
               <p className="text-sm text-gray-500 leading-relaxed mb-2">
-                Henüz görüntüleyeceğiniz tahmin bulunmuyor. Bu durum, tahminlerin henüz oluşturulmamış olmasından veya mevcut erişim seviyenizin dışında kalmasından kaynaklanabilir.
+                Henüz görüntüleyeceğiniz analiz bulunmuyor. Bu durum, analizlerin henüz oluşturulmamış olmasından veya mevcut erişim seviyenizin dışında kalmasından kaynaklanabilir.
               </p>
               <p className="text-xs text-gray-400 mb-6">
-                Pro ve Elite planlarda daha fazla tahmine erişebilirsiniz.
+                Pro ve Elite planlarda daha fazla analize erişebilirsiniz.
               </p>
               <div className="flex items-center justify-center gap-3">
                 <Link
@@ -205,8 +205,8 @@ export default function PredictionsListPage() {
           ) : (
             <div className="text-center text-gray-400">
               <TrendingUp className="w-12 h-12 mb-3 mx-auto" />
-              <p className="text-lg font-medium text-gray-600">Henüz tahmin bulunmuyor</p>
-              <p className="text-sm mt-1 mb-4">Maç tahminlerini keşfetmek için maçlara göz atın</p>
+              <p className="text-lg font-medium text-gray-600">Henüz analiz bulunmuyor</p>
+              <p className="text-sm mt-1 mb-4">Maç analizlerini keşfetmek için maçlara göz atın</p>
               <Link
                 to="/matches"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-navy-700 text-white text-sm font-medium hover:bg-navy-600 transition-colors"

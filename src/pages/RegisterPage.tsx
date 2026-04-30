@@ -66,7 +66,7 @@ export default function RegisterPage() {
             <Logo size="lg" linkTo="/" />
           </div>
           <p className="text-navy-200 text-lg leading-relaxed max-w-md">
-            Futbolun geleceğini keşfet. Yapay zekâ ile güçlendirilmiş tahminler ve analizler.
+            Futbolun hikâyesini keşfet. Yapay zekâ ile güçlendirilmiş maç okumaları ve analizler.
           </p>
         </div>
       </div>

@@ -34,7 +34,7 @@ export default function MatchDetailPage() {
 
   useEffect(() => {
     if (match) {
-      const title = `${match.home_team.name} vs ${match.away_team.name} | next59 Tahmini`;
+      const title = `${match.home_team.name} vs ${match.away_team.name} | next59 Maç Analizi`;
       document.title = title;
 
       const ogParams = new URLSearchParams({
@@ -53,7 +53,7 @@ export default function MatchDetailPage() {
       });
       const ogImageUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/og-match?${ogParams.toString()}`;
       const matchUrl = `https://www.next59.com/mac/${match.id}`;
-      const description = `${match.home_team.name} vs ${match.away_team.name} mac analizi ve tahminleri.`;
+      const description = `${match.home_team.name} vs ${match.away_team.name} maç analizi ve 90 dakika senaryosu.`;
 
       setMetaTag('property', 'og:title', title);
       setMetaTag('property', 'og:description', description);

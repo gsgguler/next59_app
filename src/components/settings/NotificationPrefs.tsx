@@ -66,7 +66,7 @@ export default function NotificationPrefs() {
         enabled={prefs.emailEnabled}
         onToggleMaster={() => toggle('emailEnabled')}
         items={[
-          { label: 'Yeni tahminler', checked: prefs.emailNewPredictions, onChange: () => toggle('emailNewPredictions') },
+          { label: 'Yeni analizler', checked: prefs.emailNewPredictions, onChange: () => toggle('emailNewPredictions') },
           { label: 'Maç hatırlatıcıları', checked: prefs.emailMatchReminders, onChange: () => toggle('emailMatchReminders') },
           { label: 'Debate sonuçları', checked: prefs.emailDebateResults, onChange: () => toggle('emailDebateResults') },
           { label: 'Sistem bakımı', checked: prefs.emailMaintenance, onChange: () => toggle('emailMaintenance') },
@@ -79,7 +79,7 @@ export default function NotificationPrefs() {
         onToggleMaster={() => toggle('pushEnabled')}
         items={[
           { label: 'Canlı maç golleri', checked: prefs.pushLiveGoals, onChange: () => toggle('pushLiveGoals') },
-          { label: 'Tahmin doğrulama sonuçları', checked: prefs.pushPredictionResults, onChange: () => toggle('pushPredictionResults') },
+          { label: 'Maç analizi sonuçları', checked: prefs.pushPredictionResults, onChange: () => toggle('pushPredictionResults') },
         ]}
       />
 

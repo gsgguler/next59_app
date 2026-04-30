@@ -129,7 +129,7 @@ export default function DebateDetailPage() {
       <nav className="flex items-center gap-1.5 text-sm text-gray-400 flex-wrap">
         <Link to="/" className="hover:text-gray-600 transition-colors">Dashboard</Link>
         <ChevronRight className="w-3.5 h-3.5" />
-        <Link to="/predictions" className="hover:text-gray-600 transition-colors">Tahminler</Link>
+        <Link to="/predictions" className="hover:text-gray-600 transition-colors">Analizler</Link>
         {cassCode && (
           <>
             <ChevronRight className="w-3.5 h-3.5" />
@@ -178,7 +178,7 @@ export default function DebateDetailPage() {
         <div className="lg:col-span-2 space-y-6">
           {prediction && (
             <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Tahmin Özeti</h3>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Analiz Özeti</h3>
               <div className="border-l-4 border-gold-500 pl-3 py-1 mb-3">
                 <p className="text-sm text-gray-700 italic leading-relaxed">
                   "{prediction.statement}"
@@ -188,7 +188,7 @@ export default function DebateDetailPage() {
                 to={`/predictions/${predictionId}`}
                 className="text-xs font-medium text-navy-600 hover:text-navy-700 transition-colors"
               >
-                Tahmin detayına git
+                Analiz detayına git
               </Link>
             </div>
           )}

@@ -70,13 +70,6 @@ export default function PredictionCard({ prediction, homeTeam, awayTeam, userTie
 
       <ProbabilityMeter confidence={prediction.confidence} />
 
-      {prediction.odds_fair && (
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">Adil Oran:</span>
-          <span className="text-sm font-semibold text-gray-900">{prediction.odds_fair.toFixed(2)}</span>
-        </div>
-      )}
-
       <div className="pt-4 border-t border-gray-100 grid grid-cols-2 gap-4 text-sm">
         <div>
           <p className="text-gray-400 text-xs mb-0.5">Olusturulma</p>
