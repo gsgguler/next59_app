@@ -12,7 +12,7 @@ export default function FetchError({ message, onRetry }: FetchErrorProps) {
         <AlertTriangle className="w-6 h-6 text-red-500" />
       </div>
       <h3 className="text-base font-semibold text-gray-900 mb-1">
-        Veri y\u00fcklenemedi
+        Veri yüklenemedi
       </h3>
       <p className="text-sm text-gray-500 text-center max-w-sm mb-5">
         {message || 'Bir hata olustu. Lutfen tekrar deneyin.'}
