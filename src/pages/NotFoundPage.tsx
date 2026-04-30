@@ -21,10 +21,10 @@ export default function NotFoundPage() {
         </div>
 
         <h1 className="text-2xl font-bold text-white mb-3">
-          Sayfa Bulunamadı
+          Sayfa Bulunamad\u0131
         </h1>
         <p className="text-gray-400 leading-relaxed mb-8 max-w-sm mx-auto">
-          Aradığınız sayfa mevcut değil, taşınmış veya kaldırılmış olabilir.
+          Arad\u0131\u011f\u0131n\u0131z sayfa mevcut de\u011fil, ta\u015f\u0131nm\u0131\u015f veya kald\u0131r\u0131lm\u0131\u015f olabilir.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -33,14 +33,14 @@ export default function NotFoundPage() {
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-gold-500 to-gold-600 text-navy-900 font-semibold text-sm hover:from-gold-400 hover:to-gold-500 transition-all shadow-sm"
           >
             <Home className="w-4 h-4" />
-            {user ? 'Dashboard\'a Dön' : 'Ana Sayfaya Dön'}
+            {user ? 'Dashboard\'a D\u00f6n' : 'Ana Sayfaya D\u00f6n'}
           </Link>
           <button
             onClick={() => window.history.back()}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-navy-800 border border-navy-700 text-gray-300 font-medium text-sm hover:bg-navy-700 hover:text-white transition-all"
           >
             <ArrowLeft className="w-4 h-4" />
-            Geri Dön
+            Geri D\u00f6n
           </button>
         </div>
       </div>
