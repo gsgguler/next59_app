@@ -1,5 +1,17 @@
 import { NavLink, Link } from 'react-router-dom';
-import { LayoutDashboard, Trophy, TrendingUp, MessageSquare, Newspaper, Settings, ShieldCheck, CircleUser as UserCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Archive,
+  Zap,
+  Bookmark,
+  Heart,
+  MessageSquare,
+  Settings,
+  ShieldCheck,
+  CircleUser as UserCircle,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface SidebarProps {
@@ -10,15 +22,16 @@ interface SidebarProps {
 }
 
 const mainNav = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/matches', icon: Trophy, label: 'Maçlar' },
-  { to: '/predictions', icon: TrendingUp, label: 'Tahminler' },
-  { to: '/debates', icon: MessageSquare, label: 'AI Debate' },
-  { to: '/news', icon: Newspaper, label: 'Haberler' },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Genel Bakış' },
+  { to: '/dashboard/mac-arsivi', icon: Archive, label: 'Maç Arşivi' },
+  { to: '/dashboard/senaryolar', icon: Zap, label: 'Senaryolarım' },
+  { to: '/dashboard/izleme-listem', icon: Bookmark, label: 'İzleme Listem' },
+  { to: '/dashboard/favori-takimlar', icon: Heart, label: 'Favori Takımlar' },
+  { to: '/debates', icon: MessageSquare, label: 'AI Tartışmaları' },
 ];
 
 const bottomNav = [
-  { to: '/profile', icon: UserCircle, label: 'Profilim' },
+  { to: '/profile', icon: UserCircle, label: 'Profil' },
   { to: '/settings', icon: Settings, label: 'Ayarlar' },
 ];
 
@@ -42,14 +55,19 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
           lg:translate-x-0 lg:static lg:z-auto
         `}
       >
-        <Link to="/" className={`flex items-center h-16 px-4 border-b border-navy-600 hover:opacity-80 transition-opacity ${collapsed ? 'justify-center' : 'gap-2.5'}`}>
+        <Link
+          to="/"
+          className={`flex items-center h-16 px-4 border-b border-navy-600 hover:opacity-80 transition-opacity ${collapsed ? 'justify-center' : 'gap-2.5'}`}
+        >
           <svg viewBox="0 0 32 32" className="h-8 w-8 shrink-0" aria-label="Next59 logo">
             <rect width="32" height="32" rx="6" fill="#0f1d2a" />
             <path d="M9 8 L9 24 L12 24 L12 13.5 L20 24 L23 24 L23 8 L20 8 L20 18.5 L12 8 Z" fill="#ffffff" />
             <circle cx="25" cy="7" r="2.5" fill="#F2A623" />
           </svg>
           {!collapsed && (
-            <span className="text-xl font-semibold tracking-tight" style={{ color: '#F2A623' }}>Next59</span>
+            <span className="text-xl font-semibold tracking-tight" style={{ color: '#F2A623' }}>
+              Next59
+            </span>
           )}
         </Link>
 
@@ -59,7 +77,13 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
               <NavItem key={item.to} {...item} collapsed={collapsed} onClick={onMobileClose} />
             ))}
             {isAdmin && (
-              <NavItem to="/admin" icon={ShieldCheck} label="Yönetim" collapsed={collapsed} onClick={onMobileClose} />
+              <NavItem
+                to="/admin"
+                icon={ShieldCheck}
+                label="Yönetim"
+                collapsed={collapsed}
+                onClick={onMobileClose}
+              />
             )}
           </ul>
 
@@ -83,7 +107,13 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
   );
 }
 
-function NavItem({ to, icon: Icon, label, collapsed, onClick }: {
+function NavItem({
+  to,
+  icon: Icon,
+  label,
+  collapsed,
+  onClick,
+}: {
   to: string;
   icon: typeof LayoutDashboard;
   label: string;
@@ -94,13 +124,14 @@ function NavItem({ to, icon: Icon, label, collapsed, onClick }: {
     <li>
       <NavLink
         to={to}
-        end={to === '/'}
+        end={to === '/dashboard'}
         onClick={onClick}
         className={({ isActive }) =>
           `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
-          ${isActive
-            ? 'bg-navy-600 text-white border-l-[3px] border-gold-500 -ml-[3px]'
-            : 'text-navy-200 hover:bg-navy-600/50 hover:text-white'
+          ${
+            isActive
+              ? 'bg-navy-600 text-white border-l-[3px] border-gold-500 -ml-[3px]'
+              : 'text-navy-200 hover:bg-navy-600/50 hover:text-white'
           }
           ${collapsed ? 'justify-center' : ''}
           `

@@ -1,0 +1,23 @@
+import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Clock, ChevronRight } from 'lucide-react';
+import ContentPlaceholder from '../../components/ui/ContentPlaceholder';
+
+export default function GecmisMacOkumalariPage() {
+  useEffect(() => { document.title = 'Geçmiş Maç Okumaları | Next59'; }, []);
+  return (
+    <div className="min-h-screen bg-navy-950">
+      <div className="border-b border-navy-800/60">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-6">
+          <div className="flex items-center gap-2 text-xs text-navy-500 mb-4">
+            <Link to="/senaryolar" className="hover:text-champagne transition-colors">Senaryolar</Link>
+            <ChevronRight className="w-3 h-3" /><span className="text-navy-400">Geçmiş Maç Okumaları</span>
+          </div>
+        </div>
+      </div>
+      <ContentPlaceholder icon={Clock} title="Geçmiş Maç Okumaları"
+        description="Tarihe geçmiş maçların veriye dayalı yeniden okuması. Arşivden seçilen maçların istatistik ve sonuçlarıyla örülmüş futbol yazıları."
+        note="Bu bölüm yakında yayına alınacak." />
+    </div>
+  );
+}
