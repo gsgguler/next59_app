@@ -76,6 +76,7 @@ import ModelLabHataAnaliziPage from './pages/admin/ModelLabHataAnaliziPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import PlaceholderPage from './pages/PlaceholderPage';
+import AuthDebugPage from './pages/AuthDebugPage';
 
 export default function App() {
   return (
@@ -159,6 +160,7 @@ export default function App() {
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="news" element={<PlaceholderPage title="Haberler" />} />
+                <Route path="auth-debug" element={<AuthDebugPage />} />
               </Route>
 
               {/* ── Admin (protected + admin role) ── */}

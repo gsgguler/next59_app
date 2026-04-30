@@ -26,9 +26,9 @@ interface AuthState {
 
 function deriveIsAdmin(user: User | null, profile: Profile | null): boolean {
   if (!user) return false;
-  if (profile?.role === 'admin') return true;
+  if (profile?.role === 'admin' || profile?.role === 'super_admin') return true;
   const role = user.app_metadata?.role;
-  return role === 'admin';
+  return role === 'admin' || role === 'super_admin';
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
