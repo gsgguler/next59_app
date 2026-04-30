@@ -106,7 +106,7 @@ export default function HomePage() {
   }, [teamSearch, dateRange, sortBy, matchday]);
 
   useEffect(() => {
-    document.title = 'Next59 \u2014 kehanet k\u00e2tibi';
+    document.title = 'Next59 — kehanet kâtibi';
   }, []);
 
   return (
