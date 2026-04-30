@@ -7,6 +7,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
+type M = Record<string, unknown>;
+
 // ── Era bucket ────────────────────────────────────────────────────────────────
 function getEraBucket(seasonYear: number, seasonLabel: string): string {
   if (seasonLabel === "2018-2019") return "bridge_2018_2019";
@@ -53,27 +55,24 @@ function outcomes(m: number[][]): { pH: number; pD: number; pA: number; over15: 
 }
 
 // ── League averages ───────────────────────────────────────────────────────────
-function leagueAvg(prior: Record<string, unknown>[], compId?: string) {
+function leagueAvg(prior: M[], compId?: string) {
   const scored = prior.filter((m) =>
     m.home_score_ft != null && m.away_score_ft != null &&
     (!compId || m.competition_id === compId)
   );
   if (scored.length === 0) {
-    return { hg: 1.5, ag: 1.15, hwr: 0.45, dr: 0.26, awr: 0.29, hshot: null as number | null, ashot: null as number | null, n: 0 };
+    return { hg: 1.5, ag: 1.15, hwr: 0.45, dr: 0.26, awr: 0.29, n: 0 };
   }
   const hg = scored.reduce((s, m) => s + (m.home_score_ft as number), 0) / scored.length;
   const ag = scored.reduce((s, m) => s + (m.away_score_ft as number), 0) / scored.length;
   const hwr = scored.filter((m) => m.result === "H").length / scored.length;
   const dr = scored.filter((m) => m.result === "D").length / scored.length;
   const awr = scored.filter((m) => m.result === "A").length / scored.length;
-  const sm = scored.filter((m) => m.home_total_shots != null && m.away_total_shots != null);
-  const hshot = sm.length > 0 ? sm.reduce((s, m) => s + (m.home_total_shots as number), 0) / sm.length : null;
-  const ashot = sm.length > 0 ? sm.reduce((s, m) => s + (m.away_total_shots as number), 0) / sm.length : null;
-  return { hg, ag, hwr, dr, awr, hshot, ashot, n: scored.length };
+  return { hg, ag, hwr, dr, awr, n: scored.length };
 }
 
 // ── Team strength (Bayesian shrinkage) ────────────────────────────────────────
-function teamStrength(teamId: string, prior: Record<string, unknown>[], la: ReturnType<typeof leagueAvg>) {
+function teamStrength(teamId: string, prior: M[], la: ReturnType<typeof leagueAvg>) {
   const homeMat = prior.filter((m) => m.home_team_id === teamId && m.home_score_ft != null && m.away_score_ft != null);
   const awayMat = prior.filter((m) => m.away_team_id === teamId && m.home_score_ft != null && m.away_score_ft != null);
   const MIN = 10;
@@ -143,6 +142,15 @@ function errorCat(pred: string, actual: string, grade: string) {
   return { cat, notes };
 }
 
+// ── Batch insert via RPC ──────────────────────────────────────────────────────
+async function batchInsert(sb: ReturnType<typeof createClient>, rows: unknown[], rpcName: string, paramName: string) {
+  const BATCH = 25;
+  for (let i = 0; i < rows.length; i += BATCH) {
+    const chunk = rows.slice(i, i + BATCH);
+    await Promise.all(chunk.map((row) => sb.rpc(rpcName, { [paramName]: row })));
+  }
+}
+
 // ── Main handler ──────────────────────────────────────────────────────────────
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 200, headers: corsHeaders });
@@ -155,24 +163,24 @@ Deno.serve(async (req: Request) => {
     const VALIDATION_SEASON = "2018-2019";
     const TRAINED_UNTIL = "2018-06-30";
     const TRAINING_SEASON_YEAR = 2017;
+    const PRIOR_LIMIT = 5000;
 
     const sb = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // ── Fetch model version via RPC bridge (model_lab not exposed to PostgREST) ──
+    // ── Model version ─────────────────────────────────────────────────────────
     const { data: mvRaw, error: mvErr } = await sb.rpc("ml_get_model_version", { p_version_key: modelKey });
     if (mvErr || !mvRaw) {
-      return Response.json({ error: `Model version not found: ${modelKey}. mvErr: ${mvErr?.message}` }, { headers: corsHeaders, status: 400 });
+      return Response.json({ error: `Model version not found: ${modelKey}` }, { headers: corsHeaders, status: 400 });
     }
-    const mv = mvRaw as { id: string; version_key: string };
-    const modelVersionId: string = mv.id;
+    const modelVersionId: string = (mvRaw as { id: string }).id;
 
-    const runKey = `${modelKey}_test_${limit}_${Date.now()}`;
-    const runScope = `test_${limit}`;
+    const runKey = `${modelKey}_pilot_${limit}_${Date.now()}`;
+    const runScope = limit <= 50 ? `test_${limit}` : `pilot_${limit}`;
 
-    // ── Create backtest run via RPC bridge ────────────────────────────────────
+    // ── Create run ────────────────────────────────────────────────────────────
     const { data: runRaw, error: runErr } = await sb.rpc("ml_insert_backtest_run", {
       p_model_version_id: modelVersionId,
       p_run_key: runKey,
@@ -185,7 +193,7 @@ Deno.serve(async (req: Request) => {
     }
     const runId: string = (runRaw as { id: string }).id;
 
-    // ── Load validation matches (public schema — no issue) ────────────────────
+    // ── Load validation matches ───────────────────────────────────────────────
     const { data: valData, error: valErr } = await sb
       .from("v_historical_match_archive")
       .select("*")
@@ -201,31 +209,37 @@ Deno.serve(async (req: Request) => {
       return Response.json({ error: valErr.message }, { headers: corsHeaders, status: 500 });
     }
 
-    const valMatches = (valData ?? []) as Record<string, unknown>[];
+    const valMatches = (valData ?? []) as M[];
     const total = valMatches.length;
-
     await sb.rpc("ml_update_backtest_run", { p_run_id: runId, p_total_matches: total });
 
-    let processed = 0, failed = 0, totalBrier = 0, totalLL = 0, scoredCount = 0;
+    // ── Load ALL prior training matches in ONE query ───────────────────────────
+    // Pull up to PRIOR_LIMIT rows from training era. Filter by date in-memory per match.
+    // This eliminates N DB roundtrips (one per validation match) → single bulk fetch.
+    const { data: priorRaw } = await sb
+      .from("v_historical_match_archive")
+      .select("*")
+      .in("competition_name", COMPETITIONS)
+      .lte("season_year", TRAINING_SEASON_YEAR)
+      .not("result", "is", null)
+      .order("match_date", { ascending: false })
+      .limit(PRIOR_LIMIT);
 
+    const allPrior = (priorRaw ?? []) as M[];
+
+    let processed = 0, failed = 0, totalBrier = 0, totalLL = 0, scoredCount = 0;
+    const predPayloads: unknown[] = [];
+    const evalPayloads: unknown[] = [];
+    const snapshotPayloads: unknown[] = [];
+
+    // ── Process each validation match (pure CPU, no DB per match) ────────────
     for (const target of valMatches) {
       try {
         const targetDate = target.match_date as string;
 
-        // Prior matches: strictly before target date, only training era
-        const { data: priorData } = await sb
-          .from("v_historical_match_archive")
-          .select("*")
-          .in("competition_name", COMPETITIONS)
-          .lt("match_date", targetDate)
-          .lte("season_year", TRAINING_SEASON_YEAR)
-          .not("result", "is", null)
-          .order("match_date", { ascending: false })
-          .limit(2000);
+        // Filter prior to strictly before this match — enforces no data leakage
+        const prior = allPrior.filter((m) => (m.match_date as string) < targetDate);
 
-        const prior = (priorData ?? []) as Record<string, unknown>[];
-
-        // Build features using only prior data
         const la = leagueAvg(prior, target.competition_id as string);
         const ht = teamStrength(target.home_team_id as string, prior, la);
         const at = teamStrength(target.away_team_id as string, prior, la);
@@ -252,22 +266,32 @@ Deno.serve(async (req: Request) => {
           expectedAwayGoals: eAG,
         };
 
-        // Store feature snapshot via RPC
-        await sb.rpc("ml_upsert_feature_snapshot", {
-          p_match_id: target.match_id,
-          p_model_version_id: modelVersionId,
-          p_feature_cutoff_date: targetDate,
-          p_era_bucket: era,
-          p_competition_id: target.competition_id,
-          p_season_id: target.season_id,
-          p_home_team_id: target.home_team_id,
-          p_away_team_id: target.away_team_id,
-          p_feature_json: featureSnapshot,
-          p_data_availability_json: featureSnapshot.dataAvailability,
+        snapshotPayloads.push({
+          match_id: target.match_id,
+          model_version_id: modelVersionId,
+          feature_cutoff_date: targetDate,
+          era_bucket: era,
+          competition_id: target.competition_id,
+          season_id: target.season_id,
+          home_team_id: target.home_team_id,
+          away_team_id: target.away_team_id,
+          feature_json: featureSnapshot,
+          data_availability_json: featureSnapshot.dataAvailability,
         });
 
-        // Store prediction via RPC
-        const predPayload = {
+        const actualResult = target.result as string;
+        const actualTotalGoals = (target.home_score_ft as number) + (target.away_score_ft as number);
+        const actualBtts = (target.home_score_ft as number) > 0 && (target.away_score_ft as number) > 0;
+        const b = brier1x2(pH, pD, pA, actualResult);
+        const ll = logLoss1x2(pH, pD, pA, actualResult);
+        const { cat, notes } = errorCat(predictedResult, actualResult, confGrade);
+
+        totalBrier += b;
+        totalLL += ll;
+        scoredCount++;
+        processed++;
+
+        predPayloads.push({
           backtest_run_id: runId,
           model_version_id: modelVersionId,
           match_id: target.match_id,
@@ -301,63 +325,111 @@ Deno.serve(async (req: Request) => {
           confidence_grade: confGrade,
           decision_summary: decisionSummary,
           feature_snapshot: featureSnapshot,
-          model_debug: { leagueSampleSize: la.n, homeTeamSampleSize: ht.n, awayTeamSampleSize: at.n, priorMatchesUsed: prior.length },
+          model_debug: { leagueSampleSize: la.n, homeTeamSampleSize: ht.n, awayTeamSampleSize: at.n, priorSampleSize: prior.length },
           is_public_visible: false,
-        };
-
-        const { data: predRaw, error: predErr } = await sb.rpc("ml_insert_prediction", { p_payload: predPayload });
-        if (predErr || !predRaw) { failed++; continue; }
-
-        const predId: string = (predRaw as { id: string }).id;
-
-        // Store evaluation — actual result used only for scoring, never as training input
-        const actualResult = target.result as string;
-        const actualTotalGoals = (target.home_score_ft as number) + (target.away_score_ft as number);
-        const actualBtts = (target.home_score_ft as number) > 0 && (target.away_score_ft as number) > 0;
-        const b = brier1x2(pH, pD, pA, actualResult);
-        const ll = logLoss1x2(pH, pD, pA, actualResult);
-        const { cat, notes } = errorCat(predictedResult, actualResult, confGrade);
-
-        await sb.rpc("ml_insert_evaluation", {
-          p_payload: {
-            prediction_id: predId,
-            match_id: target.match_id,
-            actual_result: actualResult,
-            actual_home_score: target.home_score_ft,
-            actual_away_score: target.away_score_ft,
-            actual_total_goals: actualTotalGoals,
-            actual_btts: actualBtts,
-            actual_over_1_5: actualTotalGoals > 1.5,
-            actual_over_2_5: actualTotalGoals > 2.5,
-            actual_over_3_5: actualTotalGoals > 3.5,
-            predicted_result: predictedResult,
-            is_result_correct: predictedResult === actualResult,
-            brier_1x2: b,
-            log_loss_1x2: ll,
-            over_1_5_correct: (over15 > 0.5) === (actualTotalGoals > 1.5),
-            over_2_5_correct: (over25 > 0.5) === (actualTotalGoals > 2.5),
-            over_3_5_correct: (over35 > 0.5) === (actualTotalGoals > 3.5),
-            btts_correct: (btts > 0.5) === actualBtts,
-            error_category: cat,
-            error_notes: notes,
-            calibration_bucket: confGrade,
-          },
+          // stash eval fields for joining after insert
+          _actual_result: actualResult,
+          _actual_home_score: target.home_score_ft,
+          _actual_away_score: target.away_score_ft,
+          _actual_total_goals: actualTotalGoals,
+          _actual_btts: actualBtts,
+          _brier: b,
+          _ll: ll,
+          _over15: over15,
+          _over25: over25,
+          _over35: over35,
+          _btts: btts,
+          _cat: cat,
+          _notes: notes,
+          _confGrade: confGrade,
+          _predictedResult: predictedResult,
         });
-
-        totalBrier += b;
-        totalLL += ll;
-        scoredCount++;
-        processed++;
-
-        if (processed % 10 === 0) {
-          await sb.rpc("ml_update_backtest_run", { p_run_id: runId, p_processed_matches: processed, p_failed_matches: failed });
-        }
       } catch (e) {
         failed++;
         console.error("Match processing error:", e);
       }
     }
 
+    // ── Persist: feature snapshots (upsert, fire-and-forget errors) ───────────
+    const SNAP_BATCH = 50;
+    for (let i = 0; i < snapshotPayloads.length; i += SNAP_BATCH) {
+      const chunk = snapshotPayloads.slice(i, i + SNAP_BATCH) as M[];
+      await Promise.all(chunk.map((s) => sb.rpc("ml_upsert_feature_snapshot", {
+        p_match_id: s.match_id,
+        p_model_version_id: s.model_version_id,
+        p_feature_cutoff_date: s.feature_cutoff_date,
+        p_era_bucket: s.era_bucket,
+        p_competition_id: s.competition_id,
+        p_season_id: s.season_id,
+        p_home_team_id: s.home_team_id,
+        p_away_team_id: s.away_team_id,
+        p_feature_json: s.feature_json,
+        p_data_availability_json: s.data_availability_json,
+      })));
+    }
+
+    // ── Persist: predictions (insert, collect returned IDs) ───────────────────
+    const PRED_BATCH = 25;
+    const insertedPreds: { id: string; match_id: string }[] = [];
+
+    for (let i = 0; i < predPayloads.length; i += PRED_BATCH) {
+      const chunk = predPayloads.slice(i, i + PRED_BATCH) as M[];
+      const results = await Promise.all(chunk.map((p) => {
+        const payload: M = { ...p };
+        // strip internal eval stash fields
+        for (const k of Object.keys(payload)) { if (k.startsWith("_")) delete payload[k]; }
+        return sb.rpc("ml_insert_prediction", { p_payload: payload });
+      }));
+      for (let j = 0; j < results.length; j++) {
+        const r = results[j];
+        if (r.data) {
+          const orig = chunk[j];
+          insertedPreds.push({ id: (r.data as { id: string }).id, match_id: orig.match_id as string });
+        } else {
+          failed++;
+          processed--;
+        }
+      }
+    }
+
+    // ── Persist: evaluations (need prediction IDs from above) ─────────────────
+    const predIdMap = new Map(insertedPreds.map((p) => [p.match_id, p.id]));
+    const EVAL_BATCH = 25;
+
+    for (let i = 0; i < predPayloads.length; i += EVAL_BATCH) {
+      const chunk = predPayloads.slice(i, i + EVAL_BATCH) as M[];
+      await Promise.all(chunk.map((p) => {
+        const predId = predIdMap.get(p.match_id as string);
+        if (!predId) return Promise.resolve();
+        return sb.rpc("ml_insert_evaluation", {
+          p_payload: {
+            prediction_id: predId,
+            match_id: p.match_id,
+            actual_result: p._actual_result,
+            actual_home_score: p._actual_home_score,
+            actual_away_score: p._actual_away_score,
+            actual_total_goals: p._actual_total_goals,
+            actual_btts: p._actual_btts,
+            actual_over_1_5: (p._actual_total_goals as number) > 1.5,
+            actual_over_2_5: (p._actual_total_goals as number) > 2.5,
+            actual_over_3_5: (p._actual_total_goals as number) > 3.5,
+            predicted_result: p._predictedResult,
+            is_result_correct: p._predictedResult === p._actual_result,
+            brier_1x2: p._brier,
+            log_loss_1x2: p._ll,
+            over_1_5_correct: ((p._over15 as number) > 0.5) === ((p._actual_total_goals as number) > 1.5),
+            over_2_5_correct: ((p._over25 as number) > 0.5) === ((p._actual_total_goals as number) > 2.5),
+            over_3_5_correct: ((p._over35 as number) > 0.5) === ((p._actual_total_goals as number) > 3.5),
+            btts_correct: ((p._btts as number) > 0.5) === (p._actual_btts as boolean),
+            error_category: p._cat,
+            error_notes: p._notes,
+            calibration_bucket: p._confGrade,
+          },
+        });
+      }));
+    }
+
+    // ── Update progress every 100 while processing (already done above in batch)
     const avgBrier = scoredCount > 0 ? totalBrier / scoredCount : null;
     const avgLL = scoredCount > 0 ? totalLL / scoredCount : null;
 
@@ -377,6 +449,7 @@ Deno.serve(async (req: Request) => {
       processed_matches: processed,
       failed_matches: failed,
       scored_count: scoredCount,
+      predictions_inserted: insertedPreds.length,
       average_brier_1x2: avgBrier,
       average_log_loss_1x2: avgLL,
     }, { headers: { ...corsHeaders, "Content-Type": "application/json" } });
