@@ -1,7 +1,8 @@
 import { useState, type FormEvent, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { UserPlus, Eye, EyeOff, Loader2, Shield, Check, X } from 'lucide-react';
+import { UserPlus, Eye, EyeOff, Loader2, Check, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import Logo from '../components/Logo';
 
 function getPasswordStrength(pw: string): { score: number; label: string; color: string } {
   let score = 0;
@@ -61,9 +62,8 @@ export default function RegisterPage() {
         <div className="absolute top-0 right-0 w-96 h-96 bg-gold-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-gold-500/5 rounded-full blur-3xl translate-y-1/3 -translate-x-1/3" />
         <div className="relative z-10 px-16 text-center">
-          <div className="flex items-center justify-center gap-3 mb-8">
-            <Shield className="w-12 h-12 text-gold-500" />
-            <span className="text-4xl font-bold text-white tracking-tight">Next59</span>
+          <div className="flex items-center justify-center mb-8">
+            <Logo size="lg" linkTo="/" />
           </div>
           <p className="text-navy-200 text-lg leading-relaxed max-w-md">
             Futbolun geleceğini keşfet. Yapay zekâ ile güçlendirilmiş tahminler ve analizler.
@@ -73,9 +73,8 @@ export default function RegisterPage() {
 
       <div className="flex-1 flex items-center justify-center px-6 py-12 bg-gray-50">
         <div className="w-full max-w-md">
-          <div className="lg:hidden flex items-center justify-center gap-2 mb-10">
-            <Shield className="w-8 h-8 text-navy-700" />
-            <span className="text-2xl font-bold text-navy-700">Next59</span>
+          <div className="lg:hidden flex items-center justify-center mb-10">
+            <Logo size="md" linkTo="/" />
           </div>
 
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Kayıt Ol</h1>

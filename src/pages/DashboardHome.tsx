@@ -160,11 +160,12 @@ export default function DashboardHome() {
 
 interface UpcomingMatch {
   id: string;
-  kickoff_at: string | null;
-  status: string;
-  matchweek: number | null;
-  home_team: { name: string; short_name: string; tla: string } | null;
-  away_team: { name: string; short_name: string; tla: string } | null;
+  match_date: string | null;
+  match_time: string | null;
+  status_short: string;
+  round: string | null;
+  home_team: { name: string; short_name: string; code: string } | null;
+  away_team: { name: string; short_name: string; code: string } | null;
 }
 
 function UpcomingMatchesList() {
@@ -175,12 +176,12 @@ function UpcomingMatchesList() {
       const { data } = await supabase
         .from('matches')
         .select(`
-          id, kickoff_at, status, matchweek,
-          home_team:teams!matches_home_team_id_fkey(name, short_name, tla),
-          away_team:teams!matches_away_team_id_fkey(name, short_name, tla)
+          id, match_date, match_time, status_short, round,
+          home_team:teams!matches_home_team_id_fkey(name, short_name, code),
+          away_team:teams!matches_away_team_id_fkey(name, short_name, code)
         `)
-        .eq('status', 'scheduled')
-        .order('kickoff_at', { ascending: true })
+        .eq('status_short', 'NS')
+        .order('match_date', { ascending: true })
         .limit(5);
 
       setMatches((data as unknown as UpcomingMatch[]) ?? []);
@@ -197,18 +198,18 @@ function UpcomingMatchesList() {
       {matches.map((m) => (
         <div key={m.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
           <div className="flex items-center gap-3">
-            <TeamBadge name={m.home_team?.tla || m.home_team?.name?.slice(0, 3).toUpperCase() || '?'} />
+            <TeamBadge name={m.home_team?.code || m.home_team?.name?.slice(0, 3).toUpperCase() || '?'} />
             <div>
               <p className="text-sm font-medium text-gray-900">
                 {m.home_team?.short_name || m.home_team?.name || 'Ev Sahibi'} - {m.away_team?.short_name || m.away_team?.name || 'Konuk'}
               </p>
               <p className="text-xs text-gray-400">
-                {m.kickoff_at ? new Date(m.kickoff_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'TBD'}
+                {m.match_date ? new Date(m.match_time ? `${m.match_date}T${m.match_time}` : m.match_date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'TBD'}
               </p>
             </div>
           </div>
           <span className="text-xs font-medium text-navy-600 bg-navy-50 px-2 py-1 rounded">
-            Hafta {m.matchweek || '-'}
+            {m.round || ''}
           </span>
         </div>
       ))}
