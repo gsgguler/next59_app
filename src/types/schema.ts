@@ -1,72 +1,87 @@
 export interface DbTeam {
   id: string;
+  country_id: string | null;
+  api_football_id: number | null;
   name: string;
   short_name: string | null;
-  tla: string | null;
-  country_code: string;
-  fifa_code: string | null;
+  code: string | null;
   logo_url: string | null;
-  team_type: string;
-  is_active: boolean;
+  venue_id: string | null;
+  founded: number | null;
+  created_at: string;
 }
 
-export interface DbStadium {
+export interface DbVenue {
   id: string;
+  api_football_id: number | null;
   name: string;
   city: string;
-  country_code: string;
+  country_id: string | null;
   capacity: number | null;
-  timezone: string | null;
+  image_url: string | null;
+  created_at: string;
 }
 
 export interface DbMatch {
   id: string;
   competition_season_id: string;
-  matchweek: number | null;
-  round_name: string | null;
   home_team_id: string;
   away_team_id: string;
-  stadium_id: string | null;
-  kickoff_at: string;
+  venue_id: string | null;
+  api_football_fixture_id: number | null;
+  deterministic_source_match_id: string | null;
+  match_date: string;
+  match_time: string | null;
   timezone: string | null;
-  status: string;
-  home_goals_ft: number | null;
-  away_goals_ft: number | null;
-  stage: string | null;
-  group_name: string | null;
+  timestamp: number | null;
+  status_short: string;
+  status_long: string | null;
+  status_elapsed: number | null;
+  status_extra: number | null;
+  home_score_ft: number | null;
+  away_score_ft: number | null;
+  home_score_ht: number | null;
+  away_score_ht: number | null;
+  home_score_et: number | null;
+  away_score_et: number | null;
+  home_score_pen: number | null;
+  away_score_pen: number | null;
+  result: string | null;
+  referee: string | null;
+  round: string | null;
+  attendance: number | null;
+  source_id: string | null;
+  ingestion_run_id: string | null;
+  created_at: string;
+  updated_at: string;
+  half_time_result: string | null;
   home_team: DbTeam;
   away_team: DbTeam;
-  stadium: DbStadium | null;
-}
-
-export interface DbTeamStrength {
-  id: string;
-  team_id: string;
-  elo_rating: number;
-  form_score: number;
-  attack_score: number | null;
-  defense_score: number | null;
+  venue: DbVenue | null;
 }
 
 export interface DbPrediction {
   id: string;
   match_id: string;
-  version: number;
-  is_current: boolean;
-  cassandra_code: string;
-  statement: string;
-  probability: number;
-  confidence_label: string;
-  category: string;
-  model_version: string;
-  model_input_features: Record<string, unknown>;
-  model_output_raw: Record<string, unknown> | null;
-  access_level: string;
-  generated_at: string;
+  model_version_id: string | null;
+  prediction_type: string;
+  predicted_outcome: string;
+  confidence: number;
+  odds_fair: number | null;
+  explanation_json: Record<string, unknown> | null;
+  is_elite_only: boolean;
+  superseded_by: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
-export interface DbMatchWithRelations extends DbMatch {
-  home_strength: DbTeamStrength | null;
-  away_strength: DbTeamStrength | null;
-  predictions: DbPrediction[];
+export interface DbProfile {
+  id: string;
+  email: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  role: string;
+  personal_organization_id: string | null;
+  created_at: string;
+  updated_at: string;
 }
