@@ -7,6 +7,17 @@ import { ExpirationPlugin } from 'workbox-expiration';
 
 declare let self: ServiceWorkerGlobalScope;
 
+const isWebContainer = self.location.hostname.includes('webcontainer')
+  || self.location.hostname.includes('local-credentialless')
+  || self.location.hostname === 'localhost';
+
+if (isWebContainer) {
+  self.addEventListener('install', () => self.skipWaiting());
+  self.addEventListener('activate', (event) => {
+    event.waitUntil(self.clients.claim());
+  });
+} else {
+
 precacheAndRoute(self.__WB_MANIFEST);
 
 // HTML / navigation requests: network-first so users always get the latest shell
@@ -63,3 +74,5 @@ self.addEventListener('notificationclick', (event) => {
   const url = (event.notification.data?.url as string) ?? '/';
   event.waitUntil(self.clients.openWindow(url));
 });
+
+} // end of !isWebContainer block
