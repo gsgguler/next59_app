@@ -112,9 +112,9 @@ export default function DebateDetailPage() {
     : 'ongoing';
 
   const statusConfig: Record<string, { label: string; color: string }> = {
-    completed: { label: 'Tamamlandı', color: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+    completed: { label: 'Tamamland\u0131', color: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
     ongoing: { label: 'Devam Ediyor', color: 'text-gold-700 bg-gold-50 border-gold-200' },
-    failed: { label: 'Başarısız', color: 'text-red-700 bg-red-50 border-red-200' },
+    failed: { label: 'Ba\u015far\u0131s\u0131z', color: 'text-red-700 bg-red-50 border-red-200' },
   };
   const stCfg = statusConfig[overallStatus] ?? statusConfig.ongoing;
 
@@ -149,10 +149,10 @@ export default function DebateDetailPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <MessageSquare className="w-6 h-6 text-navy-600" />
-            AI Panel Değerlendirmesi
+            AI Panel De\u011ferlendirmesi
           </h1>
           <p className="text-gray-500 mt-0.5">
-            {homeName && awayName ? `${homeName} vs ${awayName}` : 'Maç değerlendirmesi'}
+            {homeName && awayName ? `${homeName} vs ${awayName}` : 'Ma\u00e7 de\u011ferlendirmesi'}
             {cassCode && ` - ${cassCode}`}
           </p>
         </div>
@@ -163,14 +163,14 @@ export default function DebateDetailPage() {
 
       {useMock && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-700">
-          Gerçek debate verisi bulunamadı. Demo veriler gösterilmektedir.
+          Ger\u00e7ek debate verisi bulunamad\u0131. Demo veriler g\u00f6sterilmektedir.
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className="lg:col-span-3">
           <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">Değerlendirme Süreci</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-6">De\u011ferlendirme S\u00fcreci</h2>
             <DebateTimeline rounds={rounds} />
           </div>
         </div>
@@ -178,7 +178,7 @@ export default function DebateDetailPage() {
         <div className="lg:col-span-2 space-y-6">
           {prediction && (
             <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Tahmin Özeti</h3>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Tahmin \u00d6zeti</h3>
               <div className="border-l-4 border-gold-500 pl-3 py-1 mb-3">
                 <p className="text-sm text-gray-700 italic leading-relaxed">
                   "{prediction.statement}"
@@ -188,13 +188,13 @@ export default function DebateDetailPage() {
                 to={`/predictions/${predictionId}`}
                 className="text-xs font-medium text-navy-600 hover:text-navy-700 transition-colors"
               >
-                Tahmin detayına git
+                Tahmin detay\u0131na git
               </Link>
             </div>
           )}
 
           <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Tur Özeti</h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Tur \u00d6zeti</h3>
             <div className="space-y-2">
               {rounds.map((r) => {
                 const votes = r.persona_outputs.filter((po) => po.vote);

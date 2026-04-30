@@ -6,16 +6,17 @@ import MatchFilter from '../components/matches/MatchFilter';
 
 export interface Match {
   id: string;
-  kickoff_at: string | null;
-  status: string;
-  matchweek: number | null;
-  home_goals_ft: number | null;
-  away_goals_ft: number | null;
-  home_team: { name: string; short_name: string; tla: string; club_colors: string | null; city: string | null } | null;
-  away_team: { name: string; short_name: string; tla: string; club_colors: string | null; city: string | null } | null;
+  match_date: string;
+  match_time: string | null;
+  status_short: string;
+  round: string | null;
+  home_score_ft: number | null;
+  away_score_ft: number | null;
+  home_team: { name: string; short_name: string | null; code: string | null; logo_url: string | null } | null;
+  away_team: { name: string; short_name: string | null; code: string | null; logo_url: string | null } | null;
   competition_season: {
     season_code: string;
-    competition: { name: string; short_name: string; code: string } | null;
+    competition: { name: string; short_name: string | null; code: string } | null;
   } | null;
 }
 
@@ -56,16 +57,16 @@ export default function MatchListPage() {
     let query = supabase
       .from('matches')
       .select(`
-        id, kickoff_at, status, matchweek, home_goals_ft, away_goals_ft,
-        home_team:teams!matches_home_team_id_fkey(name, short_name, tla, club_colors, city),
-        away_team:teams!matches_away_team_id_fkey(name, short_name, tla, club_colors, city),
-        competition_season:competition_seasons(season_code, competition:competitions(name, short_name, code))
+        id, match_date, match_time, status_short, round, home_score_ft, away_score_ft,
+        home_team:teams!matches_home_team_id_fkey(name, short_name, code, logo_url),
+        away_team:teams!matches_away_team_id_fkey(name, short_name, code, logo_url),
+        competition_season:competition_seasons!matches_competition_season_id_fkey(season_code, competition:competitions(name, short_name, code))
       `, { count: 'exact' })
-      .order('kickoff_at', { ascending: true })
+      .order('match_date', { ascending: true })
       .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
     if (filters.status !== 'all') {
-      query = query.eq('status', filters.status);
+      query = query.eq('status_short', filters.status);
     }
 
     const { data, count } = await query;

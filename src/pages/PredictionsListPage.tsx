@@ -7,28 +7,26 @@ import PredictionListCard from '../components/predictions/PredictionListCard';
 
 interface PredictionItem {
   id: string;
-  statement: string;
-  probability: number;
-  confidence_label: string;
-  access_level: string;
-  cassandra_code: string;
-  generated_at: string;
+  prediction_type: string;
+  predicted_outcome: string;
+  confidence: number;
+  odds_fair: number | null;
+  is_elite_only: boolean;
+  created_at: string;
   match: {
-    home_team: { short_name: string; tla: string } | null;
-    away_team: { short_name: string; tla: string } | null;
+    home_team: { name: string; short_name: string | null; code: string | null } | null;
+    away_team: { name: string; short_name: string | null; code: string | null } | null;
   } | null;
 }
 
-type AccessFilter = 'all' | 'free' | 'pro' | 'elite';
-type ConfidenceFilter = 'all' | 'low' | 'medium' | 'high';
-type SortKey = 'date' | 'probability' | 'confidence';
+type AccessFilter = 'all' | 'free' | 'elite';
+type SortKey = 'date' | 'confidence';
 
 export default function PredictionsListPage() {
   const { user } = useAuth();
   const [predictions, setPredictions] = useState<PredictionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [accessFilter, setAccessFilter] = useState<AccessFilter>('all');
-  const [confidenceFilter, setConfidenceFilter] = useState<ConfidenceFilter>('all');
   const [sortKey, setSortKey] = useState<SortKey>('date');
   const [showFilters, setShowFilters] = useState(false);
 
@@ -37,39 +35,31 @@ export default function PredictionsListPage() {
     let query = supabase
       .from('predictions')
       .select(`
-        id, statement, probability, confidence_label, access_level,
-        cassandra_code, generated_at,
-        match:matches(
-          home_team:teams!matches_home_team_id_fkey(name, short_name, tla),
-          away_team:teams!matches_away_team_id_fkey(name, short_name, tla)
+        id, prediction_type, predicted_outcome, confidence, odds_fair,
+        is_elite_only, created_at,
+        match:matches!predictions_match_id_fkey(
+          home_team:teams!matches_home_team_id_fkey(name, short_name, code),
+          away_team:teams!matches_away_team_id_fkey(name, short_name, code)
         )
       `)
-      .eq('is_current', true);
+      .is('superseded_by', null);
 
-    if (accessFilter !== 'all') {
-      query = query.eq('access_level', accessFilter);
-    }
-    if (confidenceFilter !== 'all') {
-      query = query.eq('confidence_label', confidenceFilter);
+    if (accessFilter === 'elite') {
+      query = query.eq('is_elite_only', true);
+    } else if (accessFilter === 'free') {
+      query = query.eq('is_elite_only', false);
     }
 
-    if (sortKey === 'probability') {
-      query = query.order('probability', { ascending: false });
+    if (sortKey === 'confidence') {
+      query = query.order('confidence', { ascending: false });
     } else {
-      query = query.order('generated_at', { ascending: false });
+      query = query.order('created_at', { ascending: false });
     }
 
     const { data } = await query;
-    const items = [...((data as unknown as PredictionItem[]) ?? [])];
-
-    if (sortKey === 'confidence') {
-      const order: Record<string, number> = { high: 0, medium: 1, low: 2 };
-      items.sort((a, b) => (order[a.confidence_label] ?? 3) - (order[b.confidence_label] ?? 3));
-    }
-
-    setPredictions(items);
+    setPredictions((data as unknown as PredictionItem[]) ?? []);
     setLoading(false);
-  }, [accessFilter, confidenceFilter, sortKey]);
+  }, [accessFilter, sortKey]);
 
   useEffect(() => {
     fetchPredictions();
@@ -77,12 +67,10 @@ export default function PredictionsListPage() {
 
   const activeFilterCount = [
     accessFilter !== 'all',
-    confidenceFilter !== 'all',
   ].filter(Boolean).length;
 
   function resetFilters() {
     setAccessFilter('all');
-    setConfidenceFilter('all');
     setSortKey('date');
   }
 
@@ -117,45 +105,29 @@ export default function PredictionsListPage() {
 
       {showFilters && (
         <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Erişim Seviyesi</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Erisim Seviyesi</label>
               <select
                 value={accessFilter}
                 onChange={(e) => setAccessFilter(e.target.value as AccessFilter)}
                 className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-700 bg-white focus:ring-2 focus:ring-navy-500 focus:border-navy-500 transition-colors"
               >
-                <option value="all">Tümü</option>
-                <option value="free">Ücretsiz</option>
-                <option value="pro">Pro</option>
+                <option value="all">Tumu</option>
+                <option value="free">Ucretsiz</option>
                 <option value="elite">Elite</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Güven Seviyesi</label>
-              <select
-                value={confidenceFilter}
-                onChange={(e) => setConfidenceFilter(e.target.value as ConfidenceFilter)}
-                className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-700 bg-white focus:ring-2 focus:ring-navy-500 focus:border-navy-500 transition-colors"
-              >
-                <option value="all">Tümü</option>
-                <option value="low">Düşük</option>
-                <option value="medium">Orta</option>
-                <option value="high">Yüksek</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Sıralama</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Siralama</label>
               <select
                 value={sortKey}
                 onChange={(e) => setSortKey(e.target.value as SortKey)}
                 className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-700 bg-white focus:ring-2 focus:ring-navy-500 focus:border-navy-500 transition-colors"
               >
                 <option value="date">Tarih (En Yeni)</option>
-                <option value="probability">Olasılık (En Yüksek)</option>
-                <option value="confidence">Güven (En Yüksek)</option>
+                <option value="confidence">Guven (En Yuksek)</option>
               </select>
             </div>
           </div>
