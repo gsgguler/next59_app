@@ -99,6 +99,10 @@ interface SimulationRow {
   reliability_bins_draw: Array<{bin:string;n:number;avg_pred_draw:number;actual_draw_rate:number;gap:number}> | null;
   probability_transform_config: Record<string, unknown> | null;
   rejection_flags: string[] | null;
+  // skill + slope columns (temperature grid)
+  brier_skill_vs_raw: number | null;
+  brier_skill_vs_compbias: number | null;
+  calibration_slope_draw: number | null;
   notes: string | null;
   created_at: string;
 }
@@ -124,6 +128,21 @@ const DRAW_FLOOR_MODES = [
   'temp_scale_20_plus_draw_floor_15',
   'temp_scale_15_plus_dynamic_draw_floor_70pct',
   'temp_scale_20_plus_dynamic_draw_floor_70pct',
+];
+
+const TEMP_GRID_MODES = [
+  'temp_scale_120_plus_competition_bias',
+  'temp_scale_130_plus_competition_bias',
+  'temp_scale_140_plus_competition_bias',
+  'temp_scale_150_plus_competition_bias',
+  'temp_scale_160_plus_competition_bias',
+  'temp_scale_170_plus_competition_bias',
+  'temp_scale_180_plus_competition_bias',
+  'compbias_then_temp_scale_130',
+  'compbias_then_temp_scale_140',
+  'compbias_then_temp_scale_150',
+  'compbias_then_temp_scale_160',
+  'compbias_then_temp_scale_170',
 ];
 
 const GROUP_TYPES = [
@@ -226,14 +245,16 @@ export default function ModelLabKalibrasyonPage() {
   const [simulations, setSimulations] = useState<SimulationRow[]>([]);
   const [decisionSims, setDecisionSims] = useState<SimulationRow[]>([]);
   const [drawFloorSims, setDrawFloorSims] = useState<SimulationRow[]>([]);
+  const [tempGridSims, setTempGridSims] = useState<SimulationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [adjLoading, setAdjLoading] = useState(true);
   const [simLoading, setSimLoading] = useState(true);
   const [decisionLoading, setDecisionLoading] = useState(true);
   const [drawFloorLoading, setDrawFloorLoading] = useState(true);
+  const [tempGridLoading, setTempGridLoading] = useState(true);
   const [groupType, setGroupType] = useState('overall');
   const [expandedBins, setExpandedBins] = useState<string | null>(null);
-  const [tab, setTab] = useState<'summary' | 'adjustments' | 'simulations' | 'decision' | 'drawfloor'>('summary');
+  const [tab, setTab] = useState<'summary' | 'adjustments' | 'simulations' | 'decision' | 'drawfloor' | 'tempgrid'>('summary');
 
   useEffect(() => {
     document.title = 'Kalibrasyon | Model Lab | Admin | Next59';
@@ -296,6 +317,18 @@ export default function ModelLabKalibrasyonPage() {
     if (tab === 'drawfloor') loadDrawFloor();
   }, [tab]);
 
+  useEffect(() => {
+    async function loadTempGrid() {
+      setTempGridLoading(true);
+      const { data } = await supabase.rpc('ml_get_adjustment_simulations', { p_run_id: null });
+      const all = ((data as unknown[]) ?? []) as SimulationRow[];
+      setTempGridSims(all.filter(s => TEMP_GRID_MODES.includes(s.simulation_key))
+        .sort((a, b) => TEMP_GRID_MODES.indexOf(a.simulation_key) - TEMP_GRID_MODES.indexOf(b.simulation_key)));
+      setTempGridLoading(false);
+    }
+    if (tab === 'tempgrid') loadTempGrid();
+  }, [tab]);
+
   const showPva    = groupType === 'predicted_vs_actual';
   const showBias   = ['overall','competition','home_prediction_bias','draw_prediction_bias','away_prediction_bias','predicted_result','actual_result','high_confidence_wrong'].includes(groupType);
   const showMarkets = ['overall','competition','season','era_bucket','confidence_grade'].includes(groupType);
@@ -328,7 +361,7 @@ export default function ModelLabKalibrasyonPage() {
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6 border-b border-navy-800 pb-px flex-wrap">
-          {(['summary', 'adjustments', 'simulations', 'decision', 'drawfloor'] as const).map((t) => (
+          {(['summary', 'adjustments', 'simulations', 'decision', 'drawfloor', 'tempgrid'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -342,7 +375,8 @@ export default function ModelLabKalibrasyonPage() {
                 : t === 'adjustments' ? 'Düzeltme Adayları'
                 : t === 'simulations' ? 'Olasılık Simülasyonları'
                 : t === 'decision' ? 'Decision Calibration'
-                : 'Draw Floor & Temp'}
+                : t === 'drawfloor' ? 'Draw Floor & Temp'
+                : 'T Grid Search'}
             </button>
           ))}
         </div>
@@ -1012,6 +1046,278 @@ export default function ModelLabKalibrasyonPage() {
                         </div>
 
                         {/* Reliability bins (expandable) */}
+                        {isExpanded && sim.reliability_bins_draw && sim.reliability_bins_draw.length > 0 && (
+                          <div className="mt-3 overflow-x-auto">
+                            <table className="w-full text-[10px]">
+                              <thead>
+                                <tr className="border-b border-navy-800">
+                                  <th className="text-left text-navy-500 font-medium px-2 py-1.5">Bin (p_draw)</th>
+                                  <th className="text-right text-navy-500 font-medium px-2 py-1.5">N</th>
+                                  <th className="text-right text-navy-500 font-medium px-2 py-1.5">Avg Pred D</th>
+                                  <th className="text-right text-navy-500 font-medium px-2 py-1.5">Actual D Rate</th>
+                                  <th className="text-right text-navy-500 font-medium px-2 py-1.5">Gap</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-navy-800/40">
+                                {sim.reliability_bins_draw.map((bin) => (
+                                  <tr key={bin.bin} className="hover:bg-navy-800/30">
+                                    <td className="px-2 py-1.5 text-white font-mono">{bin.bin}</td>
+                                    <td className="px-2 py-1.5 text-right text-navy-400 tabular-nums">{bin.n}</td>
+                                    <td className="px-2 py-1.5 text-right text-navy-300 tabular-nums">{(bin.avg_pred_draw*100).toFixed(1)}%</td>
+                                    <td className="px-2 py-1.5 text-right text-champagne tabular-nums">{(bin.actual_draw_rate*100).toFixed(1)}%</td>
+                                    <td className={`px-2 py-1.5 text-right tabular-nums ${bin.gap < 0.05 ? 'text-emerald-400' : bin.gap < 0.10 ? 'text-amber-400' : 'text-red-400'}`}>
+                                      {(bin.gap*100).toFixed(1)}pp
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+        {/* ── Temperature Grid Search ──────────────────────────────────────────── */}
+        {tab === 'tempgrid' && (
+          <>
+            <div className="bg-navy-900/60 border border-navy-800 rounded-xl px-4 py-3 mb-5 text-xs text-navy-400 leading-relaxed">
+              Sıcaklık ölçekleme (T) grid araması — T=1.2 ile T=1.8 arası, adım 0.1. Ana sıra: temp → compbias.
+              Ters sıra: compbias → temp (T=1.3–1.7). Formül: p_i^(1/T) / Σ p_j^(1/T). Orijinal tahminler değiştirilmez.
+            </div>
+
+            {/* Baseline reference bar */}
+            <div className="bg-navy-900/40 border border-navy-800 rounded-xl px-4 py-3 mb-5 text-xs text-navy-400 flex flex-wrap gap-4">
+              <span>Gerçek H/D/A: <span className="text-white tabular-nums">44.9% / 26.1% / 29.0%</span></span>
+              <span>Raw Brier: <span className="text-white tabular-nums">0.21187602</span></span>
+              <span>Raw Log Loss: <span className="text-white tabular-nums">1.05452988</span></span>
+              <span>Raw Accuracy: <span className="text-white tabular-nums">46.70%</span></span>
+              <span>CompBias Brier: <span className="text-champagne tabular-nums">0.20738331</span></span>
+              <span>CompBias Accuracy: <span className="text-champagne tabular-nums">48.38%</span></span>
+            </div>
+
+            {tempGridLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="h-14 bg-navy-900/50 rounded-xl animate-pulse" />
+                ))}
+              </div>
+            ) : tempGridSims.length === 0 ? (
+              <div className="flex flex-col items-center py-16 gap-3">
+                <RefreshCw className="w-8 h-8 text-navy-700" />
+                <p className="text-sm text-navy-500">Henüz temperature grid simülasyonu yok.</p>
+              </div>
+            ) : (
+              <>
+                {/* Main comparison table */}
+                <div className="overflow-x-auto rounded-xl border border-navy-800 mb-6">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-navy-800 bg-navy-900/60">
+                        <th className="text-left text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Mod</th>
+                        <th className="text-center text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Sıra</th>
+                        <th className="text-center text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">T</th>
+                        <th className="text-center text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Verdict</th>
+                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Brier adj</th>
+                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Skill/Raw</th>
+                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Skill/CB</th>
+                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">LL adj</th>
+                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Acc adj</th>
+                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Pred H</th>
+                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Pred D</th>
+                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Pred A</th>
+                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">D-Prec</th>
+                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">D-Rec</th>
+                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">D-F1</th>
+                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">A-Rec</th>
+                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Home↓</th>
+                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">ECE-D</th>
+                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">CalSlope</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-navy-800/40">
+                      {tempGridSims.map((sim) => {
+                        const verdict = sim.simulation_verdict ?? 'neutral';
+                        const verdictColor = verdict === 'promising' ? 'text-emerald-400'
+                          : verdict === 'rejected' ? 'text-red-400'
+                          : verdict === 'risky' ? 'text-amber-400'
+                          : 'text-navy-500';
+                        const cfg = sim.probability_transform_config as Record<string, unknown> | null;
+                        const pipelineLabel = cfg?.pipeline_order as string ?? '–';
+                        const tVal = cfg?.temperature as number ?? null;
+                        const skillRaw = sim.brier_skill_vs_raw;
+                        const skillCB  = sim.brier_skill_vs_compbias;
+                        const slope    = sim.calibration_slope_draw;
+                        const slopeOk  = slope !== null && slope >= 0.9 && slope <= 1.1;
+                        return (
+                          <tr key={sim.id} className="hover:bg-navy-900/40 transition-colors">
+                            <td className="px-3 py-2.5 text-white font-mono text-[11px] max-w-[180px] truncate whitespace-nowrap" title={sim.simulation_key}>
+                              {sim.simulation_key}
+                            </td>
+                            <td className="px-2 py-2.5 text-center">
+                              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                                pipelineLabel === 'temp_then_compbias'
+                                  ? 'bg-sky-500/10 text-sky-400'
+                                  : 'bg-amber-500/10 text-amber-400'
+                              }`}>
+                                {pipelineLabel === 'temp_then_compbias' ? 'T→CB' : 'CB→T'}
+                              </span>
+                            </td>
+                            <td className="px-2 py-2.5 text-center text-white font-mono font-bold tabular-nums">
+                              {tVal !== null ? tVal.toFixed(2) : '–'}
+                            </td>
+                            <td className="px-2 py-2.5 text-center">
+                              <span className={`text-[10px] font-semibold uppercase ${verdictColor}`}>{verdict}</span>
+                            </td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums font-mono ${Number(sim.adjusted_avg_brier_1x2??1) < 0.21187602 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {Number(sim.adjusted_avg_brier_1x2 ?? 0).toFixed(6)}
+                            </td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums ${skillRaw !== null && Number(skillRaw) > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {skillRaw !== null ? (Number(skillRaw) * 100).toFixed(3) + '%' : '–'}
+                            </td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums ${skillCB !== null && Number(skillCB) > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {skillCB !== null ? (Number(skillCB) * 100).toFixed(3) + '%' : '–'}
+                            </td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums ${Number(sim.adjusted_avg_log_loss_1x2??1) < 1.05452988 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {Number(sim.adjusted_avg_log_loss_1x2 ?? 0).toFixed(6)}
+                            </td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums ${Number(sim.adjusted_result_accuracy??0) > 0.466965 ? 'text-emerald-400' : 'text-navy-400'}`}>
+                              {(Number(sim.adjusted_result_accuracy ?? 0)*100).toFixed(2)}%
+                            </td>
+                            <td className="px-2 py-2.5 text-right tabular-nums text-navy-300">{(Number(sim.adjusted_pred_home_rate??0)*100).toFixed(1)}%</td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums ${Number(sim.adjusted_pred_draw_rate??0) >= 0.12 ? 'text-emerald-400' : Number(sim.adjusted_pred_draw_rate??0) >= 0.08 ? 'text-amber-400' : 'text-red-400'}`}>
+                              {(Number(sim.adjusted_pred_draw_rate ?? 0)*100).toFixed(1)}%
+                            </td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums ${Number(sim.adjusted_pred_away_rate??0) >= 0.08 ? 'text-navy-300' : 'text-red-400'}`}>
+                              {(Number(sim.adjusted_pred_away_rate ?? 0)*100).toFixed(1)}%
+                            </td>
+                            <td className="px-2 py-2.5 text-right tabular-nums text-navy-400">
+                              {sim.draw_precision !== null ? (Number(sim.draw_precision)*100).toFixed(1)+'%' : '–'}
+                            </td>
+                            <td className="px-2 py-2.5 text-right tabular-nums text-navy-400">
+                              {sim.draw_recall !== null ? (Number(sim.draw_recall)*100).toFixed(1)+'%' : '–'}
+                            </td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums font-medium ${Number(sim.draw_f1??0) > 0.20 ? 'text-emerald-400' : Number(sim.draw_f1??0) > 0.15 ? 'text-amber-400' : 'text-red-400'}`}>
+                              {sim.draw_f1 !== null ? Number(sim.draw_f1).toFixed(3) : '–'}
+                            </td>
+                            <td className="px-2 py-2.5 text-right tabular-nums text-navy-400">
+                              {sim.away_recall !== null ? (Number(sim.away_recall)*100).toFixed(1)+'%' : '–'}
+                            </td>
+                            <td className="px-2 py-2.5 text-right tabular-nums text-navy-300">
+                              {sim.home_overcall_reduction !== null ? (Number(sim.home_overcall_reduction)*100).toFixed(1)+'pp' : '–'}
+                            </td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums ${Number(sim.expected_calibration_error_draw??1) < 0.04 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                              {sim.expected_calibration_error_draw !== null ? Number(sim.expected_calibration_error_draw).toFixed(4) : '–'}
+                            </td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums font-mono ${slopeOk ? 'text-emerald-400' : slope !== null ? 'text-amber-400' : 'text-navy-600'}`}>
+                              {slope !== null ? Number(slope).toFixed(3) : 'n/a'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Detail cards with flags + bins */}
+                <div className="space-y-3">
+                  {tempGridSims.map((sim) => {
+                    const isExpanded = expandedBins === sim.id;
+                    const verdict = sim.simulation_verdict ?? 'neutral';
+                    const flags = sim.rejection_flags ?? [];
+                    const cfg = sim.probability_transform_config as Record<string, unknown> | null;
+                    const pipelineLabel = cfg?.pipeline_order as string ?? '–';
+                    const tVal = cfg?.temperature as number ?? null;
+                    return (
+                      <div key={sim.id} className="bg-navy-900/60 border border-navy-800 rounded-xl p-4">
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-bold text-white font-mono">{sim.simulation_key}</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                              pipelineLabel === 'temp_then_compbias' ? 'bg-sky-500/10 text-sky-400' : 'bg-amber-500/10 text-amber-400'
+                            }`}>
+                              {pipelineLabel === 'temp_then_compbias' ? 'T → CB' : 'CB → T'}
+                            </span>
+                            {tVal !== null && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-navy-800 text-navy-300 font-mono">T={tVal}</span>
+                            )}
+                            {verdict === 'promising' && <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">PROMISING</span>}
+                            {verdict === 'rejected' && <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-500/15 text-red-400 border border-red-500/25">REJECTED</span>}
+                            {verdict === 'risky' && <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/15 text-amber-400 border border-amber-500/25">RISKY</span>}
+                          </div>
+                          {(sim.reliability_bins_draw?.length ?? 0) > 0 && (
+                            <button
+                              onClick={() => setExpandedBins(isExpanded ? null : sim.id)}
+                              className="text-[10px] text-navy-500 hover:text-champagne transition-colors flex items-center gap-1 shrink-0"
+                            >
+                              Reliability Bins {isExpanded ? '▲' : '▼'}
+                            </button>
+                          )}
+                        </div>
+
+                        {flags.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mb-2">
+                            {flags.map((f, i) => (
+                              <span key={i} className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                                f.startsWith('REJECTED') ? 'bg-red-500/10 border-red-500/20 text-red-300'
+                                : 'bg-amber-500/10 border-amber-500/20 text-amber-300'
+                              }`}>{f}</span>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-4 gap-2 text-xs sm:grid-cols-8">
+                          <div className="bg-navy-800/40 rounded-lg p-2">
+                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">D-F1</p>
+                            <p className={`font-bold tabular-nums ${Number(sim.draw_f1??0) > 0.20 ? 'text-emerald-400' : Number(sim.draw_f1??0) > 0.15 ? 'text-amber-400' : 'text-red-400'}`}>
+                              {sim.draw_f1 !== null ? Number(sim.draw_f1).toFixed(3) : '–'}
+                            </p>
+                          </div>
+                          <div className="bg-navy-800/40 rounded-lg p-2">
+                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">D-Prec</p>
+                            <p className="text-white tabular-nums">{sim.draw_precision !== null ? (Number(sim.draw_precision)*100).toFixed(0)+'%' : '–'}</p>
+                          </div>
+                          <div className="bg-navy-800/40 rounded-lg p-2">
+                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">D-Rec</p>
+                            <p className="text-white tabular-nums">{sim.draw_recall !== null ? (Number(sim.draw_recall)*100).toFixed(0)+'%' : '–'}</p>
+                          </div>
+                          <div className="bg-navy-800/40 rounded-lg p-2">
+                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">Draw Rate</p>
+                            <p className={`tabular-nums ${Number(sim.adjusted_pred_draw_rate??0) >= 0.12 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                              {(Number(sim.adjusted_pred_draw_rate??0)*100).toFixed(1)}%
+                            </p>
+                          </div>
+                          <div className="bg-navy-800/40 rounded-lg p-2">
+                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">Skill/Raw</p>
+                            <p className={`tabular-nums ${Number(sim.brier_skill_vs_raw??0) > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {sim.brier_skill_vs_raw !== null ? (Number(sim.brier_skill_vs_raw)*100).toFixed(3)+'%' : '–'}
+                            </p>
+                          </div>
+                          <div className="bg-navy-800/40 rounded-lg p-2">
+                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">Skill/CB</p>
+                            <p className={`tabular-nums ${Number(sim.brier_skill_vs_compbias??0) > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {sim.brier_skill_vs_compbias !== null ? (Number(sim.brier_skill_vs_compbias)*100).toFixed(3)+'%' : '–'}
+                            </p>
+                          </div>
+                          <div className="bg-navy-800/40 rounded-lg p-2">
+                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">Cal Slope</p>
+                            <p className={`tabular-nums font-mono ${sim.calibration_slope_draw !== null && Number(sim.calibration_slope_draw) >= 0.9 && Number(sim.calibration_slope_draw) <= 1.1 ? 'text-emerald-400' : sim.calibration_slope_draw !== null ? 'text-amber-400' : 'text-navy-600'}`}>
+                              {sim.calibration_slope_draw !== null ? Number(sim.calibration_slope_draw).toFixed(3) : 'n/a'}
+                            </p>
+                          </div>
+                          <div className="bg-navy-800/40 rounded-lg p-2">
+                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">ECE-D</p>
+                            <p className={`tabular-nums ${Number(sim.expected_calibration_error_draw??1) < 0.04 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                              {sim.expected_calibration_error_draw !== null ? Number(sim.expected_calibration_error_draw).toFixed(4) : '–'}
+                            </p>
+                          </div>
+                        </div>
+
                         {isExpanded && sim.reliability_bins_draw && sim.reliability_bins_draw.length > 0 && (
                           <div className="mt-3 overflow-x-auto">
                             <table className="w-full text-[10px]">
