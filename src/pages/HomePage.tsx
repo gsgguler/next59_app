@@ -1,45 +1,15 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Search, Filter, Calendar, Trophy, MapPin, Clock, Globe } from 'lucide-react';
+import { Search, Filter, Calendar, Trophy, Globe } from 'lucide-react';
 import { Hero } from '../components/Hero';
 import CookieBanner from '../components/legal/CookieBanner';
+import { WC2026FixtureCard } from '../components/wc/WC2026FixtureCard';
 import {
   ALL_WC2026_FIXTURES,
   WC2026_GROUPS,
-  STAGE_LABELS_TR,
   formatFixtureDateTR,
-  formatKickoffTR,
   type WC2026Fixture,
   type FixtureStage,
 } from '../data/worldCup2026Fixtures';
-
-// ---------------------------------------------------------------------------
-// Flags
-// ---------------------------------------------------------------------------
-
-const FIFA_TO_EMOJI: Record<string, string> = {
-  MEX: '\u{1F1F2}\u{1F1FD}', RSA: '\u{1F1FF}\u{1F1E6}', KOR: '\u{1F1F0}\u{1F1F7}',
-  CZE: '\u{1F1E8}\u{1F1FF}', CAN: '\u{1F1E8}\u{1F1E6}', SUI: '\u{1F1E8}\u{1F1ED}',
-  QAT: '\u{1F1F6}\u{1F1E6}', BIH: '\u{1F1E7}\u{1F1E6}', BRA: '\u{1F1E7}\u{1F1F7}',
-  MAR: '\u{1F1F2}\u{1F1E6}', SCO: '\u{1F3F4}\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E006F}\u{E007F}',
-  HAI: '\u{1F1ED}\u{1F1F9}', USA: '\u{1F1FA}\u{1F1F8}', AUS: '\u{1F1E6}\u{1F1FA}',
-  PAR: '\u{1F1F5}\u{1F1FE}', TUR: '\u{1F1F9}\u{1F1F7}', GER: '\u{1F1E9}\u{1F1EA}',
-  CIV: '\u{1F1E8}\u{1F1EE}', ECU: '\u{1F1EA}\u{1F1E8}', CUW: '\u{1F1E8}\u{1F1FC}',
-  NED: '\u{1F1F3}\u{1F1F1}', JPN: '\u{1F1EF}\u{1F1F5}', SWE: '\u{1F1F8}\u{1F1EA}',
-  TUN: '\u{1F1F9}\u{1F1F3}', BEL: '\u{1F1E7}\u{1F1EA}', EGY: '\u{1F1EA}\u{1F1EC}',
-  NZL: '\u{1F1F3}\u{1F1FF}', IRN: '\u{1F1EE}\u{1F1F7}', ESP: '\u{1F1EA}\u{1F1F8}',
-  KSA: '\u{1F1F8}\u{1F1E6}', URU: '\u{1F1FA}\u{1F1FE}', CPV: '\u{1F1E8}\u{1F1FB}',
-  FRA: '\u{1F1EB}\u{1F1F7}', SEN: '\u{1F1F8}\u{1F1F3}', NOR: '\u{1F1F3}\u{1F1F4}',
-  IRQ: '\u{1F1EE}\u{1F1F6}', ARG: '\u{1F1E6}\u{1F1F7}', ALG: '\u{1F1E9}\u{1F1FF}',
-  AUT: '\u{1F1E6}\u{1F1F9}', JOR: '\u{1F1EF}\u{1F1F4}', POR: '\u{1F1F5}\u{1F1F9}',
-  COL: '\u{1F1E8}\u{1F1F4}', UZB: '\u{1F1FA}\u{1F1FF}', COD: '\u{1F1E8}\u{1F1E9}',
-  ENG: '\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}',
-  CRO: '\u{1F1ED}\u{1F1F7}', GHA: '\u{1F1EC}\u{1F1ED}', PAN: '\u{1F1F5}\u{1F1E6}',
-  TBD: '\u{2753}',
-};
-
-function getFlag(code: string): string {
-  return FIFA_TO_EMOJI[code] ?? '\u{1F3F3}\u{FE0F}';
-}
 
 // ---------------------------------------------------------------------------
 // Filter options
@@ -75,72 +45,6 @@ function groupByDate(fixtures: WC2026Fixture[]): Map<string, WC2026Fixture[]> {
     else map.set(f.match_date, [f]);
   }
   return map;
-}
-
-// ---------------------------------------------------------------------------
-// Fixture card
-// ---------------------------------------------------------------------------
-
-function WC2026FixtureCard({ fixture }: { fixture: WC2026Fixture }) {
-  const isTBD = fixture.home_team === 'TBD';
-  const trTime = formatKickoffTR(fixture.kickoff_utc);
-  const stageLabel = STAGE_LABELS_TR[fixture.stage];
-  const groupLabel = fixture.group ? `Grup ${fixture.group}` : null;
-
-  return (
-    <div className="relative bg-navy-900 border border-navy-800 rounded-xl p-4 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-champagne/5 hover:border-champagne/20 transition-all duration-200 group">
-      {/* Stage + match no */}
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-champagne/70">
-          {groupLabel ? `${stageLabel} — ${groupLabel}` : stageLabel}
-        </span>
-        <span className="text-[10px] font-mono text-navy-500">#{fixture.match_no}</span>
-      </div>
-
-      {/* Teams row */}
-      <div className="flex items-center gap-2">
-        {/* Home */}
-        <div className="flex-1 flex items-center gap-2 min-w-0">
-          <div className="w-9 h-9 rounded-full bg-navy-800 border border-navy-700 flex items-center justify-center shrink-0 text-base">
-            {getFlag(fixture.home_team_code)}
-          </div>
-          <span className="text-sm font-semibold text-white truncate leading-tight">
-            {isTBD ? <span className="text-navy-500 italic">TBD</span> : fixture.home_team}
-          </span>
-        </div>
-
-        {/* Center */}
-        <div className="flex flex-col items-center px-2 shrink-0">
-          <span className="text-[10px] font-bold tracking-widest text-champagne/60 uppercase">VS</span>
-        </div>
-
-        {/* Away */}
-        <div className="flex-1 flex items-center gap-2 min-w-0 justify-end">
-          <span className="text-sm font-semibold text-white truncate text-right leading-tight">
-            {isTBD ? <span className="text-navy-500 italic">TBD</span> : fixture.away_team}
-          </span>
-          <div className="w-9 h-9 rounded-full bg-navy-800 border border-navy-700 flex items-center justify-center shrink-0 text-base">
-            {getFlag(fixture.away_team_code)}
-          </div>
-        </div>
-      </div>
-
-      {/* Divider */}
-      <div className="h-px bg-navy-800 my-3" />
-
-      {/* Meta row */}
-      <div className="flex items-center justify-between gap-2 text-[11px] text-navy-400">
-        <div className="flex items-center gap-1 min-w-0">
-          <MapPin className="w-3 h-3 text-navy-500 shrink-0" />
-          <span className="truncate">{fixture.venue}</span>
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <Clock className="w-3 h-3 text-navy-500" />
-          <span className="tabular-nums">{trTime}</span>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 // ---------------------------------------------------------------------------

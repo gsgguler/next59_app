@@ -1,44 +1,15 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Trophy, MapPin, Clock, Search, Filter, Calendar, Globe, ChevronDown, Info } from 'lucide-react';
+import { Trophy, Search, Filter, Calendar, Globe, ChevronDown, Info } from 'lucide-react';
 import {
   ALL_WC2026_FIXTURES,
   WC2026_GROUPS,
-  STAGE_LABELS_TR,
   formatFixtureDateTR,
-  formatKickoffTR,
   type WC2026Fixture,
   type FixtureStage,
 } from '../data/worldCup2026Fixtures';
+import { COUNTRY_BY_FIFA } from '../data/worldCup2026Countries';
+import { WC2026FixtureCard } from '../components/wc/WC2026FixtureCard';
 import Countdown from '../components/Countdown';
-
-// ---------------------------------------------------------------------------
-// Flags
-// ---------------------------------------------------------------------------
-
-const FIFA_TO_EMOJI: Record<string, string> = {
-  MEX: '\u{1F1F2}\u{1F1FD}', RSA: '\u{1F1FF}\u{1F1E6}', KOR: '\u{1F1F0}\u{1F1F7}',
-  CZE: '\u{1F1E8}\u{1F1FF}', CAN: '\u{1F1E8}\u{1F1E6}', SUI: '\u{1F1E8}\u{1F1ED}',
-  QAT: '\u{1F1F6}\u{1F1E6}', BIH: '\u{1F1E7}\u{1F1E6}', BRA: '\u{1F1E7}\u{1F1F7}',
-  MAR: '\u{1F1F2}\u{1F1E6}', SCO: '\u{1F3F4}\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E006F}\u{E007F}',
-  HAI: '\u{1F1ED}\u{1F1F9}', USA: '\u{1F1FA}\u{1F1F8}', AUS: '\u{1F1E6}\u{1F1FA}',
-  PAR: '\u{1F1F5}\u{1F1FE}', TUR: '\u{1F1F9}\u{1F1F7}', GER: '\u{1F1E9}\u{1F1EA}',
-  CIV: '\u{1F1E8}\u{1F1EE}', ECU: '\u{1F1EA}\u{1F1E8}', CUW: '\u{1F1E8}\u{1F1FC}',
-  NED: '\u{1F1F3}\u{1F1F1}', JPN: '\u{1F1EF}\u{1F1F5}', SWE: '\u{1F1F8}\u{1F1EA}',
-  TUN: '\u{1F1F9}\u{1F1F3}', BEL: '\u{1F1E7}\u{1F1EA}', EGY: '\u{1F1EA}\u{1F1EC}',
-  NZL: '\u{1F1F3}\u{1F1FF}', IRN: '\u{1F1EE}\u{1F1F7}', ESP: '\u{1F1EA}\u{1F1F8}',
-  KSA: '\u{1F1F8}\u{1F1E6}', URU: '\u{1F1FA}\u{1F1FE}', CPV: '\u{1F1E8}\u{1F1FB}',
-  FRA: '\u{1F1EB}\u{1F1F7}', SEN: '\u{1F1F8}\u{1F1F3}', NOR: '\u{1F1F3}\u{1F1F4}',
-  IRQ: '\u{1F1EE}\u{1F1F6}', ARG: '\u{1F1E6}\u{1F1F7}', ALG: '\u{1F1E9}\u{1F1FF}',
-  AUT: '\u{1F1E6}\u{1F1F9}', JOR: '\u{1F1EF}\u{1F1F4}', POR: '\u{1F1F5}\u{1F1F9}',
-  COL: '\u{1F1E8}\u{1F1F4}', UZB: '\u{1F1FA}\u{1F1FF}', COD: '\u{1F1E8}\u{1F1E9}',
-  ENG: '\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}',
-  CRO: '\u{1F1ED}\u{1F1F7}', GHA: '\u{1F1EC}\u{1F1ED}', PAN: '\u{1F1F5}\u{1F1E6}',
-  TBD: '\u{2753}',
-};
-
-function getFlag(code: string): string {
-  return FIFA_TO_EMOJI[code] ?? '\u{1F3F3}\u{FE0F}';
-}
 
 // ---------------------------------------------------------------------------
 // Filter options
@@ -74,65 +45,6 @@ function groupByDate(fixtures: WC2026Fixture[]): Map<string, WC2026Fixture[]> {
     else map.set(f.match_date, [f]);
   }
   return map;
-}
-
-// ---------------------------------------------------------------------------
-// Fixture card
-// ---------------------------------------------------------------------------
-
-function WC2026FixtureCard({ fixture }: { fixture: WC2026Fixture }) {
-  const isTBD = fixture.home_team === 'TBD';
-  const trTime = formatKickoffTR(fixture.kickoff_utc);
-  const stageLabel = STAGE_LABELS_TR[fixture.stage];
-  const groupLabel = fixture.group ? `Grup ${fixture.group}` : null;
-
-  return (
-    <div className="relative bg-navy-900 border border-navy-800 rounded-xl p-4 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-champagne/5 hover:border-champagne/20 transition-all duration-200 group">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-champagne/70">
-          {groupLabel ? `${stageLabel} — ${groupLabel}` : stageLabel}
-        </span>
-        <span className="text-[10px] font-mono text-navy-500">#{fixture.match_no}</span>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <div className="flex-1 flex items-center gap-2 min-w-0">
-          <div className="w-9 h-9 rounded-full bg-navy-800 border border-navy-700 flex items-center justify-center shrink-0 text-base">
-            {getFlag(fixture.home_team_code)}
-          </div>
-          <span className="text-sm font-semibold text-white truncate leading-tight">
-            {isTBD ? <span className="text-navy-500 italic">TBD</span> : fixture.home_team}
-          </span>
-        </div>
-
-        <div className="flex flex-col items-center px-2 shrink-0">
-          <span className="text-[10px] font-bold tracking-widest text-champagne/60 uppercase">VS</span>
-        </div>
-
-        <div className="flex-1 flex items-center gap-2 min-w-0 justify-end">
-          <span className="text-sm font-semibold text-white truncate text-right leading-tight">
-            {isTBD ? <span className="text-navy-500 italic">TBD</span> : fixture.away_team}
-          </span>
-          <div className="w-9 h-9 rounded-full bg-navy-800 border border-navy-700 flex items-center justify-center shrink-0 text-base">
-            {getFlag(fixture.away_team_code)}
-          </div>
-        </div>
-      </div>
-
-      <div className="h-px bg-navy-800 my-3" />
-
-      <div className="flex items-center justify-between gap-2 text-[11px] text-navy-400">
-        <div className="flex items-center gap-1 min-w-0">
-          <MapPin className="w-3 h-3 text-navy-500 shrink-0" />
-          <span className="truncate">{fixture.venue}</span>
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <Clock className="w-3 h-3 text-navy-500" />
-          <span className="tabular-nums">{trTime}</span>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -181,43 +93,29 @@ const TOURNAMENT_STATS = [
 ];
 
 const HOST_COUNTRIES = [
-  { name: 'ABD', flag: '\u{1F1FA}\u{1F1F8}', venues: 11, note: 'Ana ev sahibi' },
-  { name: 'Kanada', flag: '\u{1F1E8}\u{1F1E6}', venues: 2, note: 'Toronto · Vancouver' },
-  { name: 'Meksika', flag: '\u{1F1F2}\u{1F1FD}', venues: 3, note: 'CDMX · GDL · MTY' },
+  { name: 'ABD', iso2: 'us', venues: 11, note: 'Ana ev sahibi' },
+  { name: 'Kanada', iso2: 'ca', venues: 2, note: 'Toronto · Vancouver' },
+  { name: 'Meksika', iso2: 'mx', venues: 3, note: 'CDMX · GDL · MTY' },
 ];
 
 // ---------------------------------------------------------------------------
 // Group brackets quick view
 // ---------------------------------------------------------------------------
 
+// fifa_code arrays — keyed by group letter
 const GROUPS_DATA: Record<string, string[]> = {
-  A: ['Mexico', 'South Africa', 'South Korea', 'Czechia'],
-  B: ['Canada', 'Switzerland', 'Qatar', 'Bosnia and Herzegovina'],
-  C: ['Brazil', 'Morocco', 'Scotland', 'Haiti'],
-  D: ['USA', 'Australia', 'Paraguay', 'Türkiye'],
-  E: ['Germany', 'Ivory Coast', 'Ecuador', 'Curaçao'],
-  F: ['Netherlands', 'Japan', 'Sweden', 'Tunisia'],
-  G: ['Belgium', 'Egypt', 'New Zealand', 'Iran'],
-  H: ['Spain', 'Saudi Arabia', 'Uruguay', 'Cape Verde'],
-  I: ['France', 'Senegal', 'Norway', 'Iraq'],
-  J: ['Argentina', 'Algeria', 'Austria', 'Jordan'],
-  K: ['Portugal', 'Colombia', 'Uzbekistan', 'DR Congo'],
-  L: ['England', 'Croatia', 'Ghana', 'Panama'],
-};
-
-const TEAM_CODES: Record<string, string> = {
-  'Mexico': 'MEX', 'South Africa': 'RSA', 'South Korea': 'KOR', 'Czechia': 'CZE',
-  'Canada': 'CAN', 'Switzerland': 'SUI', 'Qatar': 'QAT', 'Bosnia and Herzegovina': 'BIH',
-  'Brazil': 'BRA', 'Morocco': 'MAR', 'Scotland': 'SCO', 'Haiti': 'HAI',
-  'USA': 'USA', 'Australia': 'AUS', 'Paraguay': 'PAR', 'Türkiye': 'TUR',
-  'Germany': 'GER', 'Ivory Coast': 'CIV', 'Ecuador': 'ECU', 'Curaçao': 'CUW',
-  'Netherlands': 'NED', 'Japan': 'JPN', 'Sweden': 'SWE', 'Tunisia': 'TUN',
-  'Belgium': 'BEL', 'Egypt': 'EGY', 'New Zealand': 'NZL', 'Iran': 'IRN',
-  'Spain': 'ESP', 'Saudi Arabia': 'KSA', 'Uruguay': 'URU', 'Cape Verde': 'CPV',
-  'France': 'FRA', 'Senegal': 'SEN', 'Norway': 'NOR', 'Iraq': 'IRQ',
-  'Argentina': 'ARG', 'Algeria': 'ALG', 'Austria': 'AUT', 'Jordan': 'JOR',
-  'Portugal': 'POR', 'Colombia': 'COL', 'Uzbekistan': 'UZB', 'DR Congo': 'COD',
-  'England': 'ENG', 'Croatia': 'CRO', 'Ghana': 'GHA', 'Panama': 'PAN',
+  A: ['MEX', 'RSA', 'KOR', 'CZE'],
+  B: ['CAN', 'SUI', 'QAT', 'BIH'],
+  C: ['BRA', 'MAR', 'SCO', 'HAI'],
+  D: ['USA', 'AUS', 'PAR', 'TUR'],
+  E: ['GER', 'CIV', 'ECU', 'CUW'],
+  F: ['NED', 'JPN', 'SWE', 'TUN'],
+  G: ['BEL', 'EGY', 'NZL', 'IRN'],
+  H: ['ESP', 'KSA', 'URU', 'CPV'],
+  I: ['FRA', 'SEN', 'NOR', 'IRQ'],
+  J: ['ARG', 'ALG', 'AUT', 'JOR'],
+  K: ['POR', 'COL', 'UZB', 'COD'],
+  L: ['ENG', 'CRO', 'GHA', 'PAN'],
 };
 
 // ---------------------------------------------------------------------------
@@ -312,18 +210,20 @@ export default function WorldCup2026Page() {
 
           {/* Opening match card */}
           <div className="inline-flex items-center gap-4 bg-navy-800/60 border border-navy-700/60 backdrop-blur-sm rounded-2xl px-6 py-4">
-            <div className="flex flex-col items-end min-w-0">
-              <span className="text-sm font-semibold text-white">Mexico</span>
-              <span className="text-lg">{getFlag('MEX')}</span>
+            <div className="flex flex-col items-end gap-1 min-w-0">
+              <span className="fi fi-mx w-8 h-[22px] rounded-[3px] shadow-sm" style={{ display: 'inline-block' }} />
+              <span className="text-sm font-semibold text-white leading-tight">Mexico</span>
+              <span className="text-[10px] text-navy-500">Meksika</span>
             </div>
             <div className="flex flex-col items-center px-4">
               <span className="text-[10px] font-bold text-champagne/60 tracking-widest uppercase">Açılış Maçı</span>
               <span className="text-xs text-navy-400 mt-1">11 Haz · 22:00 TRT</span>
               <span className="text-[10px] text-navy-500 mt-0.5">Estadio Azteca</span>
             </div>
-            <div className="flex flex-col items-start min-w-0">
-              <span className="text-sm font-semibold text-white">South Africa</span>
-              <span className="text-lg">{getFlag('RSA')}</span>
+            <div className="flex flex-col items-start gap-1 min-w-0">
+              <span className="fi fi-za w-8 h-[22px] rounded-[3px] shadow-sm" style={{ display: 'inline-block' }} />
+              <span className="text-sm font-semibold text-white leading-tight">South Africa</span>
+              <span className="text-[10px] text-navy-500">Güney Afrika</span>
             </div>
           </div>
         </div>
@@ -349,7 +249,10 @@ export default function WorldCup2026Page() {
         <div className="grid grid-cols-3 gap-4">
           {HOST_COUNTRIES.map((c) => (
             <div key={c.name} className="bg-navy-900 border border-navy-800 rounded-xl p-4 flex items-center gap-3">
-              <span className="text-3xl">{c.flag}</span>
+              <span
+                className={`fi fi-${c.iso2} w-9 h-6 rounded-[3px] shadow-sm shrink-0`}
+                style={{ display: 'inline-block' }}
+              />
               <div>
                 <div className="text-sm font-bold text-white">{c.name}</div>
                 <div className="text-[11px] text-navy-400">{c.venues} stadyum · {c.note}</div>
@@ -380,12 +283,31 @@ export default function WorldCup2026Page() {
                   <span className="text-xs font-bold text-champagne uppercase tracking-wide">Grup {group}</span>
                 </div>
                 <div className="divide-y divide-navy-800">
-                  {teams.map((team) => (
-                    <div key={team} className="flex items-center gap-2 px-3 py-2">
-                      <span className="text-sm shrink-0">{getFlag(TEAM_CODES[team] ?? 'TBD')}</span>
-                      <span className="text-xs text-navy-300 truncate">{team}</span>
-                    </div>
-                  ))}
+                  {teams.map((fifaCode) => {
+                    const c = COUNTRY_BY_FIFA[fifaCode];
+                    return (
+                      <div key={fifaCode} className="flex items-center gap-2 px-3 py-2">
+                        {c ? (
+                          <span
+                            className={`fi fi-${c.iso2} w-5 h-[14px] rounded-[2px] shadow-sm shrink-0`}
+                            style={{ display: 'inline-block' }}
+                          />
+                        ) : (
+                          <span className="w-5 h-[14px] bg-navy-700 rounded-[2px] shrink-0 inline-block" />
+                        )}
+                        <div className="min-w-0">
+                          <span className="text-xs text-navy-200 truncate block leading-tight">
+                            {c?.name_en ?? fifaCode}
+                          </span>
+                          {c && (
+                            <span className="text-[10px] text-navy-500 truncate block leading-tight">
+                              {c.name_tr}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))}
