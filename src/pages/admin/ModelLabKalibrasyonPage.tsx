@@ -103,6 +103,32 @@ interface SimulationRow {
   brier_skill_vs_raw: number | null;
   brier_skill_vs_compbias: number | null;
   calibration_slope_draw: number | null;
+  // pathology simulation columns
+  pathology_focus: string | null;
+  bias_transform_config: { mode: string; temperature: number; bias_type: string } | null;
+  pathology_notes: {
+    ligue1_pred_draw_pct: number;
+    ligue1_n: number;
+    ligue1_changed: number;
+    ligue1_helped: number;
+    ligue1_harmed: number;
+    bundesliga_acc: number;
+    bundesliga_acc_delta: number;
+    bundesliga_n: number;
+    bundesliga_changed: number;
+    bundesliga_helped: number;
+    bundesliga_harmed: number;
+    reject_flags: string[];
+    risky_flags: string[];
+  } | null;
+  argmax_stability_json: {
+    global: { total: number; changed: number; changed_rate: number; changed_to_draw: number; helped: number; harmed: number };
+  } | null;
+  margin_bucket_metrics: {
+    decisive: { n: number; acc: number; avg_brier: number };
+    contested: { n: number; acc: number; avg_brier: number };
+    close: { n: number; acc: number; avg_brier: number };
+  } | null;
   notes: string | null;
   created_at: string;
 }
@@ -128,6 +154,22 @@ const DRAW_FLOOR_MODES = [
   'temp_scale_20_plus_draw_floor_15',
   'temp_scale_15_plus_dynamic_draw_floor_70pct',
   'temp_scale_20_plus_dynamic_draw_floor_70pct',
+];
+
+const PATHOLOGY_MODES = [
+  'temp160_compbias_cap_005',
+  'temp160_compbias_cap_008',
+  'temp160_compbias_cap_010',
+  'temp160_compbias_sigmoid_cap_008',
+  'temp160_compbias_sigmoid_cap_010',
+  'temp160_compbias_multiplier_prior',
+  'temp160_compbias_multiplier_prior_cap015',
+  'temp160_compbias_entropy_scaled_additive',
+  'temp160_compbias_entropy_scaled_sigmoid',
+  'temp160_compbias_no_ligue1_draw_bias',
+  'temp160_compbias_no_bundesliga_bias',
+  'temp160_compbias_cap008_no_ligue1_draw_bias',
+  'temp160_compbias_multiplier_no_ligue1_draw_bias',
 ];
 
 const TEMP_GRID_MODES = [
@@ -246,6 +288,8 @@ export default function ModelLabKalibrasyonPage() {
   const [decisionSims, setDecisionSims] = useState<SimulationRow[]>([]);
   const [drawFloorSims, setDrawFloorSims] = useState<SimulationRow[]>([]);
   const [tempGridSims, setTempGridSims] = useState<SimulationRow[]>([]);
+  const [pathologySims, setPathologySims] = useState<SimulationRow[]>([]);
+  const [pathologyLoading, setPathologyLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [adjLoading, setAdjLoading] = useState(true);
   const [simLoading, setSimLoading] = useState(true);
@@ -254,7 +298,7 @@ export default function ModelLabKalibrasyonPage() {
   const [tempGridLoading, setTempGridLoading] = useState(true);
   const [groupType, setGroupType] = useState('overall');
   const [expandedBins, setExpandedBins] = useState<string | null>(null);
-  const [tab, setTab] = useState<'summary' | 'adjustments' | 'simulations' | 'decision' | 'drawfloor' | 'tempgrid'>('summary');
+  const [tab, setTab] = useState<'summary' | 'adjustments' | 'simulations' | 'decision' | 'drawfloor' | 'tempgrid' | 'pathology'>('summary');
 
   useEffect(() => {
     document.title = 'Kalibrasyon | Model Lab | Admin | Next59';
@@ -329,6 +373,18 @@ export default function ModelLabKalibrasyonPage() {
     if (tab === 'tempgrid') loadTempGrid();
   }, [tab]);
 
+  useEffect(() => {
+    async function loadPathology() {
+      setPathologyLoading(true);
+      const { data } = await supabase.rpc('ml_get_adjustment_simulations', { p_run_id: null });
+      const all = ((data as unknown[]) ?? []) as SimulationRow[];
+      setPathologySims(all.filter(s => PATHOLOGY_MODES.includes(s.simulation_key))
+        .sort((a, b) => PATHOLOGY_MODES.indexOf(a.simulation_key) - PATHOLOGY_MODES.indexOf(b.simulation_key)));
+      setPathologyLoading(false);
+    }
+    if (tab === 'pathology') loadPathology();
+  }, [tab]);
+
   const showPva    = groupType === 'predicted_vs_actual';
   const showBias   = ['overall','competition','home_prediction_bias','draw_prediction_bias','away_prediction_bias','predicted_result','actual_result','high_confidence_wrong'].includes(groupType);
   const showMarkets = ['overall','competition','season','era_bucket','confidence_grade'].includes(groupType);
@@ -361,7 +417,7 @@ export default function ModelLabKalibrasyonPage() {
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6 border-b border-navy-800 pb-px flex-wrap">
-          {(['summary', 'adjustments', 'simulations', 'decision', 'drawfloor', 'tempgrid'] as const).map((t) => (
+          {(['summary', 'adjustments', 'simulations', 'decision', 'drawfloor', 'tempgrid', 'pathology'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -376,7 +432,8 @@ export default function ModelLabKalibrasyonPage() {
                 : t === 'simulations' ? 'Olasılık Simülasyonları'
                 : t === 'decision' ? 'Decision Calibration'
                 : t === 'drawfloor' ? 'Draw Floor & Temp'
-                : 'T Grid Search'}
+                : t === 'tempgrid' ? 'T Grid Search'
+                : 'Comp. Pathology'}
             </button>
           ))}
         </div>
@@ -1349,6 +1406,362 @@ export default function ModelLabKalibrasyonPage() {
                       </div>
                     );
                   })}
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+        {/* ── Competition Pathology Simülasyonları ────────────────────────────── */}
+        {tab === 'pathology' && (
+          <>
+            <div className="bg-red-500/10 border border-red-500/25 rounded-xl px-4 py-3 mb-5 text-xs text-red-300 leading-relaxed">
+              <strong className="text-red-200">Patoloji Tanı:</strong> T=1.6 aday rerun sonrası tespit edilen iki kritik patoloji için 13 robust bias
+              transform modu. Ligue 1: ham eklemeli bias sonrası tahmin beraberlik oranı %78.8 (hedef ≤%40).
+              Bundesliga: doğruluk −3.85pp (hedef ≥−2pp). Tüm modlar REJECT — kapsamlı düzeltme gerekiyor.
+            </div>
+
+            {/* Diagnosis summary cards */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="bg-navy-900/60 border border-red-500/30 rounded-xl p-4">
+                <p className="text-[10px] text-red-400 font-semibold uppercase tracking-wider mb-2">Ligue 1 Patolojisi</p>
+                <p className="text-2xl font-bold text-red-400 tabular-nums mb-1">78.8%</p>
+                <p className="text-xs text-navy-400 mb-3">Tahmin Beraberlik Oranı (hedef: ≤40%)</p>
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-navy-500">Ham bias (draw)</span>
+                    <span className="text-amber-400 tabular-nums font-mono">+0.0927</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-navy-500">Ham bias (home)</span>
+                    <span className="text-sky-400 tabular-nums font-mono">−0.1429</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-navy-500">Sonuç (127/137)</span>
+                    <span className="text-red-400 tabular-nums">%92.7 argmax değişti</span>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-navy-900/60 border border-amber-500/30 rounded-xl p-4">
+                <p className="text-[10px] text-amber-400 font-semibold uppercase tracking-wider mb-2">Bundesliga Patolojisi</p>
+                <p className="text-2xl font-bold text-amber-400 tabular-nums mb-1">−3.85pp</p>
+                <p className="text-xs text-navy-400 mb-3">Doğruluk Düşüşü (hedef: ≥−2pp)</p>
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-navy-500">Ham bias (away)</span>
+                    <span className="text-amber-400 tabular-nums font-mono">+0.0559</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-navy-500">Ham bias (draw)</span>
+                    <span className="text-sky-400 tabular-nums font-mono">−0.0422</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-navy-500">Sonuç (21/104)</span>
+                    <span className="text-amber-400 tabular-nums">10 zarar, 6 katkı</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {pathologyLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="h-28 bg-navy-900/50 rounded-xl animate-pulse" />
+                ))}
+              </div>
+            ) : pathologySims.length === 0 ? (
+              <div className="flex flex-col items-center py-16 gap-3">
+                <RefreshCw className="w-8 h-8 text-navy-700" />
+                <p className="text-sm text-navy-500">Patoloji simülasyonu bulunamadı.</p>
+                <p className="text-xs text-navy-600 text-center max-w-sm">
+                  ml_run_pathology_simulation() RPC'si çalıştırıldıktan sonra görünür.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Comparison table */}
+                <div className="overflow-x-auto rounded-xl border border-navy-800 mb-6">
+                  <table className="w-full text-[11px]">
+                    <thead>
+                      <tr className="border-b border-navy-800 bg-navy-900/60">
+                        <th className="text-left text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Mod</th>
+                        <th className="text-left text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Transform</th>
+                        <th className="text-center text-navy-500 font-medium px-2 py-2.5">Verdict</th>
+                        <th className="text-right text-navy-500 font-medium px-2 py-2.5">Brier</th>
+                        <th className="text-right text-navy-500 font-medium px-2 py-2.5">Acc</th>
+                        <th className="text-right text-navy-500 font-medium px-2 py-2.5">Pred D%</th>
+                        <th className="text-right text-navy-500 font-medium px-2 py-2.5">D-F1</th>
+                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Skill/CB</th>
+                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Cal Slope</th>
+                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">L1 D%</th>
+                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">BL Δacc</th>
+                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Changed%</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-navy-800/40">
+                      {pathologySims.map((sim) => {
+                        const verdict = sim.simulation_verdict ?? 'REJECT';
+                        const verdictUpper = verdict.toUpperCase();
+                        const verdictColor = verdictUpper === 'PROMISING' ? 'text-emerald-400'
+                          : verdictUpper === 'NEUTRAL' ? 'text-sky-400'
+                          : verdictUpper === 'RISKY' ? 'text-amber-400'
+                          : 'text-red-400';
+                        const pn = sim.pathology_notes;
+                        const stab = sim.argmax_stability_json?.global;
+                        const l1Pct = pn?.ligue1_pred_draw_pct ?? null;
+                        const blDelta = pn?.bundesliga_acc_delta ?? null;
+                        const changedRate = stab ? stab.changed_rate : null;
+                        const slope = sim.calibration_slope_draw;
+                        const biasType = sim.bias_transform_config?.bias_type ?? '—';
+                        return (
+                          <tr key={sim.id} className="hover:bg-navy-900/40 transition-colors">
+                            <td className="px-3 py-2.5 text-white font-mono text-[10px] whitespace-nowrap max-w-[200px] truncate" title={sim.simulation_key}>
+                              {sim.simulation_key.replace('temp160_compbias_', '')}
+                            </td>
+                            <td className="px-2 py-2.5 text-navy-400 text-[10px] whitespace-nowrap">{biasType}</td>
+                            <td className="px-2 py-2.5 text-center">
+                              <span className={`text-[10px] font-semibold ${verdictColor}`}>{verdictUpper}</span>
+                            </td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums ${Number(sim.adjusted_avg_brier_1x2 ?? 1) < 0.21187602 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {sim.adjusted_avg_brier_1x2 !== null ? Number(sim.adjusted_avg_brier_1x2).toFixed(6) : '–'}
+                            </td>
+                            <td className="px-2 py-2.5 text-right tabular-nums text-navy-300">
+                              {sim.adjusted_result_accuracy !== null ? Number(sim.adjusted_result_accuracy).toFixed(2) + '%' : '–'}
+                            </td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums ${Number(sim.adjusted_pred_draw_rate ?? 0) >= 5 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                              {sim.adjusted_pred_draw_rate !== null ? Number(sim.adjusted_pred_draw_rate).toFixed(1) + '%' : '–'}
+                            </td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums font-medium ${Number(sim.draw_f1 ?? 0) > 15 ? 'text-emerald-400' : Number(sim.draw_f1 ?? 0) > 5 ? 'text-amber-400' : 'text-red-400'}`}>
+                              {sim.draw_f1 !== null ? Number(sim.draw_f1).toFixed(1) : '–'}
+                            </td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums ${Number(sim.brier_skill_vs_compbias ?? 0) > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {sim.brier_skill_vs_compbias !== null ? (Number(sim.brier_skill_vs_compbias) * 100).toFixed(3) + '%' : '–'}
+                            </td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums font-mono ${slope !== null && Number(slope) >= 0.8 && Number(slope) <= 1.2 ? 'text-emerald-400' : slope !== null ? 'text-red-400' : 'text-navy-600'}`}>
+                              {slope !== null ? Number(slope).toFixed(3) : 'n/a'}
+                            </td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums ${l1Pct !== null && l1Pct <= 40 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {l1Pct !== null ? l1Pct.toFixed(1) + '%' : '–'}
+                            </td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums ${blDelta !== null && blDelta >= -2 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {blDelta !== null ? (blDelta >= 0 ? '+' : '') + blDelta.toFixed(2) + 'pp' : '–'}
+                            </td>
+                            <td className={`px-2 py-2.5 text-right tabular-nums ${changedRate !== null && changedRate <= 45 ? 'text-navy-300' : 'text-amber-400'}`}>
+                              {changedRate !== null ? changedRate.toFixed(1) + '%' : '–'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Detail cards */}
+                <div className="space-y-3">
+                  {pathologySims.map((sim) => {
+                    const isExpanded = expandedBins === sim.id;
+                    const verdict = (sim.simulation_verdict ?? 'REJECT').toUpperCase();
+                    const pn = sim.pathology_notes;
+                    const stab = sim.argmax_stability_json?.global;
+                    const mb = sim.margin_bucket_metrics;
+                    const rejectFlags = pn?.reject_flags ?? [];
+                    const riskyFlags = pn?.risky_flags ?? [];
+                    return (
+                      <div key={sim.id} className="bg-navy-900/60 border border-navy-800 rounded-xl p-4">
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-bold text-white font-mono">
+                              {sim.simulation_key.replace('temp160_compbias_', '')}
+                            </span>
+                            {verdict === 'PROMISING' && <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">PROMISING</span>}
+                            {verdict === 'NEUTRAL' && <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-sky-500/15 text-sky-400 border border-sky-500/25">NEUTRAL</span>}
+                            {verdict === 'RISKY' && <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/15 text-amber-400 border border-amber-500/25">RISKY</span>}
+                            {verdict === 'REJECT' && <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-500/15 text-red-400 border border-red-500/25">REJECT</span>}
+                            {sim.bias_transform_config && (
+                              <span className="text-[10px] text-navy-500 font-mono">{sim.bias_transform_config.bias_type}</span>
+                            )}
+                          </div>
+                          {(sim.reliability_bins_draw?.length ?? 0) > 0 && (
+                            <button
+                              onClick={() => setExpandedBins(isExpanded ? null : sim.id)}
+                              className="text-[10px] text-navy-500 hover:text-champagne transition-colors flex items-center gap-1 shrink-0"
+                            >
+                              Reliability Bins {isExpanded ? '▲' : '▼'}
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Reject / risky flags */}
+                        {(rejectFlags.length > 0 || riskyFlags.length > 0) && (
+                          <div className="flex flex-wrap gap-1.5 mb-3">
+                            {rejectFlags.map((f, i) => (
+                              <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-300">{f}</span>
+                            ))}
+                            {riskyFlags.map((f, i) => (
+                              <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300">{f}</span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Pathology metrics */}
+                        {pn && (
+                          <div className="grid grid-cols-2 gap-3 mb-3">
+                            <div className="bg-navy-800/40 rounded-xl p-3">
+                              <p className="text-[9px] text-red-400 font-semibold uppercase tracking-wider mb-2">Ligue 1</p>
+                              <div className="grid grid-cols-3 gap-2 text-xs">
+                                <div>
+                                  <p className="text-[9px] text-navy-500 mb-0.5">Pred D%</p>
+                                  <p className={`font-bold tabular-nums ${pn.ligue1_pred_draw_pct <= 40 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                    {pn.ligue1_pred_draw_pct.toFixed(1)}%
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-[9px] text-navy-500 mb-0.5">Değişen</p>
+                                  <p className="text-navy-300 tabular-nums">{pn.ligue1_changed}/{pn.ligue1_n}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[9px] text-navy-500 mb-0.5">Katkı/Zarar</p>
+                                  <p className="tabular-nums">
+                                    <span className="text-emerald-400">+{pn.ligue1_helped}</span>
+                                    <span className="text-navy-600"> / </span>
+                                    <span className="text-red-400">−{pn.ligue1_harmed}</span>
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="bg-navy-800/40 rounded-xl p-3">
+                              <p className="text-[9px] text-amber-400 font-semibold uppercase tracking-wider mb-2">Bundesliga</p>
+                              <div className="grid grid-cols-3 gap-2 text-xs">
+                                <div>
+                                  <p className="text-[9px] text-navy-500 mb-0.5">Acc Delta</p>
+                                  <p className={`font-bold tabular-nums ${pn.bundesliga_acc_delta >= -2 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                    {pn.bundesliga_acc_delta >= 0 ? '+' : ''}{pn.bundesliga_acc_delta.toFixed(2)}pp
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-[9px] text-navy-500 mb-0.5">Değişen</p>
+                                  <p className="text-navy-300 tabular-nums">{pn.bundesliga_changed}/{pn.bundesliga_n}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[9px] text-navy-500 mb-0.5">Katkı/Zarar</p>
+                                  <p className="tabular-nums">
+                                    <span className="text-emerald-400">+{pn.bundesliga_helped}</span>
+                                    <span className="text-navy-600"> / </span>
+                                    <span className="text-red-400">−{pn.bundesliga_harmed}</span>
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Global metrics + margin buckets */}
+                        <div className="grid grid-cols-4 gap-2 text-xs sm:grid-cols-8 mb-2">
+                          <div className="bg-navy-800/40 rounded-lg p-2">
+                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">Brier</p>
+                            <p className={`font-bold tabular-nums ${Number(sim.adjusted_avg_brier_1x2 ?? 1) < 0.21187602 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {sim.adjusted_avg_brier_1x2 !== null ? Number(sim.adjusted_avg_brier_1x2).toFixed(5) : '–'}
+                            </p>
+                          </div>
+                          <div className="bg-navy-800/40 rounded-lg p-2">
+                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">Acc</p>
+                            <p className="text-white tabular-nums">
+                              {sim.adjusted_result_accuracy !== null ? Number(sim.adjusted_result_accuracy).toFixed(2) + '%' : '–'}
+                            </p>
+                          </div>
+                          <div className="bg-navy-800/40 rounded-lg p-2">
+                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">D-F1</p>
+                            <p className={`font-bold tabular-nums ${Number(sim.draw_f1 ?? 0) > 15 ? 'text-emerald-400' : Number(sim.draw_f1 ?? 0) > 5 ? 'text-amber-400' : 'text-red-400'}`}>
+                              {sim.draw_f1 !== null ? Number(sim.draw_f1).toFixed(1) : '–'}
+                            </p>
+                          </div>
+                          <div className="bg-navy-800/40 rounded-lg p-2">
+                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">Cal Slope</p>
+                            <p className={`tabular-nums font-mono ${sim.calibration_slope_draw !== null && Number(sim.calibration_slope_draw) >= 0.8 && Number(sim.calibration_slope_draw) <= 1.2 ? 'text-emerald-400' : sim.calibration_slope_draw !== null ? 'text-red-400' : 'text-navy-600'}`}>
+                              {sim.calibration_slope_draw !== null ? Number(sim.calibration_slope_draw).toFixed(3) : 'n/a'}
+                            </p>
+                          </div>
+                          {stab && <>
+                            <div className="bg-navy-800/40 rounded-lg p-2">
+                              <p className="text-[9px] text-navy-500 uppercase mb-0.5">Changed%</p>
+                              <p className={`tabular-nums ${stab.changed_rate <= 45 ? 'text-navy-300' : 'text-amber-400'}`}>
+                                {stab.changed_rate.toFixed(1)}%
+                              </p>
+                            </div>
+                            <div className="bg-navy-800/40 rounded-lg p-2">
+                              <p className="text-[9px] text-navy-500 uppercase mb-0.5">→Draw</p>
+                              <p className="text-navy-300 tabular-nums">{stab.changed_to_draw}</p>
+                            </div>
+                            <div className="bg-navy-800/40 rounded-lg p-2">
+                              <p className="text-[9px] text-navy-500 uppercase mb-0.5">Katkı</p>
+                              <p className="text-emerald-400 tabular-nums">+{stab.helped}</p>
+                            </div>
+                            <div className="bg-navy-800/40 rounded-lg p-2">
+                              <p className="text-[9px] text-navy-500 uppercase mb-0.5">Zarar</p>
+                              <p className="text-red-400 tabular-nums">−{stab.harmed}</p>
+                            </div>
+                          </>}
+                        </div>
+
+                        {/* Margin buckets */}
+                        {mb && (
+                          <div className="grid grid-cols-3 gap-2 text-xs mb-2">
+                            {(['decisive', 'contested', 'close'] as const).map((bucket) => (
+                              <div key={bucket} className="bg-navy-800/30 rounded-lg p-2">
+                                <p className="text-[9px] text-navy-500 uppercase mb-1 tracking-wider">{bucket}</p>
+                                <p className="text-navy-400 tabular-nums">N={mb[bucket].n}</p>
+                                <p className="text-white tabular-nums">{mb[bucket].acc !== null ? mb[bucket].acc.toFixed(1) + '%' : '–'}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Reliability bins (expandable) */}
+                        {isExpanded && Array.isArray(sim.reliability_bins_draw) && sim.reliability_bins_draw.length > 0 && (
+                          <div className="mt-2 overflow-x-auto">
+                            <table className="w-full text-[10px]">
+                              <thead>
+                                <tr className="border-b border-navy-800">
+                                  <th className="text-left text-navy-500 font-medium px-2 py-1.5">Bin</th>
+                                  <th className="text-right text-navy-500 font-medium px-2 py-1.5">N</th>
+                                  <th className="text-right text-navy-500 font-medium px-2 py-1.5">Avg Pred</th>
+                                  <th className="text-right text-navy-500 font-medium px-2 py-1.5">Actual Rate</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-navy-800/40">
+                                {(sim.reliability_bins_draw as Array<{ bin: string; count: number; avg_pred: number | null; actual_rate: number | null }>).map((b) => (
+                                  <tr key={b.bin} className="hover:bg-navy-800/30">
+                                    <td className="px-2 py-1.5 text-white font-mono">{b.bin}</td>
+                                    <td className="px-2 py-1.5 text-right text-navy-400 tabular-nums">{b.count}</td>
+                                    <td className="px-2 py-1.5 text-right text-navy-300 tabular-nums">
+                                      {b.avg_pred !== null ? (b.avg_pred * 100).toFixed(1) + '%' : '–'}
+                                    </td>
+                                    <td className="px-2 py-1.5 text-right text-champagne tabular-nums">
+                                      {b.actual_rate !== null ? (b.actual_rate * 100).toFixed(1) + '%' : '–'}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Conclusion panel */}
+                <div className="mt-6 bg-navy-900/60 border border-navy-800 rounded-xl p-5">
+                  <p className="text-xs font-semibold text-white mb-3">Tanı Sonucu</p>
+                  <div className="space-y-2 text-xs text-navy-400 leading-relaxed">
+                    <p>Tüm 13 robust bias transform modu REJECT sonucu verdi. Temel neden: T=1.6 sonrası
+                    düzleşen dağılıma ham eklemeli bias uygulamak yapısal olarak uyumsuz.</p>
+                    <p>Ligue 1 draw bias (+0.093) T=1.6 sonrası p_draw değerini neredeyse her maçta argmax
+                    konumuna taşıyor. Cap/sigmoid transformları Ligue 1 sorununu çözüyor ancak Bundesliga
+                    away bias problemini çözemiyor; multiplicative formlar draw tahminini tamamen bastırıyor.</p>
+                    <p className="text-amber-300 font-medium">Önerilen sonraki adım: Bias kalibrasyonunu T ölçeklemesinden ÖNCE uygulamak
+                    (CB→T sırası) ve daha küçük delta değerleriyle yeniden optimize etmek.</p>
+                  </div>
                 </div>
               </>
             )}
