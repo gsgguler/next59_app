@@ -30,11 +30,40 @@ const GROUP_FILTER_OPTIONS = [
   ...WC2026_GROUPS.map((g) => ({ label: `Grup ${g}`, value: g })),
 ];
 
-const COUNTRY_OPTIONS = [
-  { label: 'Tüm Ülkeler', value: '' },
-  { label: 'ABD', value: 'USA' },
-  { label: 'Kanada', value: 'Canada' },
-  { label: 'Meksika', value: 'Mexico' },
+// Location filter — grouped by host country, then city (A-Z within each).
+// Filter value is the fixture's `city` field (raw city from fixture data).
+// city_display labels shown to user match VENUE_META.city_display values.
+const LOCATION_GROUPS = [
+  {
+    label: 'ABD',
+    options: [
+      { label: 'Atlanta',              value: 'Atlanta' },
+      { label: 'Boston',               value: 'Foxborough' },
+      { label: 'Dallas',               value: 'Arlington' },
+      { label: 'Houston',              value: 'Houston' },
+      { label: 'Kansas City',          value: 'Kansas City' },
+      { label: 'Los Angeles',          value: 'Inglewood' },
+      { label: 'Miami',                value: 'Miami' },
+      { label: 'New York / New Jersey',value: 'East Rutherford' },
+      { label: 'Philadelphia',         value: 'Philadelphia' },
+      { label: 'Seattle',              value: 'Seattle' },
+    ],
+  },
+  {
+    label: 'Kanada',
+    options: [
+      { label: 'Toronto',   value: 'Toronto' },
+      { label: 'Vancouver', value: 'Vancouver' },
+    ],
+  },
+  {
+    label: 'Meksika',
+    options: [
+      { label: 'Guadalajara', value: 'Guadalajara' },
+      { label: 'Mexico City', value: 'Mexico City' },
+      { label: 'Monterrey',   value: 'Monterrey' },
+    ],
+  },
 ];
 
 function groupByDate(fixtures: WC2026Fixture[]): Map<string, WC2026Fixture[]> {
@@ -48,7 +77,7 @@ function groupByDate(fixtures: WC2026Fixture[]): Map<string, WC2026Fixture[]> {
 }
 
 // ---------------------------------------------------------------------------
-// Filter select component
+// Filter select components
 // ---------------------------------------------------------------------------
 
 function FilterSelect({
@@ -81,6 +110,39 @@ function FilterSelect({
   );
 }
 
+function LocationFilterSelect({
+  icon,
+  value,
+  onChange,
+}: {
+  icon: React.ReactNode;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="relative">
+      <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-navy-500 pointer-events-none">
+        {icon}
+      </div>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="appearance-none bg-navy-900 border border-navy-700 text-white text-xs rounded-lg pl-8 pr-7 py-2 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all cursor-pointer"
+      >
+        <option value="">Tüm Karşılaşma Yerleri</option>
+        {LOCATION_GROUPS.map((g) => (
+          <optgroup key={g.label} label={g.label}>
+            {g.options.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+      <svg className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-navy-500 pointer-events-none" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4l4 4 4-4" /></svg>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
@@ -91,7 +153,7 @@ export default function HomePage() {
   const [teamSearch, setTeamSearch] = useState('');
   const [stageFilter, setStageFilter] = useState('');
   const [groupFilter, setGroupFilter] = useState('');
-  const [countryFilter, setCountryFilter] = useState('');
+  const [cityFilter, setCityFilter] = useState('');
   const [visibleDates, setVisibleDates] = useState(INITIAL_DATES);
 
   const filtered = useMemo(() => {
@@ -105,8 +167,8 @@ export default function HomePage() {
       list = list.filter((f) => f.group === groupFilter);
     }
 
-    if (countryFilter) {
-      list = list.filter((f) => f.country === countryFilter);
+    if (cityFilter) {
+      list = list.filter((f) => f.city === cityFilter);
     }
 
     if (teamSearch.trim()) {
@@ -121,7 +183,7 @@ export default function HomePage() {
     }
 
     return list;
-  }, [teamSearch, stageFilter, groupFilter, countryFilter]);
+  }, [teamSearch, stageFilter, groupFilter, cityFilter]);
 
   const grouped = useMemo(() => groupByDate(filtered), [filtered]);
   const dateKeys = useMemo(() => Array.from(grouped.keys()), [grouped]);
@@ -130,7 +192,7 @@ export default function HomePage() {
 
   useEffect(() => {
     setVisibleDates(INITIAL_DATES);
-  }, [teamSearch, stageFilter, groupFilter, countryFilter]);
+  }, [teamSearch, stageFilter, groupFilter, cityFilter]);
 
   useEffect(() => {
     document.title = 'Next59 — kehanet kâtibi';
@@ -140,10 +202,10 @@ export default function HomePage() {
     setTeamSearch('');
     setStageFilter('');
     setGroupFilter('');
-    setCountryFilter('');
+    setCityFilter('');
   };
 
-  const hasActiveFilter = teamSearch || stageFilter || groupFilter || countryFilter;
+  const hasActiveFilter = teamSearch || stageFilter || groupFilter || cityFilter;
 
   return (
     <>
@@ -172,11 +234,10 @@ export default function HomePage() {
               options={GROUP_FILTER_OPTIONS}
             />
 
-            <FilterSelect
+            <LocationFilterSelect
               icon={<Globe className="w-3.5 h-3.5" />}
-              value={countryFilter}
-              onChange={setCountryFilter}
-              options={COUNTRY_OPTIONS}
+              value={cityFilter}
+              onChange={setCityFilter}
             />
 
             <div className="relative flex-1 min-w-[160px] max-w-xs">

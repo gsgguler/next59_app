@@ -106,7 +106,34 @@ export function Hero() {
           {t('hero.tagline')}
         </h1>
 
-        {/* 2 ── Opening Match proof card */}
+        {/* 2 ── Subtitle */}
+        <p className="mt-5 text-base md:text-lg text-white/60 max-w-xl mx-auto font-outfit">
+          {t('hero.subtagline')}
+        </p>
+
+        {/* 3 ── Stats grid */}
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-x-2 gap-y-4">
+          {[
+            { value: '65.000+', label: 'analiz edilmiş maç',  detail: '21 lig, 10+ sezon' },
+            { value: '21',      label: 'lig kapsanıyor',       detail: 'İngiltere\'den Türkiye\'ye' },
+            { value: '4',       label: 'yapay zeka persona',   detail: '3 turda tartışıp uzlaşıya varıyor' },
+          ].map((s, i, arr) => (
+            <div key={s.label} className="flex items-center gap-2">
+              <div className="flex flex-col items-center px-5">
+                <span className="text-xl sm:text-2xl font-bold text-white font-mono tabular-nums leading-none">
+                  {s.value}
+                </span>
+                <span className="text-[11px] font-medium text-navy-400 mt-1">{s.label}</span>
+                <span className="text-[10px] text-navy-600 mt-0.5">{s.detail}</span>
+              </div>
+              {i < arr.length - 1 && (
+                <div className="w-px h-10 bg-navy-800 shrink-0" />
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* 4 ── Opening Match proof card */}
         <div className="mt-8 flex justify-center">
           <div className="w-full max-w-md rounded-2xl bg-navy-900/70 border border-navy-700/50 backdrop-blur-sm shadow-2xl shadow-navy-950/60 overflow-hidden">
 
@@ -129,12 +156,13 @@ export function Hero() {
               </div>
             </div>
 
-            {/* Teams matchup — compact */}
+            {/* Teams matchup */}
             <div className="px-4 py-4">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex flex-col items-center gap-2 flex-1">
                   <MexicoFlag />
-                  <span className="text-sm font-semibold text-white tracking-tight">Meksika</span>
+                  <span className="text-sm font-semibold text-white leading-tight">Mexico</span>
+                  <span className="text-[10px] text-navy-500 leading-tight -mt-1">Meksika</span>
                 </div>
                 <div className="flex flex-col items-center gap-1 shrink-0 px-2">
                   <div className="w-px h-3 bg-navy-700" />
@@ -143,7 +171,8 @@ export function Hero() {
                 </div>
                 <div className="flex flex-col items-center gap-2 flex-1">
                   <SouthAfricaFlag />
-                  <span className="text-sm font-semibold text-white tracking-tight">Güney Afrika</span>
+                  <span className="text-sm font-semibold text-white leading-tight">South Africa</span>
+                  <span className="text-[10px] text-navy-500 leading-tight -mt-1">Güney Afrika</span>
                 </div>
               </div>
 
@@ -154,7 +183,7 @@ export function Hero() {
                 <span className="text-navy-400 font-medium">22:00 TSİ</span>
                 <span className="text-navy-700">·</span>
                 <MapPin className="w-3 h-3 shrink-0" />
-                <span>Estadio Azteca</span>
+                <span>Estadio Azteca, Mexico City</span>
               </div>
               {userTz !== 'Europe/Istanbul' && (
                 <p className="mt-1 text-[11px] text-navy-600 text-center">
@@ -164,7 +193,7 @@ export function Hero() {
               )}
             </div>
 
-            {/* Countdown — compact */}
+            {/* Countdown */}
             <div className="px-4 pb-4 border-t border-navy-800/50 pt-4">
               <div className="flex items-center justify-center gap-1.5 sm:gap-2">
                 {blocks.map((b, i) => (
@@ -191,12 +220,7 @@ export function Hero() {
           </div>
         </div>
 
-        {/* 3 ── Subtitle */}
-        <p className="mt-6 text-base md:text-lg text-white/60 max-w-xl mx-auto font-outfit">
-          {t('hero.subtagline')}
-        </p>
-
-        {/* 4 ── CTAs */}
+        {/* 5 ── CTAs */}
         <div className="mt-8 flex gap-4 justify-center flex-wrap">
           <a
             href="/maclar"
@@ -210,28 +234,6 @@ export function Hero() {
           >
             Maçları Keşfet
           </a>
-        </div>
-
-        {/* 5 ── Stats grid */}
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-x-2 gap-y-4">
-          {[
-            { value: '65.000+', label: 'analiz edilmiş maç',   detail: '21 lig, 10+ sezon' },
-            { value: '21',      label: 'lig kapsanıyor',        detail: 'İngiltere\'den Türkiye\'ye' },
-            { value: '4',       label: 'yapay zeka persona',    detail: '3 turda tartışıp uzlaşıya varıyor' },
-          ].map((s, i, arr) => (
-            <div key={s.label} className="flex items-center gap-2">
-              <div className="flex flex-col items-center px-5">
-                <span className="text-xl sm:text-2xl font-bold text-white font-mono tabular-nums leading-none">
-                  {s.value}
-                </span>
-                <span className="text-[11px] font-medium text-navy-400 mt-1">{s.label}</span>
-                <span className="text-[10px] text-navy-600 mt-0.5">{s.detail}</span>
-              </div>
-              {i < arr.length - 1 && (
-                <div className="w-px h-10 bg-navy-800 shrink-0" />
-              )}
-            </div>
-          ))}
         </div>
 
       </div>

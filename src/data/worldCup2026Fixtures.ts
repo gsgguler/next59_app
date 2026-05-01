@@ -992,3 +992,113 @@ export const COUNTRY_FLAG: Record<string, string> = {
   'Canada': '🇨🇦',
   'Mexico': '🇲🇽',
 };
+
+// ---------------------------------------------------------------------------
+// Venue metadata — stadium capacities & display city names
+// Sources: FIFA official venue pages + stadium operators (cross-referenced).
+// city_display: human-readable metro label for UI (may differ from raw city).
+// capacity: seated capacity per official host venue data; null = not confirmed.
+// ---------------------------------------------------------------------------
+
+export interface VenueMeta {
+  city_display: string;         // e.g. "New York / New Jersey"
+  country_tr: string;           // e.g. "ABD"
+  capacity: number | null;
+  capacity_source: string;
+}
+
+export const VENUE_META: Record<string, VenueMeta> = {
+  // ── Mexico ──────────────────────────────────────────────────────────────
+  'Estadio Azteca': {
+    city_display: 'Mexico City',
+    country_tr: 'Meksika',
+    capacity: 87523,
+    capacity_source: 'FIFA official venue page',
+  },
+  'Estadio Akron': {
+    city_display: 'Guadalajara',
+    country_tr: 'Meksika',
+    capacity: 49850,
+    capacity_source: 'FIFA official venue page',
+  },
+  'Estadio BBVA': {
+    city_display: 'Monterrey',
+    country_tr: 'Meksika',
+    capacity: 53500,
+    capacity_source: 'FIFA official venue page',
+  },
+  // ── Canada ──────────────────────────────────────────────────────────────
+  'BMO Field': {
+    city_display: 'Toronto',
+    country_tr: 'Kanada',
+    capacity: 45000,
+    capacity_source: 'FIFA official venue page',
+  },
+  'BC Place': {
+    city_display: 'Vancouver',
+    country_tr: 'Kanada',
+    capacity: 54500,
+    capacity_source: 'FIFA official venue page',
+  },
+  // ── USA ─────────────────────────────────────────────────────────────────
+  'MetLife Stadium': {
+    city_display: 'New York / New Jersey',
+    country_tr: 'ABD',
+    capacity: 82500,
+    capacity_source: 'FIFA official venue page',
+  },
+  'SoFi Stadium': {
+    city_display: 'Los Angeles',
+    country_tr: 'ABD',
+    capacity: 70240,
+    capacity_source: 'FIFA official venue page',
+  },
+  'AT&T Stadium': {
+    city_display: 'Dallas',
+    country_tr: 'ABD',
+    capacity: 80000,
+    capacity_source: 'FIFA official venue page',
+  },
+  'Mercedes-Benz Stadium': {
+    city_display: 'Atlanta',
+    country_tr: 'ABD',
+    capacity: 71000,
+    capacity_source: 'FIFA official venue page',
+  },
+  'NRG Stadium': {
+    city_display: 'Houston',
+    country_tr: 'ABD',
+    capacity: 72220,
+    capacity_source: 'FIFA official venue page',
+  },
+  'Hard Rock Stadium': {
+    city_display: 'Miami',
+    country_tr: 'ABD',
+    capacity: 65326,
+    capacity_source: 'FIFA official venue page',
+  },
+  'Lincoln Financial Field': {
+    city_display: 'Philadelphia',
+    country_tr: 'ABD',
+    capacity: 69796,
+    capacity_source: 'FIFA official venue page',
+  },
+  'Gillette Stadium': {
+    city_display: 'Boston',
+    country_tr: 'ABD',
+    capacity: 65878,
+    capacity_source: 'FIFA official venue page',
+  },
+  'Lumen Field': {
+    city_display: 'Seattle',
+    country_tr: 'ABD',
+    capacity: 69000,
+    capacity_source: 'FIFA official venue page',
+  },
+  'Arrowhead Stadium': {
+    city_display: 'Kansas City',
+    country_tr: 'ABD',
+    capacity: 76416,
+    capacity_source: 'FIFA official venue page',
+  },
+};
