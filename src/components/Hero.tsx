@@ -1,11 +1,63 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '../locales/hero';
-import { Trophy, Clock } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import {
   getWorldCupCountdown,
-  formatOpeningKickoffForUser,
   getUserTimeZone,
+  formatOpeningKickoffForUser,
 } from '../lib/worldCupCountdown';
+
+function MexicoFlag() {
+  return (
+    <div className="flex w-10 h-7 sm:w-12 sm:h-8 rounded overflow-hidden shadow-md border border-white/10 shrink-0">
+      <div className="flex-1 bg-[#006847]" />
+      <div className="flex-1 bg-white flex items-center justify-center">
+        {/* simplified eagle silhouette dot */}
+        <div className="w-2 h-2 rounded-full bg-[#8B4513]/30" />
+      </div>
+      <div className="flex-1 bg-[#CE1126]" />
+    </div>
+  );
+}
+
+function SouthAfricaFlag() {
+  return (
+    <div
+      className="w-10 h-7 sm:w-12 sm:h-8 rounded overflow-hidden shadow-md border border-white/10 shrink-0 relative"
+      style={{ background: '#007A4D' }}
+    >
+      {/* Black triangle on left */}
+      <div
+        className="absolute left-0 top-0 h-full"
+        style={{
+          width: 0,
+          borderTop: '14px solid transparent',
+          borderBottom: '14px solid transparent',
+          borderLeft: '14px solid #000',
+        }}
+      />
+      {/* Horizontal stripe layout: red / white / green / white / blue from top */}
+      <div className="absolute inset-0 flex flex-col">
+        <div className="flex-1 bg-[#DE3831]" />
+        <div className="h-px bg-white/70" />
+        <div className="flex-1 bg-[#007A4D]" />
+        <div className="h-px bg-white/70" />
+        <div className="flex-1 bg-[#002395]" />
+      </div>
+      {/* Yellow chevron / triangle overlay */}
+      <div
+        className="absolute left-0 top-0 h-full"
+        style={{
+          width: 0,
+          borderTop: '14px solid transparent',
+          borderBottom: '14px solid transparent',
+          borderLeft: '10px solid #FFB612',
+          opacity: 0.9,
+        }}
+      />
+    </div>
+  );
+}
 
 export function Hero() {
   const { t } = useTranslation();
@@ -16,15 +68,15 @@ export function Hero() {
     return () => clearInterval(id);
   }, []);
 
+  const userTz      = getUserTimeZone();
+  const localKickoff = formatOpeningKickoffForUser('tr-TR');
+
   const blocks = [
     { value: time.days,    label: 'GÜN' },
     { value: time.hours,   label: 'SAAT' },
-    { value: time.minutes, label: 'DAKİKA' },
-    { value: time.seconds, label: 'SANİYE' },
+    { value: time.minutes, label: 'DAK' },
+    { value: time.seconds, label: 'SN' },
   ];
-
-  const localKickoff = formatOpeningKickoffForUser('tr-TR');
-  const userTz       = getUserTimeZone();
 
   return (
     <section className="hero relative min-h-[92vh] flex items-center justify-center bg-navy-950 overflow-hidden">
@@ -58,74 +110,119 @@ export function Hero() {
           {t('hero.subtagline')}
         </p>
 
-        {/* Countdown Section */}
-        <div className="mt-12 sm:mt-16">
-          {/* Event badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gold-500/10 border border-gold-500/20 mb-8">
-            <Trophy className="w-3.5 h-3.5 text-gold-400" />
-            <span className="text-lg font-semibold text-gold-400 uppercase tracking-wider">
-              FIFA DÜNYA KUPASI 2026
-            </span>
-          </div>
+        {/* ── Opening Match Card ─────────────────────────────────────────── */}
+        <div className="mt-12 sm:mt-16 flex justify-center">
+          <div className="w-full max-w-lg rounded-2xl bg-navy-900/70 border border-navy-700/50 backdrop-blur-sm shadow-2xl shadow-navy-950/60 overflow-hidden">
 
-          {/* Countdown blocks */}
-          <div className="flex items-center justify-center gap-3 sm:gap-4 md:gap-6">
-            {blocks.map((b, i) => (
-              <div key={b.label} className="flex items-center gap-3 sm:gap-4 md:gap-6">
-                <div className="flex flex-col items-center">
-                  <div className="relative">
-                    <div className="w-16 h-20 sm:w-20 sm:h-24 md:w-24 md:h-28 rounded-xl bg-navy-900/80 border border-navy-700/50 backdrop-blur-sm flex items-center justify-center shadow-lg shadow-navy-950/50">
-                      <span className="font-mono text-3xl sm:text-4xl md:text-5xl font-bold text-white tabular-nums">
-                        {String(b.value).padStart(2, '0')}
+            {/* Card header */}
+            <div className="px-5 pt-5 pb-4 border-b border-navy-800/60 flex items-center justify-between gap-3">
+              {/* FIFA WC 2026 badge */}
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gold-500/10 border border-gold-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-gold-400 shrink-0" />
+                <span className="text-[10px] font-bold text-gold-400 uppercase tracking-widest">
+                  FIFA World Cup 2026
+                </span>
+              </div>
+              {/* Live / opening match pill */}
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 shrink-0">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+                </span>
+                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">
+                  Açılış Maçı
+                </span>
+              </div>
+            </div>
+
+            {/* Teams matchup */}
+            <div className="px-5 py-6">
+              <div className="flex items-center justify-between gap-3">
+
+                {/* Mexico */}
+                <div className="flex flex-col items-center gap-2.5 flex-1">
+                  <MexicoFlag />
+                  <span className="text-sm sm:text-base font-semibold text-white tracking-tight">Meksika</span>
+                </div>
+
+                {/* VS separator */}
+                <div className="flex flex-col items-center gap-1 shrink-0 px-2">
+                  <div className="w-px h-4 bg-navy-700" />
+                  <span className="text-[11px] font-bold text-navy-500 tracking-widest uppercase">vs</span>
+                  <div className="w-px h-4 bg-navy-700" />
+                </div>
+
+                {/* South Africa */}
+                <div className="flex flex-col items-center gap-2.5 flex-1">
+                  <SouthAfricaFlag />
+                  <span className="text-sm sm:text-base font-semibold text-white tracking-tight">Güney Afrika</span>
+                </div>
+
+              </div>
+
+              {/* Match metadata */}
+              <div className="mt-5 flex items-center justify-center gap-1.5 text-navy-500 text-xs">
+                <span>Per, 11 Haziran 2026</span>
+                <span className="text-navy-700">·</span>
+                <span className="text-navy-400 font-medium">22:00 TSİ</span>
+                <span className="text-navy-700">·</span>
+                <MapPin className="w-3 h-3 shrink-0" />
+                <span>Estadio Azteca, Mexico City</span>
+              </div>
+              {userTz !== 'Europe/Istanbul' && (
+                <p className="mt-1 text-[11px] text-navy-600 text-center">
+                  Yerel saatiniz: <span className="text-navy-400">{localKickoff}</span>
+                  <span className="ml-1 text-navy-700">({userTz})</span>
+                </p>
+              )}
+            </div>
+
+            {/* Countdown */}
+            <div className="px-5 pb-6 border-t border-navy-800/50 pt-5">
+              <div className="flex items-center justify-center gap-2 sm:gap-3">
+                {blocks.map((b, i) => (
+                  <div key={b.label} className="flex items-center gap-2 sm:gap-3">
+                    <div className="flex flex-col items-center">
+                      <div className="w-14 h-16 sm:w-16 sm:h-[72px] rounded-xl bg-navy-800/80 border border-navy-700/60 flex items-center justify-center relative overflow-hidden">
+                        {/* subtle top sheen */}
+                        <div className="absolute inset-x-0 top-0 h-1/2 bg-white/[0.025]" />
+                        <span className="font-mono text-2xl sm:text-3xl font-bold text-white tabular-nums relative z-10">
+                          {String(b.value).padStart(2, '0')}
+                        </span>
+                      </div>
+                      <span className="mt-1.5 text-[9px] font-semibold tracking-[0.12em] text-navy-500 uppercase">
+                        {b.label}
                       </span>
                     </div>
-                    <div className="absolute inset-x-0 top-1/2 h-px bg-navy-700/40" />
+                    {i < blocks.length - 1 && (
+                      <span className="text-gold-500/50 text-xl sm:text-2xl font-light -mt-5 select-none">
+                        :
+                      </span>
+                    )}
                   </div>
-                  <span className="mt-2.5 text-[9px] sm:text-[10px] md:text-xs font-semibold tracking-[0.15em] text-navy-400 uppercase">
-                    {b.label}
-                  </span>
-                </div>
-                {i < blocks.length - 1 && (
-                  <span className="text-gold-500/60 text-2xl sm:text-3xl md:text-4xl font-light -mt-6 select-none">
-                    :
-                  </span>
-                )}
+                ))}
               </div>
-            ))}
-          </div>
-
-          {/* First match info */}
-          <div className="mt-8 flex flex-col items-center gap-1.5">
-            <div className="flex items-center gap-2 text-navy-400">
-              <Clock className="w-3.5 h-3.5 shrink-0" />
-              <span className="text-xs sm:text-sm font-medium">
-                İlk maç:{' '}
-                <span className="text-white/80">Meksika - Güney Afrika</span>
-                {' '}· Estadio Azteca, Mexico City
-              </span>
             </div>
-            <p className="text-xs text-navy-500">
-              Türkiye saatiyle:{' '}
-              <span className="text-navy-300">11 Haziran 2026, 22:00</span>
-            </p>
-            {userTz !== 'Europe/Istanbul' && (
-              <p className="text-[11px] text-navy-600">
-                Yerel saat diliminiz:{' '}
-                <span className="text-navy-400">{userTz}</span>
-                {' '}· Yerel başlama saati:{' '}
-                <span className="text-navy-400">{localKickoff}</span>
-              </p>
-            )}
+
           </div>
         </div>
 
+        {/* Supporting tournament info */}
+        <p className="mt-4 text-xs text-navy-600 tracking-wide">
+          Turnuva: <span className="text-navy-500">48 takım</span>
+          <span className="mx-1.5 text-navy-700">·</span>
+          <span className="text-navy-500">104 maç</span>
+          <span className="mx-1.5 text-navy-700">·</span>
+          Ev sahipleri: <span className="text-navy-500">ABD, Kanada, Meksika</span>
+        </p>
+
         {/* CTAs */}
-        <div className="mt-12 flex gap-4 justify-center flex-wrap">
+        <div className="mt-10 flex gap-4 justify-center flex-wrap">
           <a
             href="/maclar"
             className="group px-8 py-3.5 bg-gold-500 text-navy-950 font-semibold rounded-lg hover:bg-gold-400 transition-all hover:shadow-lg hover:shadow-gold-500/20"
           >
-            {t('hero.cta_primary')}
+            Bekleme listesine katıl
           </a>
           <a
             href="/maclar"
@@ -133,6 +230,21 @@ export function Hero() {
           >
             Maçları Keşfet
           </a>
+        </div>
+
+        {/* Stats grid */}
+        <div className="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+          {[
+            { value: '4924', label: 'maç' },
+            { value: '18',   label: 'lig' },
+            { value: '4',    label: 'AI persona' },
+            { value: '3',    label: 'round tartışma' },
+          ].map((s) => (
+            <div key={s.label} className="flex flex-col items-center">
+              <span className="text-xl sm:text-2xl font-bold text-white font-mono tabular-nums">{s.value}</span>
+              <span className="text-[11px] text-navy-500 mt-0.5">{s.label}</span>
+            </div>
+          ))}
         </div>
       </div>
     </section>
