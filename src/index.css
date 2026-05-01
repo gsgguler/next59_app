@@ -2,9 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* flag-icons — MIT licence, https://github.com/lipis/flag-icons */
-@import 'flag-icons/css/flag-icons.min.css';
-
 @layer base {
   html, body {
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
