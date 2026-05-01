@@ -131,6 +131,23 @@ interface SimulationRow {
   } | null;
   notes: string | null;
   created_at: string;
+  // bias refinement columns
+  simulation_family: string | null;
+  family_objective: string | null;
+  pipeline_order: string | null;
+  sigmoid_k: number | null;
+  relative_cap_pct: number | null;
+  per_competition_health_json: Array<{
+    competition: string;
+    total: number;
+    accuracy: number;
+    raw_accuracy: number;
+    accuracy_delta: number;
+    pred_draw_rate: number;
+    helped: number;
+    harmed: number;
+    net: number;
+  }> | null;
 }
 
 const DECISION_MODES = [
@@ -155,6 +172,35 @@ const DRAW_FLOOR_MODES = [
   'temp_scale_15_plus_dynamic_draw_floor_70pct',
   'temp_scale_20_plus_dynamic_draw_floor_70pct',
 ];
+
+const REFINEMENT_MODES = [
+  'temp160_sigmoid_cap008_k050',
+  'temp160_sigmoid_cap008_k075',
+  'temp160_sigmoid_cap009_k050',
+  'temp160_sigmoid_cap009_k075',
+  'temp160_sigmoid_cap010_k050',
+  'temp160_sigmoid_cap010_k075',
+  'temp160_dynamic_relative_cap_15pct',
+  'temp160_dynamic_relative_cap_20pct',
+  'temp160_dynamic_relative_cap_25pct',
+  'temp160_sigmoid008_k075_relative20',
+  'temp160_sigmoid009_k075_relative20',
+  'temp160_sigmoid010_k075_relative20',
+  'robust_cb_sigmoid009_k075_then_temp160',
+  'robust_cb_sigmoid010_k075_then_temp160',
+  'robust_cb_relative20_then_temp160',
+  'temp160_sigmoid010_k075_ligue1_half_draw_bias',
+  'temp160_sigmoid010_k075_bundesliga_half_away_bias',
+  'temp160_sigmoid010_k075_l1_half_draw_bl_half_away',
+];
+
+const REFINEMENT_FAMILY_LABELS: Record<string, string> = {
+  sigmoid_tuning:   'A — Sigmoid k Tuning',
+  dynamic_relative: 'B — Dynamic Relative',
+  hybrid:           'C — Hybrid',
+  cb_then_t:        'D — CB→T Order',
+  league_ablation:  'E — League Ablation',
+};
 
 const PATHOLOGY_MODES = [
   'temp160_compbias_cap_005',
@@ -290,6 +336,8 @@ export default function ModelLabKalibrasyonPage() {
   const [tempGridSims, setTempGridSims] = useState<SimulationRow[]>([]);
   const [pathologySims, setPathologySims] = useState<SimulationRow[]>([]);
   const [pathologyLoading, setPathologyLoading] = useState(true);
+  const [refinementSims, setRefinementSims] = useState<SimulationRow[]>([]);
+  const [refinementLoading, setRefinementLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [adjLoading, setAdjLoading] = useState(true);
   const [simLoading, setSimLoading] = useState(true);
@@ -298,7 +346,7 @@ export default function ModelLabKalibrasyonPage() {
   const [tempGridLoading, setTempGridLoading] = useState(true);
   const [groupType, setGroupType] = useState('overall');
   const [expandedBins, setExpandedBins] = useState<string | null>(null);
-  const [tab, setTab] = useState<'summary' | 'adjustments' | 'simulations' | 'decision' | 'drawfloor' | 'tempgrid' | 'pathology'>('summary');
+  const [tab, setTab] = useState<'summary' | 'adjustments' | 'simulations' | 'decision' | 'drawfloor' | 'tempgrid' | 'pathology' | 'refinement'>('summary');
 
   useEffect(() => {
     document.title = 'Kalibrasyon | Model Lab | Admin | Next59';
@@ -385,6 +433,18 @@ export default function ModelLabKalibrasyonPage() {
     if (tab === 'pathology') loadPathology();
   }, [tab]);
 
+  useEffect(() => {
+    async function loadRefinement() {
+      setRefinementLoading(true);
+      const { data } = await supabase.rpc('ml_get_adjustment_simulations', { p_run_id: null });
+      const all = ((data as unknown[]) ?? []) as SimulationRow[];
+      setRefinementSims(all.filter(s => REFINEMENT_MODES.includes(s.simulation_key))
+        .sort((a, b) => REFINEMENT_MODES.indexOf(a.simulation_key) - REFINEMENT_MODES.indexOf(b.simulation_key)));
+      setRefinementLoading(false);
+    }
+    if (tab === 'refinement') loadRefinement();
+  }, [tab]);
+
   const showPva    = groupType === 'predicted_vs_actual';
   const showBias   = ['overall','competition','home_prediction_bias','draw_prediction_bias','away_prediction_bias','predicted_result','actual_result','high_confidence_wrong'].includes(groupType);
   const showMarkets = ['overall','competition','season','era_bucket','confidence_grade'].includes(groupType);
@@ -417,7 +477,7 @@ export default function ModelLabKalibrasyonPage() {
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6 border-b border-navy-800 pb-px flex-wrap">
-          {(['summary', 'adjustments', 'simulations', 'decision', 'drawfloor', 'tempgrid', 'pathology'] as const).map((t) => (
+          {(['summary', 'adjustments', 'simulations', 'decision', 'drawfloor', 'tempgrid', 'pathology', 'refinement'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -433,7 +493,8 @@ export default function ModelLabKalibrasyonPage() {
                 : t === 'decision' ? 'Decision Calibration'
                 : t === 'drawfloor' ? 'Draw Floor & Temp'
                 : t === 'tempgrid' ? 'T Grid Search'
-                : 'Comp. Pathology'}
+                : t === 'pathology' ? 'Comp. Pathology'
+                : 'Bias Refinement'}
             </button>
           ))}
         </div>
@@ -1761,6 +1822,279 @@ export default function ModelLabKalibrasyonPage() {
                     away bias problemini çözemiyor; multiplicative formlar draw tahminini tamamen bastırıyor.</p>
                     <p className="text-amber-300 font-medium">Önerilen sonraki adım: Bias kalibrasyonunu T ölçeklemesinden ÖNCE uygulamak
                     (CB→T sırası) ve daha küçük delta değerleriyle yeniden optimize etmek.</p>
+                  </div>
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+        {/* ── Bias Refinement ─────────────────────────────────────────────────── */}
+        {tab === 'refinement' && (
+          <>
+            {/* Header cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+              <div className="bg-navy-900/60 border border-navy-800 rounded-xl p-4">
+                <p className="text-xs text-navy-500 mb-1">Toplam Mod</p>
+                <p className="text-2xl font-bold text-white tabular-nums">{REFINEMENT_MODES.length}</p>
+                <p className="text-xs text-navy-500 mt-0.5">5 aile · T→CB &amp; CB→T pipeline</p>
+              </div>
+              <div className="bg-navy-900/60 border border-navy-800 rounded-xl p-4">
+                <p className="text-xs text-navy-500 mb-1">Geçen / Reddedilen</p>
+                <p className="text-2xl font-bold tabular-nums">
+                  <span className="text-emerald-400">{refinementSims.filter(s => s.simulation_verdict === 'PASS').length}</span>
+                  <span className="text-navy-600 mx-1">/</span>
+                  <span className="text-red-400">{refinementSims.filter(s => s.simulation_verdict === 'REJECT').length}</span>
+                </p>
+                <p className="text-xs text-navy-500 mt-0.5">{refinementSims.length} simülasyon yüklendi</p>
+              </div>
+              <div className="bg-navy-900/60 border border-navy-800 rounded-xl p-4">
+                <p className="text-xs text-navy-500 mb-1">En İyi Brier</p>
+                {refinementSims.length > 0 ? (() => {
+                  const best = [...refinementSims].filter(s => s.adjusted_avg_brier_1x2 !== null)
+                    .sort((a, b) => Number(a.adjusted_avg_brier_1x2) - Number(b.adjusted_avg_brier_1x2))[0];
+                  return best ? (
+                    <>
+                      <p className="text-2xl font-bold text-white tabular-nums font-mono">{Number(best.adjusted_avg_brier_1x2).toFixed(6)}</p>
+                      <p className="text-xs text-navy-500 mt-0.5 truncate">{best.simulation_key}</p>
+                    </>
+                  ) : <p className="text-navy-600 text-sm">–</p>;
+                })() : <p className="text-navy-600 text-sm">–</p>}
+              </div>
+            </div>
+
+            {/* Global diagnosis panel */}
+            <div className="mb-6 bg-red-500/8 border border-red-500/20 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                <div className="space-y-1.5 text-xs text-navy-300 leading-relaxed">
+                  <p className="text-red-300 font-semibold">17 modun tamamı REJECT — Yapısal uyumsuzluk devam ediyor</p>
+                  <p>
+                    Raw model çıktıları üzerine T=1.6 uygulandıktan sonra p_draw ~0.20–0.25 bandına çekiliyor.
+                    OLS kalibrasyon eğimini hesaplamak için yeterli draw tahmini (<span className="text-white">pred_draw_rate &lt;5%</span>) ve
+                    yeterli bin doluluk yok. Tüm modlarda <span className="text-white">cal_slope 0.35–0.66</span> arasında — eşik 0.80–1.20.
+                  </p>
+                  <p>
+                    Family A (sigmoid k tuning): draw_f1 0.84–11.76 — hiçbiri 15.0 eşiğini geçemiyor.
+                    Family B (relative clipping): pred_draw_rate ≈0% — draw tamamen bastırılıyor.
+                    Family C (hybrid): aynı sorun, relative cap sigmoid sonrası sıfır draw üretiyor.
+                    Family D (CB→T): pred_draw_rate=0%, Bundesliga accuracy −2pp+ düşüyor.
+                    Family E (ablation): Ligue 1 draw yarıya düşürülse bile cal_slope sorunu çözülmüyor.
+                  </p>
+                  <p className="text-amber-300 font-medium">
+                    Sonraki adım önerisi: Competition bias değerlerini T=1.6 sonrası proba göre yeniden optimize etmek
+                    (mevcut değerler raw proba göre hesaplanmış). Yeni hedef: bias uygulaması sonrası pred_draw_rate ≥12%.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {refinementLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="h-12 bg-navy-900/50 rounded-xl animate-pulse" />
+                ))}
+              </div>
+            ) : refinementSims.length === 0 ? (
+              <div className="flex flex-col items-center py-16 gap-3">
+                <AlertCircle className="w-8 h-8 text-navy-700" />
+                <p className="text-sm text-navy-500">Refinement simülasyonu yok.</p>
+                <p className="text-xs text-navy-600">ml_run_bias_refinement_simulation RPC ile çalıştırın.</p>
+              </div>
+            ) : (
+              <>
+                {/* Comparison table */}
+                <div className="overflow-x-auto rounded-xl border border-navy-800 mb-6">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-navy-800 bg-navy-900/60">
+                        <th className="text-left text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Mod</th>
+                        <th className="text-left text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Aile</th>
+                        <th className="text-left text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Pipeline</th>
+                        <th className="text-right text-navy-500 font-medium px-3 py-2.5">Brier</th>
+                        <th className="text-right text-navy-500 font-medium px-3 py-2.5">ΔBrier</th>
+                        <th className="text-right text-navy-500 font-medium px-3 py-2.5">Acc</th>
+                        <th className="text-right text-navy-500 font-medium px-3 py-2.5">Draw F1</th>
+                        <th className="text-right text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Cal Slope</th>
+                        <th className="text-right text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Pred D%</th>
+                        <th className="text-right text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Helped</th>
+                        <th className="text-right text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Harmed</th>
+                        <th className="text-left text-navy-500 font-medium px-3 py-2.5">Verdict</th>
+                        <th className="text-left text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Reject Flags</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-navy-800/40">
+                      {refinementSims.map((s) => {
+                        const flags = Array.isArray(s.rejection_flags) ? s.rejection_flags
+                          : typeof s.rejection_flags === 'string' ? JSON.parse(s.rejection_flags as unknown as string)
+                          : [];
+                        const stability = s.argmax_stability_json as {
+                          helped?: number; harmed?: number; net_accuracy_impact?: number;
+                          global?: { helped?: number; harmed?: number };
+                        } | null;
+                        const helped = stability?.helped ?? stability?.global?.helped;
+                        const harmed = stability?.harmed ?? stability?.global?.harmed;
+                        const family = s.simulation_family;
+                        const pipeline = s.pipeline_order ?? 'T→CB';
+                        const brier = Number(s.adjusted_avg_brier_1x2);
+                        const rawBrier = Number(s.raw_avg_brier_1x2);
+                        const deltaB = brier - rawBrier;
+                        const calSlope = s.calibration_slope_draw;
+                        const slopeOk = calSlope !== null && Number(calSlope) >= 0.80 && Number(calSlope) <= 1.20;
+                        const isPass = s.simulation_verdict === 'PASS';
+                        return (
+                          <tr key={s.simulation_key} className="hover:bg-navy-900/30 transition-colors">
+                            <td className="px-3 py-2 font-mono text-[10px] text-navy-300 max-w-[200px] truncate whitespace-nowrap">{s.simulation_key}</td>
+                            <td className="px-3 py-2 text-navy-400 whitespace-nowrap">{REFINEMENT_FAMILY_LABELS[family ?? ''] ?? family ?? '–'}</td>
+                            <td className="px-3 py-2">
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-medium ${
+                                pipeline === 'CB→T' ? 'bg-sky-500/15 text-sky-400' : 'bg-navy-700 text-navy-300'
+                              }`}>{pipeline}</span>
+                            </td>
+                            <td className="px-3 py-2 text-right font-mono text-white tabular-nums">{brier.toFixed(6)}</td>
+                            <td className="px-3 py-2 text-right tabular-nums">
+                              <span className={deltaB > 0 ? 'text-red-400' : 'text-emerald-400'}>
+                                {deltaB > 0 ? '+' : ''}{deltaB.toFixed(6)}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-right text-white tabular-nums">{Number(s.adjusted_result_accuracy).toFixed(2)}%</td>
+                            <td className="px-3 py-2 text-right tabular-nums">
+                              <span className={Number(s.draw_f1) >= 15 ? 'text-emerald-400' : 'text-red-400'}>
+                                {Number(s.draw_f1 ?? 0).toFixed(2)}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-right tabular-nums">
+                              <span className={slopeOk ? 'text-emerald-400' : 'text-red-400'}>
+                                {calSlope !== null ? Number(calSlope).toFixed(4) : '–'}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-right tabular-nums">
+                              <span className={Number(s.adjusted_pred_draw_rate) >= 0.05 ? 'text-white' : 'text-red-400'}>
+                                {(Number(s.adjusted_pred_draw_rate ?? 0) * 100).toFixed(1)}%
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-right text-emerald-400 tabular-nums">{helped ?? '–'}</td>
+                            <td className="px-3 py-2 text-right text-red-400 tabular-nums">{harmed ?? '–'}</td>
+                            <td className="px-3 py-2">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                isPass
+                                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+                                  : 'bg-red-500/15 text-red-400 border border-red-500/25'
+                              }`}>{s.simulation_verdict ?? '–'}</span>
+                            </td>
+                            <td className="px-3 py-2 max-w-[220px]">
+                              <div className="flex flex-wrap gap-1">
+                                {flags.slice(0, 3).map((f: string) => (
+                                  <span key={f} className="px-1 py-0.5 rounded text-[9px] bg-red-500/10 text-red-400 border border-red-500/20 whitespace-nowrap">
+                                    {f.replace(/_/g, ' ')}
+                                  </span>
+                                ))}
+                                {flags.length > 3 && (
+                                  <span className="text-[9px] text-navy-500">+{flags.length - 3}</span>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Family summary cards */}
+                {(['sigmoid_tuning', 'dynamic_relative', 'hybrid', 'cb_then_t', 'league_ablation'] as const).map((fam) => {
+                  const famSims = refinementSims.filter(s => s.simulation_family === fam);
+                  if (famSims.length === 0) return null;
+                  const bestBrier = [...famSims].filter(s => s.adjusted_avg_brier_1x2 !== null)
+                    .sort((a, b) => Number(a.adjusted_avg_brier_1x2) - Number(b.adjusted_avg_brier_1x2))[0];
+                  const bestF1 = [...famSims].filter(s => s.draw_f1 !== null)
+                    .sort((a, b) => Number(b.draw_f1) - Number(a.draw_f1))[0];
+                  const passCount = famSims.filter(s => s.simulation_verdict === 'PASS').length;
+
+                  const familyDiagnosis: Record<string, string> = {
+                    sigmoid_tuning:   'k=0.50/0.75 ile sigmoid cap 0.08–0.10 arasında tarama. Tüm modlar cal_slope <0.80 ve draw_f1 <15. Sigmoid k düşürülmesi Brier\'ı iyileştiriyor ancak draw bastırma sorunu çözülemiyor.',
+                    dynamic_relative: 'T-scaled prob\'a göre ±15–25% göreli cap. pred_draw_rate ≈0% — relative cap bias\'ı tamamen elimine ediyor. F1=0.',
+                    hybrid:           'Sigmoid ardından relative cap. İki aşamalı sıkıştırma draw\'ı tamamen bastırıyor. pred_draw_rate=0% her modda.',
+                    cb_then_t:        'Bias raw prob\'a uygulandıktan sonra T=1.6. pred_draw_rate=0, Bundesliga −2pp kayıp. Pipeline sırası temel sorunu çözmüyor.',
+                    league_ablation:  'L1 draw bias ve BL away bias yarıya indirildi. Cal slope sorunu devam ediyor (0.42–0.44). Ablasyon draw F1\'i biraz artırıyor ancak eşiğe ulaşamıyor.',
+                  };
+
+                  return (
+                    <div key={fam} className="mb-4 bg-navy-900/50 border border-navy-800 rounded-xl p-4">
+                      <div className="flex items-start justify-between gap-4 mb-3">
+                        <div>
+                          <p className="text-sm font-semibold text-white">{REFINEMENT_FAMILY_LABELS[fam]}</p>
+                          <p className="text-xs text-navy-400 mt-0.5">{famSims.length} mod · {passCount} geçti</p>
+                        </div>
+                        <div className="flex gap-3 shrink-0">
+                          {bestBrier && (
+                            <div className="text-right">
+                              <p className="text-[10px] text-navy-600">En iyi Brier</p>
+                              <p className="text-xs font-mono text-white tabular-nums">{Number(bestBrier.adjusted_avg_brier_1x2).toFixed(6)}</p>
+                            </div>
+                          )}
+                          {bestF1 && (
+                            <div className="text-right">
+                              <p className="text-[10px] text-navy-600">En iyi Draw F1</p>
+                              <p className="text-xs font-mono tabular-nums text-amber-400">{Number(bestF1.draw_f1).toFixed(2)}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-xs text-navy-400 leading-relaxed mb-3">{familyDiagnosis[fam]}</p>
+                      {/* Per-competition health for best-brier mode */}
+                      {bestBrier && bestBrier.per_competition_health_json && (() => {
+                        const health = bestBrier.per_competition_health_json ?? [];
+                        if (!Array.isArray(health) || health.length === 0) return null;
+                        return (
+                          <div className="mt-2">
+                            <p className="text-[10px] text-navy-600 mb-1.5">En iyi Brier modu per-competition health ({bestBrier.simulation_key})</p>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                              {health.map((c) => (
+                                <div key={c.competition} className="bg-navy-800/50 rounded-lg px-2.5 py-2">
+                                  <p className="text-[10px] font-medium text-white truncate">{c.competition}</p>
+                                  <div className="mt-1 space-y-0.5">
+                                    <div className="flex justify-between">
+                                      <span className="text-[9px] text-navy-500">Acc</span>
+                                      <span className="text-[9px] text-white tabular-nums">{c.accuracy}%</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-[9px] text-navy-500">ΔAcc</span>
+                                      <span className={`text-[9px] tabular-nums ${c.accuracy_delta >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                        {c.accuracy_delta > 0 ? '+' : ''}{c.accuracy_delta}pp
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-[9px] text-navy-500">Pred D%</span>
+                                      <span className="text-[9px] text-navy-300 tabular-nums">{c.pred_draw_rate}%</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-[9px] text-navy-500">Net</span>
+                                      <span className={`text-[9px] tabular-nums font-medium ${(c.helped - c.harmed) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                        {c.helped - c.harmed > 0 ? '+' : ''}{c.helped - c.harmed}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  );
+                })}
+
+                {/* Final conclusion */}
+                <div className="mt-4 bg-navy-900/60 border border-navy-800 rounded-xl p-5">
+                  <p className="text-xs font-semibold text-white mb-3">Bias Refinement Sonucu</p>
+                  <div className="space-y-2 text-xs text-navy-400 leading-relaxed">
+                    <p>17 modun tamamı REJECT. Temel sorun: mevcut competition bias değerleri <span className="text-white">raw proba göre hesaplanmış</span>, ancak T=1.6 uygulamasından sonra prob dağılımı önemli ölçüde değişiyor.</p>
+                    <p>Sigmoid k ve cap parametrelerinin hiçbir kombinasyonu, aynı anda <span className="text-white">draw_f1 ≥15</span>, <span className="text-white">cal_slope 0.80–1.20</span> ve <span className="text-white">pred_draw_rate ≥5%</span> üç gate&#39;ini de geçemiyor.</p>
+                    <p className="text-amber-300 font-medium">
+                      Sonraki araştırma ekseni: Competition bias değerlerini T=1.6 sonrası prob uzayında yeniden optimize et.
+                      Hedef: her lig için post-T p_draw üzerinden bias tahmin et ve additive yerine multiplicative ratio olarak uygula.
+                    </p>
                   </div>
                 </div>
               </>
