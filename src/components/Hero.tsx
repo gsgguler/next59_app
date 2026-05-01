@@ -74,8 +74,8 @@ export function Hero() {
   const blocks = [
     { value: time.days,    label: 'GÜN' },
     { value: time.hours,   label: 'SAAT' },
-    { value: time.minutes, label: 'DAK' },
-    { value: time.seconds, label: 'SN' },
+    { value: time.minutes, label: 'DAKİKA' },
+    { value: time.seconds, label: 'SANİYE' },
   ];
 
   return (
@@ -233,16 +233,35 @@ export function Hero() {
         </div>
 
         {/* Stats grid */}
-        <div className="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+        <div className="mt-12 flex flex-wrap items-center justify-center gap-x-2 gap-y-4">
           {[
-            { value: '4924', label: 'maç' },
-            { value: '18',   label: 'lig' },
-            { value: '4',    label: 'AI persona' },
-            { value: '3',    label: 'round tartışma' },
-          ].map((s) => (
-            <div key={s.label} className="flex flex-col items-center">
-              <span className="text-xl sm:text-2xl font-bold text-white font-mono tabular-nums">{s.value}</span>
-              <span className="text-[11px] text-navy-500 mt-0.5">{s.label}</span>
+            {
+              value: '65.000+',
+              label: 'analiz edilmiş maç',
+              detail: '21 lig, 10+ sezon',
+            },
+            {
+              value: '21',
+              label: 'lig kapsanıyor',
+              detail: 'İngiltere\'den Türkiye\'ye',
+            },
+            {
+              value: '4',
+              label: 'yapay zeka persona',
+              detail: '3 turda tartışıp uzlaşıya varıyor',
+            },
+          ].map((s, i, arr) => (
+            <div key={s.label} className="flex items-center gap-2">
+              <div className="flex flex-col items-center px-5">
+                <span className="text-xl sm:text-2xl font-bold text-white font-mono tabular-nums leading-none">
+                  {s.value}
+                </span>
+                <span className="text-[11px] font-medium text-navy-400 mt-1">{s.label}</span>
+                <span className="text-[10px] text-navy-600 mt-0.5">{s.detail}</span>
+              </div>
+              {i < arr.length - 1 && (
+                <div className="w-px h-10 bg-navy-800 shrink-0" />
+              )}
             </div>
           ))}
         </div>
