@@ -96,8 +96,9 @@ export function Hero() {
         }}
       />
 
-      <div className="relative z-10 container mx-auto px-6 text-center">
-        {/* Tagline */}
+      <div className="relative z-10 container mx-auto px-6 text-center py-16 sm:py-20">
+
+        {/* 1 ── Headline */}
         <h1
           className="font-syne lowercase tracking-tight text-white"
           style={{ fontSize: 'clamp(2.5rem, 8vw, 7rem)', letterSpacing: '-0.04em', lineHeight: 1.1 }}
@@ -105,25 +106,18 @@ export function Hero() {
           {t('hero.tagline')}
         </h1>
 
-        {/* Subtagline */}
-        <p className="mt-4 text-base md:text-lg text-white/60 max-w-xl mx-auto font-outfit">
-          {t('hero.subtagline')}
-        </p>
-
-        {/* ── Opening Match Card ─────────────────────────────────────────── */}
-        <div className="mt-12 sm:mt-16 flex justify-center">
-          <div className="w-full max-w-lg rounded-2xl bg-navy-900/70 border border-navy-700/50 backdrop-blur-sm shadow-2xl shadow-navy-950/60 overflow-hidden">
+        {/* 2 ── Opening Match proof card */}
+        <div className="mt-8 flex justify-center">
+          <div className="w-full max-w-md rounded-2xl bg-navy-900/70 border border-navy-700/50 backdrop-blur-sm shadow-2xl shadow-navy-950/60 overflow-hidden">
 
             {/* Card header */}
-            <div className="px-5 pt-5 pb-4 border-b border-navy-800/60 flex items-center justify-between gap-3">
-              {/* FIFA WC 2026 badge */}
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gold-500/10 border border-gold-500/20">
+            <div className="px-4 pt-4 pb-3 border-b border-navy-800/60 flex items-center justify-between gap-3">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gold-500/10 border border-gold-500/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-gold-400 shrink-0" />
                 <span className="text-[10px] font-bold text-gold-400 uppercase tracking-widest">
                   FIFA World Cup 2026
                 </span>
               </div>
-              {/* Live / opening match pill */}
               <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 shrink-0">
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
@@ -135,39 +129,32 @@ export function Hero() {
               </div>
             </div>
 
-            {/* Teams matchup */}
-            <div className="px-5 py-6">
-              <div className="flex items-center justify-between gap-3">
-
-                {/* Mexico */}
-                <div className="flex flex-col items-center gap-2.5 flex-1">
+            {/* Teams matchup — compact */}
+            <div className="px-4 py-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-col items-center gap-2 flex-1">
                   <MexicoFlag />
-                  <span className="text-sm sm:text-base font-semibold text-white tracking-tight">Meksika</span>
+                  <span className="text-sm font-semibold text-white tracking-tight">Meksika</span>
                 </div>
-
-                {/* VS separator */}
                 <div className="flex flex-col items-center gap-1 shrink-0 px-2">
-                  <div className="w-px h-4 bg-navy-700" />
+                  <div className="w-px h-3 bg-navy-700" />
                   <span className="text-[11px] font-bold text-navy-500 tracking-widest uppercase">vs</span>
-                  <div className="w-px h-4 bg-navy-700" />
+                  <div className="w-px h-3 bg-navy-700" />
                 </div>
-
-                {/* South Africa */}
-                <div className="flex flex-col items-center gap-2.5 flex-1">
+                <div className="flex flex-col items-center gap-2 flex-1">
                   <SouthAfricaFlag />
-                  <span className="text-sm sm:text-base font-semibold text-white tracking-tight">Güney Afrika</span>
+                  <span className="text-sm font-semibold text-white tracking-tight">Güney Afrika</span>
                 </div>
-
               </div>
 
               {/* Match metadata */}
-              <div className="mt-5 flex items-center justify-center gap-1.5 text-navy-500 text-xs">
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 text-navy-500 text-xs">
                 <span>Per, 11 Haziran 2026</span>
                 <span className="text-navy-700">·</span>
                 <span className="text-navy-400 font-medium">22:00 TSİ</span>
                 <span className="text-navy-700">·</span>
                 <MapPin className="w-3 h-3 shrink-0" />
-                <span>Estadio Azteca, Mexico City</span>
+                <span>Estadio Azteca</span>
               </div>
               {userTz !== 'Europe/Istanbul' && (
                 <p className="mt-1 text-[11px] text-navy-600 text-center">
@@ -177,27 +164,24 @@ export function Hero() {
               )}
             </div>
 
-            {/* Countdown */}
-            <div className="px-5 pb-6 border-t border-navy-800/50 pt-5">
-              <div className="flex items-center justify-center gap-2 sm:gap-3">
+            {/* Countdown — compact */}
+            <div className="px-4 pb-4 border-t border-navy-800/50 pt-4">
+              <div className="flex items-center justify-center gap-1.5 sm:gap-2">
                 {blocks.map((b, i) => (
-                  <div key={b.label} className="flex items-center gap-2 sm:gap-3">
+                  <div key={b.label} className="flex items-center gap-1.5 sm:gap-2">
                     <div className="flex flex-col items-center">
-                      <div className="w-14 h-16 sm:w-16 sm:h-[72px] rounded-xl bg-navy-800/80 border border-navy-700/60 flex items-center justify-center relative overflow-hidden">
-                        {/* subtle top sheen */}
+                      <div className="w-13 h-14 sm:w-14 sm:h-[60px] rounded-lg bg-navy-800/80 border border-navy-700/60 flex items-center justify-center relative overflow-hidden">
                         <div className="absolute inset-x-0 top-0 h-1/2 bg-white/[0.025]" />
-                        <span className="font-mono text-2xl sm:text-3xl font-bold text-white tabular-nums relative z-10">
+                        <span className="font-mono text-xl sm:text-2xl font-bold text-white tabular-nums relative z-10">
                           {String(b.value).padStart(2, '0')}
                         </span>
                       </div>
-                      <span className="mt-1.5 text-[9px] font-semibold tracking-[0.12em] text-navy-500 uppercase">
+                      <span className="mt-1 text-[8px] font-semibold tracking-[0.1em] text-navy-500 uppercase">
                         {b.label}
                       </span>
                     </div>
                     {i < blocks.length - 1 && (
-                      <span className="text-gold-500/50 text-xl sm:text-2xl font-light -mt-5 select-none">
-                        :
-                      </span>
+                      <span className="text-gold-500/50 text-lg sm:text-xl font-light -mt-4 select-none">:</span>
                     )}
                   </div>
                 ))}
@@ -207,20 +191,16 @@ export function Hero() {
           </div>
         </div>
 
-        {/* Supporting tournament info */}
-        <p className="mt-4 text-xs text-navy-600 tracking-wide">
-          Turnuva: <span className="text-navy-500">48 takım</span>
-          <span className="mx-1.5 text-navy-700">·</span>
-          <span className="text-navy-500">104 maç</span>
-          <span className="mx-1.5 text-navy-700">·</span>
-          Ev sahipleri: <span className="text-navy-500">ABD, Kanada, Meksika</span>
+        {/* 3 ── Subtitle */}
+        <p className="mt-6 text-base md:text-lg text-white/60 max-w-xl mx-auto font-outfit">
+          {t('hero.subtagline')}
         </p>
 
-        {/* CTAs */}
-        <div className="mt-10 flex gap-4 justify-center flex-wrap">
+        {/* 4 ── CTAs */}
+        <div className="mt-8 flex gap-4 justify-center flex-wrap">
           <a
             href="/maclar"
-            className="group px-8 py-3.5 bg-gold-500 text-navy-950 font-semibold rounded-lg hover:bg-gold-400 transition-all hover:shadow-lg hover:shadow-gold-500/20"
+            className="px-8 py-3.5 bg-gold-500 text-navy-950 font-semibold rounded-lg hover:bg-gold-400 transition-all hover:shadow-lg hover:shadow-gold-500/20"
           >
             Bekleme listesine katıl
           </a>
@@ -232,24 +212,12 @@ export function Hero() {
           </a>
         </div>
 
-        {/* Stats grid */}
-        <div className="mt-12 flex flex-wrap items-center justify-center gap-x-2 gap-y-4">
+        {/* 5 ── Stats grid */}
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-x-2 gap-y-4">
           {[
-            {
-              value: '65.000+',
-              label: 'analiz edilmiş maç',
-              detail: '21 lig, 10+ sezon',
-            },
-            {
-              value: '21',
-              label: 'lig kapsanıyor',
-              detail: 'İngiltere\'den Türkiye\'ye',
-            },
-            {
-              value: '4',
-              label: 'yapay zeka persona',
-              detail: '3 turda tartışıp uzlaşıya varıyor',
-            },
+            { value: '65.000+', label: 'analiz edilmiş maç',   detail: '21 lig, 10+ sezon' },
+            { value: '21',      label: 'lig kapsanıyor',        detail: 'İngiltere\'den Türkiye\'ye' },
+            { value: '4',       label: 'yapay zeka persona',    detail: '3 turda tartışıp uzlaşıya varıyor' },
           ].map((s, i, arr) => (
             <div key={s.label} className="flex items-center gap-2">
               <div className="flex flex-col items-center px-5">
@@ -265,6 +233,7 @@ export function Hero() {
             </div>
           ))}
         </div>
+
       </div>
     </section>
   );
