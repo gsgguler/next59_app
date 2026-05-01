@@ -56,7 +56,9 @@ registerRoute(
   }),
 );
 
-// Push event listener (prepared for Prompt 12)
+// Push event listener — wrapped in try/catch so a denied notification
+// permission cannot throw and disrupt the SW message channel (which would
+// prevent the skipWaiting / reload flow from working).
 self.addEventListener('push', (event) => {
   const data = event.data?.json() ?? {};
   const title = data.title ?? 'Next59';
@@ -66,7 +68,11 @@ self.addEventListener('push', (event) => {
     badge: '/favicon-96.png',
     data: { url: data.url ?? '/' },
   };
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    self.registration.showNotification(title, options).catch(() => {
+      // Notification permission denied — silently ignore
+    }),
+  );
 });
 
 self.addEventListener('notificationclick', (event) => {
