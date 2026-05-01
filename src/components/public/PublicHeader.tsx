@@ -76,6 +76,7 @@ const NAV: NavItem[] = [
       { label: 'İletişim', to: '/next59/iletisim' },
     ],
   },
+  { label: 'World Cup 2026', to: '/world-cup-2026' },
 ];
 
 // ─── Desktop dropdown item ────────────────────────────────────────────────────

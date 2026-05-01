@@ -1,100 +1,223 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Search, Filter, ArrowUpDown, Calendar, ChevronDown } from 'lucide-react';
+import { Search, Filter, Calendar, Trophy, MapPin, Clock, Globe } from 'lucide-react';
 import { Hero } from '../components/Hero';
-import MatchTimelineCard from '../components/matches/MatchTimelineCard';
-import { useHomeMatches } from '../hooks/useHomeMatches';
-import { MatchCardSkeletonGrid } from '../components/ui/MatchCardSkeleton';
-import FetchError from '../components/ui/FetchError';
-import type { UIMatch } from '../types/ui-models';
 import CookieBanner from '../components/legal/CookieBanner';
+import {
+  ALL_WC2026_FIXTURES,
+  WC2026_GROUPS,
+  STAGE_LABELS_TR,
+  formatFixtureDateTR,
+  formatKickoffTR,
+  type WC2026Fixture,
+  type FixtureStage,
+} from '../data/worldCup2026Fixtures';
 
-const DATE_RANGES = [
-  { label: 'Tüm Tarihler', from: '', to: '' },
-  { label: '11-15 Haziran', from: '2026-06-11', to: '2026-06-15' },
-  { label: '16-20 Haziran', from: '2026-06-16', to: '2026-06-20' },
-  { label: '21-25 Haziran', from: '2026-06-21', to: '2026-06-25' },
-  { label: '26-30 Haziran', from: '2026-06-26', to: '2026-06-30' },
-];
+// ---------------------------------------------------------------------------
+// Flags
+// ---------------------------------------------------------------------------
 
-const SORT_OPTIONS = [
-  { label: 'Tarihe Göre', value: 'date' as const },
-  { label: 'Elo Farkına Göre', value: 'elo_diff' as const },
-];
+const FIFA_TO_EMOJI: Record<string, string> = {
+  MEX: '\u{1F1F2}\u{1F1FD}', RSA: '\u{1F1FF}\u{1F1E6}', KOR: '\u{1F1F0}\u{1F1F7}',
+  CZE: '\u{1F1E8}\u{1F1FF}', CAN: '\u{1F1E8}\u{1F1E6}', SUI: '\u{1F1E8}\u{1F1ED}',
+  QAT: '\u{1F1F6}\u{1F1E6}', BIH: '\u{1F1E7}\u{1F1E6}', BRA: '\u{1F1E7}\u{1F1F7}',
+  MAR: '\u{1F1F2}\u{1F1E6}', SCO: '\u{1F3F4}\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E006F}\u{E007F}',
+  HAI: '\u{1F1ED}\u{1F1F9}', USA: '\u{1F1FA}\u{1F1F8}', AUS: '\u{1F1E6}\u{1F1FA}',
+  PAR: '\u{1F1F5}\u{1F1FE}', TUR: '\u{1F1F9}\u{1F1F7}', GER: '\u{1F1E9}\u{1F1EA}',
+  CIV: '\u{1F1E8}\u{1F1EE}', ECU: '\u{1F1EA}\u{1F1E8}', CUW: '\u{1F1E8}\u{1F1FC}',
+  NED: '\u{1F1F3}\u{1F1F1}', JPN: '\u{1F1EF}\u{1F1F5}', SWE: '\u{1F1F8}\u{1F1EA}',
+  TUN: '\u{1F1F9}\u{1F1F3}', BEL: '\u{1F1E7}\u{1F1EA}', EGY: '\u{1F1EA}\u{1F1EC}',
+  NZL: '\u{1F1F3}\u{1F1FF}', IRN: '\u{1F1EE}\u{1F1F7}', ESP: '\u{1F1EA}\u{1F1F8}',
+  KSA: '\u{1F1F8}\u{1F1E6}', URU: '\u{1F1FA}\u{1F1FE}', CPV: '\u{1F1E8}\u{1F1FB}',
+  FRA: '\u{1F1EB}\u{1F1F7}', SEN: '\u{1F1F8}\u{1F1F3}', NOR: '\u{1F1F3}\u{1F1F4}',
+  IRQ: '\u{1F1EE}\u{1F1F6}', ARG: '\u{1F1E6}\u{1F1F7}', ALG: '\u{1F1E9}\u{1F1FF}',
+  AUT: '\u{1F1E6}\u{1F1F9}', JOR: '\u{1F1EF}\u{1F1F4}', POR: '\u{1F1F5}\u{1F1F9}',
+  COL: '\u{1F1E8}\u{1F1F4}', UZB: '\u{1F1FA}\u{1F1FF}', COD: '\u{1F1E8}\u{1F1E9}',
+  ENG: '\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}',
+  CRO: '\u{1F1ED}\u{1F1F7}', GHA: '\u{1F1EC}\u{1F1ED}', PAN: '\u{1F1F5}\u{1F1E6}',
+  TBD: '\u{2753}',
+};
 
-const MATCHDAY_OPTIONS = [
+function getFlag(code: string): string {
+  return FIFA_TO_EMOJI[code] ?? '\u{1F3F3}\u{FE0F}';
+}
+
+// ---------------------------------------------------------------------------
+// Filter options
+// ---------------------------------------------------------------------------
+
+const STAGE_FILTER_OPTIONS = [
   { label: 'Tüm Maçlar', value: '' },
-  { label: '1. Maç Günü', value: 'Group Stage - 1' },
-  { label: '2. Maç Günü', value: 'Group Stage - 2' },
-  { label: '3. Maç Günü', value: 'Group Stage - 3' },
+  { label: 'Grup Maçları', value: 'Group Stage' },
+  { label: 'Son 32', value: 'Round of 32' },
+  { label: 'Son 16', value: 'Round of 16' },
+  { label: 'Çeyrek Final', value: 'Quarter-final' },
+  { label: 'Yarı Final', value: 'Semi-final' },
+  { label: 'Final', value: 'Final' },
 ];
+
+const GROUP_FILTER_OPTIONS = [
+  { label: 'Tüm Gruplar', value: '' },
+  ...WC2026_GROUPS.map((g) => ({ label: `Grup ${g}`, value: g })),
+];
+
+const COUNTRY_OPTIONS = [
+  { label: 'Tüm Ülkeler', value: '' },
+  { label: 'ABD', value: 'USA' },
+  { label: 'Kanada', value: 'Canada' },
+  { label: 'Meksika', value: 'Mexico' },
+];
+
+function groupByDate(fixtures: WC2026Fixture[]): Map<string, WC2026Fixture[]> {
+  const map = new Map<string, WC2026Fixture[]>();
+  for (const f of fixtures) {
+    const arr = map.get(f.match_date);
+    if (arr) arr.push(f);
+    else map.set(f.match_date, [f]);
+  }
+  return map;
+}
+
+// ---------------------------------------------------------------------------
+// Fixture card
+// ---------------------------------------------------------------------------
+
+function WC2026FixtureCard({ fixture }: { fixture: WC2026Fixture }) {
+  const isTBD = fixture.home_team === 'TBD';
+  const trTime = formatKickoffTR(fixture.kickoff_utc);
+  const stageLabel = STAGE_LABELS_TR[fixture.stage];
+  const groupLabel = fixture.group ? `Grup ${fixture.group}` : null;
+
+  return (
+    <div className="relative bg-navy-900 border border-navy-800 rounded-xl p-4 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-champagne/5 hover:border-champagne/20 transition-all duration-200 group">
+      {/* Stage + match no */}
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-champagne/70">
+          {groupLabel ? `${stageLabel} — ${groupLabel}` : stageLabel}
+        </span>
+        <span className="text-[10px] font-mono text-navy-500">#{fixture.match_no}</span>
+      </div>
+
+      {/* Teams row */}
+      <div className="flex items-center gap-2">
+        {/* Home */}
+        <div className="flex-1 flex items-center gap-2 min-w-0">
+          <div className="w-9 h-9 rounded-full bg-navy-800 border border-navy-700 flex items-center justify-center shrink-0 text-base">
+            {getFlag(fixture.home_team_code)}
+          </div>
+          <span className="text-sm font-semibold text-white truncate leading-tight">
+            {isTBD ? <span className="text-navy-500 italic">TBD</span> : fixture.home_team}
+          </span>
+        </div>
+
+        {/* Center */}
+        <div className="flex flex-col items-center px-2 shrink-0">
+          <span className="text-[10px] font-bold tracking-widest text-champagne/60 uppercase">VS</span>
+        </div>
+
+        {/* Away */}
+        <div className="flex-1 flex items-center gap-2 min-w-0 justify-end">
+          <span className="text-sm font-semibold text-white truncate text-right leading-tight">
+            {isTBD ? <span className="text-navy-500 italic">TBD</span> : fixture.away_team}
+          </span>
+          <div className="w-9 h-9 rounded-full bg-navy-800 border border-navy-700 flex items-center justify-center shrink-0 text-base">
+            {getFlag(fixture.away_team_code)}
+          </div>
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div className="h-px bg-navy-800 my-3" />
+
+      {/* Meta row */}
+      <div className="flex items-center justify-between gap-2 text-[11px] text-navy-400">
+        <div className="flex items-center gap-1 min-w-0">
+          <MapPin className="w-3 h-3 text-navy-500 shrink-0" />
+          <span className="truncate">{fixture.venue}</span>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <Clock className="w-3 h-3 text-navy-500" />
+          <span className="tabular-nums">{trTime}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Filter select component
+// ---------------------------------------------------------------------------
+
+function FilterSelect({
+  icon,
+  value,
+  onChange,
+  options,
+}: {
+  icon: React.ReactNode;
+  value: string;
+  onChange: (v: string) => void;
+  options: { label: string; value: string }[];
+}) {
+  return (
+    <div className="relative">
+      <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-navy-500 pointer-events-none">
+        {icon}
+      </div>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="appearance-none bg-navy-900 border border-navy-700 text-white text-xs rounded-lg pl-8 pr-7 py-2 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all cursor-pointer"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+      <svg className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-navy-500 pointer-events-none" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4l4 4 4-4" /></svg>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main page
+// ---------------------------------------------------------------------------
 
 const INITIAL_DATES = 6;
 
-function formatDateHeader(dateStr: string): string {
-  const d = new Date(dateStr + 'T12:00:00Z');
-  return d.toLocaleDateString('tr-TR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-}
-
-function groupByDate(matches: UIMatch[]): Map<string, UIMatch[]> {
-  const groups = new Map<string, UIMatch[]>();
-  for (const m of matches) {
-    const dateKey = m.kickoff_at.slice(0, 10);
-    const arr = groups.get(dateKey);
-    if (arr) arr.push(m);
-    else groups.set(dateKey, [m]);
-  }
-  return groups;
-}
-
 export default function HomePage() {
-  const { matches: allMatches, loading, error } = useHomeMatches();
   const [teamSearch, setTeamSearch] = useState('');
-  const [dateRange, setDateRange] = useState(0);
-  const [sortBy, setSortBy] = useState<'date' | 'elo_diff'>('date');
-  const [matchday, setMatchday] = useState('');
+  const [stageFilter, setStageFilter] = useState('');
+  const [groupFilter, setGroupFilter] = useState('');
+  const [countryFilter, setCountryFilter] = useState('');
   const [visibleDates, setVisibleDates] = useState(INITIAL_DATES);
 
   const filtered = useMemo(() => {
-    let list = [...allMatches];
+    let list = [...ALL_WC2026_FIXTURES];
+
+    if (stageFilter) {
+      list = list.filter((f) => f.stage === stageFilter as FixtureStage);
+    }
+
+    if (groupFilter) {
+      list = list.filter((f) => f.group === groupFilter);
+    }
+
+    if (countryFilter) {
+      list = list.filter((f) => f.country === countryFilter);
+    }
 
     if (teamSearch.trim()) {
       const q = teamSearch.toLowerCase();
       list = list.filter(
-        (m) =>
-          m.home_team.name.toLowerCase().includes(q) ||
-          m.away_team.name.toLowerCase().includes(q) ||
-          m.home_team.short_name.toLowerCase().includes(q) ||
-          m.away_team.short_name.toLowerCase().includes(q),
+        (f) =>
+          f.home_team.toLowerCase().includes(q) ||
+          f.away_team.toLowerCase().includes(q) ||
+          f.home_team_code.toLowerCase().includes(q) ||
+          f.away_team_code.toLowerCase().includes(q),
       );
     }
 
-    const range = DATE_RANGES[dateRange];
-    if (range.from && range.to) {
-      list = list.filter((m) => {
-        const d = m.kickoff_at.slice(0, 10);
-        return d >= range.from && d <= range.to;
-      });
-    }
-
-    if (matchday) {
-      list = list.filter((m) => m.round_name === matchday);
-    }
-
-    if (sortBy === 'elo_diff') {
-      list.sort((a, b) => {
-        const diffA = Math.abs((a.home_elo ?? 0) - (a.away_elo ?? 0));
-        const diffB = Math.abs((b.home_elo ?? 0) - (b.away_elo ?? 0));
-        return diffB - diffA;
-      });
-    }
-
     return list;
-  }, [teamSearch, dateRange, sortBy, matchday]);
+  }, [teamSearch, stageFilter, groupFilter, countryFilter]);
 
   const grouped = useMemo(() => groupByDate(filtered), [filtered]);
   const dateKeys = useMemo(() => Array.from(grouped.keys()), [grouped]);
@@ -103,15 +226,23 @@ export default function HomePage() {
 
   useEffect(() => {
     setVisibleDates(INITIAL_DATES);
-  }, [teamSearch, dateRange, sortBy, matchday]);
+  }, [teamSearch, stageFilter, groupFilter, countryFilter]);
 
   useEffect(() => {
     document.title = 'Next59 — kehanet kâtibi';
   }, []);
 
+  const clearFilters = () => {
+    setTeamSearch('');
+    setStageFilter('');
+    setGroupFilter('');
+    setCountryFilter('');
+  };
+
+  const hasActiveFilter = teamSearch || stageFilter || groupFilter || countryFilter;
+
   return (
     <>
-      {/* Hero */}
       <Hero />
 
       {/* Filter bar */}
@@ -123,24 +254,28 @@ export default function HomePage() {
               Filtrele
             </div>
 
-            {/* Matchday */}
             <FilterSelect
-              icon={<Calendar className="w-3.5 h-3.5" />}
-              value={matchday}
-              onChange={setMatchday}
-              options={MATCHDAY_OPTIONS.map((o) => ({ label: o.label, value: o.value }))}
+              icon={<Trophy className="w-3.5 h-3.5" />}
+              value={stageFilter}
+              onChange={setStageFilter}
+              options={STAGE_FILTER_OPTIONS}
             />
 
-            {/* Date range */}
             <FilterSelect
               icon={<Calendar className="w-3.5 h-3.5" />}
-              value={String(dateRange)}
-              onChange={(v) => setDateRange(Number(v))}
-              options={DATE_RANGES.map((r, i) => ({ label: r.label, value: String(i) }))}
+              value={groupFilter}
+              onChange={setGroupFilter}
+              options={GROUP_FILTER_OPTIONS}
             />
 
-            {/* Team search */}
-            <div className="relative flex-1 min-w-[180px] max-w-xs">
+            <FilterSelect
+              icon={<Globe className="w-3.5 h-3.5" />}
+              value={countryFilter}
+              onChange={setCountryFilter}
+              options={COUNTRY_OPTIONS}
+            />
+
+            <div className="relative flex-1 min-w-[160px] max-w-xs">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-navy-500" />
               <input
                 type="text"
@@ -151,56 +286,49 @@ export default function HomePage() {
               />
             </div>
 
-            {/* Sort */}
-            <FilterSelect
-              icon={<ArrowUpDown className="w-3.5 h-3.5" />}
-              value={sortBy}
-              onChange={(v) => setSortBy(v as 'date' | 'elo_diff')}
-              options={SORT_OPTIONS.map((o) => ({ label: o.label, value: o.value }))}
-            />
+            {hasActiveFilter && (
+              <button
+                onClick={clearFilters}
+                className="text-xs text-navy-400 hover:text-champagne transition-colors shrink-0"
+              >
+                Temizle
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Fixture timeline */}
+      {/* Fixture grid */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        {loading ? (
-          <MatchCardSkeletonGrid count={9} />
-        ) : error ? (
-          <FetchError message={error} onRetry={() => window.location.reload()} />
-        ) : filtered.length === 0 ? (
+        {/* Section header */}
+        <div className="flex items-center gap-3 mb-8">
+          <Trophy className="w-5 h-5 text-champagne" />
+          <h2 className="text-lg font-bold text-white">World Cup 2026 Fikstürü</h2>
+          <span className="text-xs text-navy-500 font-mono ml-auto">{filtered.length} maç</span>
+        </div>
+
+        {filtered.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-navy-400 text-sm">Aramanızla eşleşen maç bulunamadı.</p>
             <button
-              onClick={() => { setTeamSearch(''); setDateRange(0); setMatchday(''); }}
+              onClick={clearFilters}
               className="mt-3 text-xs text-champagne hover:text-champagne-light transition-colors"
             >
               Filtreleri Temizle
             </button>
           </div>
-        ) : sortBy === 'elo_diff' ? (
-          <div className="space-y-3">
-            <h2 className="text-xs font-semibold text-navy-500 uppercase tracking-wider mb-4">
-              Elo Farkına Göre Sıralandı ({filtered.length} maç)
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((m) => (
-                <MatchTimelineCard key={m.id} match={m} />
-              ))}
-            </div>
-          </div>
         ) : (
           <div className="space-y-10">
             {visibleKeys.map((dateKey) => (
               <div key={dateKey} className="animate-fade-in">
-                <h2 className="text-sm font-semibold text-champagne/80 uppercase tracking-wider mb-4 flex items-center gap-3">
+                <h3 className="text-sm font-semibold text-champagne/80 uppercase tracking-wider mb-4 flex items-center gap-3">
                   <span className="h-px flex-1 bg-navy-800" />
-                  <span className="shrink-0">{formatDateHeader(dateKey)}</span>
+                  <span className="shrink-0">{formatFixtureDateTR(dateKey)}</span>
                   <span className="h-px flex-1 bg-navy-800" />
-                </h2>
+                </h3>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {grouped.get(dateKey)!.map((m) => (
-                    <MatchTimelineCard key={m.id} match={m} />
+                  {grouped.get(dateKey)!.map((f) => (
+                    <WC2026FixtureCard key={f.id} fixture={f} />
                   ))}
                 </div>
               </div>
@@ -213,7 +341,7 @@ export default function HomePage() {
                   className="inline-flex items-center gap-2 bg-navy-900 border border-navy-700 hover:border-champagne/30 text-navy-300 hover:text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-all"
                 >
                   Daha Fazla Göster
-                  <ChevronDown className="w-4 h-4" />
+                  <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 6l5 5 5-5" /></svg>
                 </button>
               </div>
             )}
@@ -228,17 +356,18 @@ export default function HomePage() {
           __html: JSON.stringify({
             '@context': 'https://schema.org',
             '@type': 'ItemList',
-            name: '2026 Dünya Kupası Maç Takvimi',
-            numberOfItems: allMatches.length,
-            itemListElement: allMatches.slice(0, 10).map((m, i) => ({
+            name: '2026 FIFA Dünya Kupası Fikstürü',
+            numberOfItems: ALL_WC2026_FIXTURES.length,
+            itemListElement: ALL_WC2026_FIXTURES.slice(0, 10).map((f, i) => ({
               '@type': 'ListItem',
               position: i + 1,
               item: {
                 '@type': 'SportsEvent',
-                name: `${m.home_team.name} vs ${m.away_team.name}`,
-                startDate: m.kickoff_at,
-                homeTeam: { '@type': 'SportsTeam', name: m.home_team.name },
-                awayTeam: { '@type': 'SportsTeam', name: m.away_team.name },
+                name: `${f.home_team} vs ${f.away_team}`,
+                startDate: f.kickoff_utc,
+                location: { '@type': 'Place', name: f.venue, address: { '@type': 'PostalAddress', addressLocality: f.city } },
+                homeTeam: { '@type': 'SportsTeam', name: f.home_team },
+                awayTeam: { '@type': 'SportsTeam', name: f.away_team },
               },
             })),
           }),
@@ -247,37 +376,5 @@ export default function HomePage() {
 
       <CookieBanner />
     </>
-  );
-}
-
-function FilterSelect({
-  icon,
-  value,
-  onChange,
-  options,
-}: {
-  icon: React.ReactNode;
-  value: string;
-  onChange: (value: string) => void;
-  options: { label: string; value: string }[];
-}) {
-  return (
-    <div className="relative">
-      <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-navy-500 pointer-events-none">
-        {icon}
-      </div>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="appearance-none bg-navy-900 border border-navy-700 text-white text-xs rounded-lg pl-8 pr-7 py-2 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all cursor-pointer"
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-navy-500 pointer-events-none" />
-    </div>
   );
 }

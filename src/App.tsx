@@ -9,6 +9,7 @@ import PublicLayout from './components/layout/PublicLayout';
 
 // Public pages
 import HomePage from './pages/HomePage';
+import WorldCup2026Page from './pages/WorldCup2026Page';
 import MatchDetailPage from './pages/MatchDetailPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -89,6 +90,7 @@ export default function App() {
               <Route element={<PublicLayout />}>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/mac/:matchId" element={<MatchDetailPage />} />
+                <Route path="/world-cup-2026" element={<WorldCup2026Page />} />
 
                 {/* Maç Arşivi */}
                 <Route path="/mac-arsivi" element={<ArchivePage />} />
