@@ -43,7 +43,8 @@ export default function Footer() {
           <div className="col-span-2 md:col-span-1">
             <Logo size="sm" linkTo="/" />
             <p className="mt-4 text-sm text-white/60 leading-relaxed max-w-xs">
-              Veriyle çalışan futbol gazeteciliği. Tarafsız, bağımsız, bahis dışı.
+              Next59 bir bahis platformu değildir.<br />
+              Maç başlamadan önce 90 dakikanın olası akışını veriye, istatistiğe ve yapay zekâya dayalı olarak senaryolaştıran bir futbol zekâsıdır.
             </p>
           </div>
 
