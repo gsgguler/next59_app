@@ -262,14 +262,15 @@ async function runFixtures(sb: Sb, year: number) {
 }
 
 // ── MODE: events for one year (max 30 fixtures) ────────────────────────────────
-async function runEvents(sb: Sb, year: number, limit = 30) {
+async function runEvents(sb: Sb, year: number, limit = 34, offset = 0) {
   const runId = (await rpc(sb, "wch_create_ingestion_run", {
     p_provider: "api_football", p_run_type: "pilot_events",
     p_edition_year: year, p_endpoint: "/fixtures/events",
   })) as string;
 
-  const { data: matchRows } = await sb.rpc("wch_get_match_ids_by_year", { p_year: year });
-  const matches = ((matchRows ?? []) as Array<{ id: string; provider_fixture_id: number }>).slice(0, limit);
+  const { data: matchRows } = await sb.rpc("wch_get_match_ids_by_year",
+    { p_year: year, p_offset: offset, p_limit: limit });
+  const matches = (matchRows ?? []) as Array<{ id: string; provider_fixture_id: number }>;
 
   let eventsRaw = 0, apiCalls = 0;
   const errors: string[] = [];
@@ -311,14 +312,15 @@ async function runEvents(sb: Sb, year: number, limit = 30) {
 }
 
 // ── MODE: statistics for one year (max 20 fixtures) ────────────────────────────
-async function runStatistics(sb: Sb, year: number, limit = 20) {
+async function runStatistics(sb: Sb, year: number, limit = 34, offset = 0) {
   const runId = (await rpc(sb, "wch_create_ingestion_run", {
     p_provider: "api_football", p_run_type: "pilot_statistics",
     p_edition_year: year, p_endpoint: "/fixtures/statistics",
   })) as string;
 
-  const { data: matchRows } = await sb.rpc("wch_get_match_ids_by_year", { p_year: year });
-  const matches = ((matchRows ?? []) as Array<{ id: string; provider_fixture_id: number }>).slice(0, limit);
+  const { data: matchRows } = await sb.rpc("wch_get_match_ids_by_year",
+    { p_year: year, p_offset: offset, p_limit: limit });
+  const matches = (matchRows ?? []) as Array<{ id: string; provider_fixture_id: number }>;
 
   let statsRaw = 0, apiCalls = 0;
   const errors: string[] = [];
@@ -399,12 +401,14 @@ Deno.serve(async (req: Request) => {
     const sb = getSupabase();
     let result: unknown;
 
+    const limit  = parseInt(url.searchParams.get("limit")  ?? "34");
+    const offset = parseInt(url.searchParams.get("offset") ?? "0");
     switch (mode) {
-      case "coverage":   result = await runCoverage(sb);            break;
-      case "fixtures":   result = await runFixtures(sb, year);      break;
-      case "events":     result = await runEvents(sb, year, 30);    break;
-      case "statistics": result = await runStatistics(sb, year, 20); break;
-      case "report":     result = await runReport(sb);              break;
+      case "coverage":   result = await runCoverage(sb);                              break;
+      case "fixtures":   result = await runFixtures(sb, year);                        break;
+      case "events":     result = await runEvents(sb, year, limit, offset);           break;
+      case "statistics": result = await runStatistics(sb, year, limit, offset);       break;
+      case "report":     result = await runReport(sb);                                break;
       default:
         return new Response(JSON.stringify({ error: `Unknown mode: ${mode}` }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
