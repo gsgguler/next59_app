@@ -1101,4 +1101,10 @@ export const VENUE_META: Record<string, VenueMeta> = {
     capacity: 76416,
     capacity_source: 'FIFA official venue page',
   },
+  "Levi's Stadium": {
+    city_display: 'San Francisco Bay Area',
+    country_tr: 'ABD',
+    capacity: 68500,
+    capacity_source: 'FIFA official venue page',
+  },
 };

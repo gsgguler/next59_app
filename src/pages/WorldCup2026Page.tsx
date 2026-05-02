@@ -43,6 +43,7 @@ const LOCATION_GROUPS = [
       { label: 'Miami',                 value: 'Miami' },
       { label: 'New York / New Jersey', value: 'East Rutherford' },
       { label: 'Philadelphia',          value: 'Philadelphia' },
+      { label: 'San Francisco Bay Area', value: 'Santa Clara' },
       { label: 'Seattle',               value: 'Seattle' },
     ],
   },
