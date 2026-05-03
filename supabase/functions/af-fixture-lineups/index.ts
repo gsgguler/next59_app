@@ -26,23 +26,36 @@ Deno.serve(async (req: Request) => {
     const chunkOffset: number = body.chunk_offset ?? 0;
     const chunkSize: number = body.chunk_size ?? 50;
 
-    const { data: matches, error: matchErr } = await supabase
-      .from("matches")
-      .select(`
-        id,
-        api_football_fixture_id,
-        competition_seasons!inner(
-          competitions!inner(api_football_id),
-          seasons!inner(year)
-        )
-      `)
-      .not("api_football_fixture_id", "is", null)
-      .eq("competition_seasons.competitions.api_football_id", leagueAfId)
-      .eq("competition_seasons.seasons.year", seasonYear)
-      .range(chunkOffset, chunkOffset + chunkSize - 1);
+    // If explicit fixture_ids provided, use them directly (bypasses league/season filter)
+    const explicitIds: number[] | undefined = body.fixture_ids;
 
-    if (matchErr) throw matchErr;
-    const batch = matches ?? [];
+    let batch: { id: string; api_football_fixture_id: number }[] = [];
+
+    if (explicitIds && explicitIds.length > 0) {
+      const { data: matches, error: matchErr } = await supabase
+        .from("matches")
+        .select("id, api_football_fixture_id")
+        .in("api_football_fixture_id", explicitIds);
+      if (matchErr) throw matchErr;
+      batch = matches ?? [];
+    } else {
+      const { data: matches, error: matchErr } = await supabase
+        .from("matches")
+        .select(`
+          id,
+          api_football_fixture_id,
+          competition_seasons!inner(
+            competitions!inner(api_football_id),
+            seasons!inner(year)
+          )
+        `)
+        .not("api_football_fixture_id", "is", null)
+        .eq("competition_seasons.competitions.api_football_id", leagueAfId)
+        .eq("competition_seasons.seasons.year", seasonYear)
+        .range(chunkOffset, chunkOffset + chunkSize - 1);
+      if (matchErr) throw matchErr;
+      batch = matches ?? [];
+    }
 
     let fetched = 0, skipped = 0, failed = 0;
     const errors: string[] = [];
