@@ -39,7 +39,7 @@ Deno.serve(async (req: Request) => {
       .eq("af_season", seasonYear)
       .not("api_football_fixture_id", "is", null);
 
-    if (finishedOnly) query = query.eq("fixture_status", "FT");
+    if (finishedOnly) query = query.in("fixture_status", ["FT", "AET", "PEN"]);
     if (stageFilter) query = query.eq("stage_type", stageFilter);
 
     const { data: fixtures, error: fixErr } = await query
