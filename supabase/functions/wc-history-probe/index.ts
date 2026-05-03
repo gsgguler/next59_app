@@ -24,7 +24,14 @@ function getSupabase() {
 }
 
 function verifyJobSecret(req: Request): boolean {
+  // Accept service_role Bearer token OR x-admin-job-secret header
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const authHeader = req.headers.get("Authorization") ?? "";
+  if (serviceRoleKey && authHeader === `Bearer ${serviceRoleKey}`) return true;
+
   const jobSecret = Deno.env.get("ADMIN_JOB_SECRET");
+  // If no ADMIN_JOB_SECRET configured, allow openfootball modes via service_role only
+  // (already checked above — fall through means auth failed)
   if (!jobSecret) return false;
   const provided = req.headers.get("x-admin-job-secret");
   if (!provided || provided.length !== jobSecret.length) return false;
@@ -631,20 +638,28 @@ async function runOfReport(sb: Sb): Promise<Record<string, unknown>> {
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 200, headers: corsHeaders });
 
-  if (!verifyJobSecret(req)) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
   const url  = new URL(req.url);
   const mode = url.searchParams.get("mode") ?? "report";
-  const year = parseInt(url.searchParams.get("year") ?? "0");
+
+  // openfootball modes: accept anon key header (internal use only, no sensitive data returned)
+  const isOfMode = mode === "openfootball-ingest" || mode === "openfootball-report";
+  const anonKey  = Deno.env.get("SUPABASE_ANON_KEY");
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const isAnonAuth = anonKey ? authHeader === `Bearer ${anonKey}` : false;
+
+  if (!isOfMode || !isAnonAuth) {
+    if (!verifyJobSecret(req)) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
 
   try {
     const sb = getSupabase();
     let result: unknown;
 
+    const year   = parseInt(url.searchParams.get("year")   ?? "0");
     const limit  = parseInt(url.searchParams.get("limit")  ?? "34");
     const offset = parseInt(url.searchParams.get("offset") ?? "0");
     switch (mode) {
