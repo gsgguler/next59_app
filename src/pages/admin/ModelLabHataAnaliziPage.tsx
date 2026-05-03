@@ -63,7 +63,7 @@ export default function ModelLabHataAnaliziPage() {
   return (
     <div className="min-h-screen bg-navy-950 p-6">
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center gap-2 text-xs text-navy-500 mb-6">
+        <div className="flex items-center gap-2 text-xs text-readable-muted mb-6">
           <Link to="/admin/model-lab" className="hover:text-champagne transition-colors">Model Lab</Link>
           <ChevronRight className="w-3 h-3" />
           <span className="text-navy-400">Hata Analizi</span>
@@ -82,7 +82,7 @@ export default function ModelLabHataAnaliziPage() {
             <h1 className="text-2xl font-bold text-white font-display">Hata Analizi</h1>
             <p className="text-sm text-navy-400 mt-1">
               Yanlış tahminler — yüksek güven hataları ve örüntü analizi.
-              {total !== null && <span className="ml-2 text-navy-500">Toplam: {total.toLocaleString('tr-TR')} yanlış tahmin</span>}
+              {total !== null && <span className="ml-2 text-readable-muted">Toplam: {total.toLocaleString('tr-TR')} yanlış tahmin</span>}
             </p>
           </div>
         </div>
@@ -126,7 +126,7 @@ export default function ModelLabHataAnaliziPage() {
         ) : rows.length === 0 ? (
           <div className="flex flex-col items-center py-16 gap-3">
             <Target className="w-8 h-8 text-navy-700" />
-            <p className="text-sm text-navy-500 text-center">
+            <p className="text-sm text-readable-muted text-center">
               {total === 0
                 ? 'Backtest sonuçları mevcut değil. Önce backtest çalıştırın.'
                 : 'Bu filtre için hata kaydı yok.'}
@@ -139,7 +139,7 @@ export default function ModelLabHataAnaliziPage() {
                 <thead>
                   <tr className="border-b border-navy-800">
                     {['Tarih', 'Lig', 'Maç', 'Tahmin', 'Gerçek', 'Grade', 'Güven', 'Brier', 'Hata Tipi'].map((h) => (
-                      <th key={h} className="text-left text-navy-500 font-medium px-3 py-2 whitespace-nowrap">{h}</th>
+                      <th key={h} className="text-left text-readable-muted font-medium px-3 py-2 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -160,7 +160,7 @@ export default function ModelLabHataAnaliziPage() {
                 >
                   ← Önceki
                 </button>
-                <span className="text-xs text-navy-600">{page + 1} / {totalPages}</span>
+                <span className="text-xs text-readable-muted">{page + 1} / {totalPages}</span>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                   disabled={page >= totalPages - 1}
@@ -203,7 +203,7 @@ function ErrorRowItem({ row }: { row: ErrorRow }) {
       <td className={`px-3 py-2.5 tabular-nums ${gradeCls}`}>{row.confidence_grade}</td>
       <td className="px-3 py-2.5 text-navy-300 tabular-nums">{(row.confidence_score * 100).toFixed(1)}%</td>
       <td className={`px-3 py-2.5 tabular-nums ${brierCls}`}>{Number(row.brier_1x2).toFixed(4)}</td>
-      <td className="px-3 py-2.5 text-navy-500 text-[10px] font-mono">
+      <td className="px-3 py-2.5 text-readable-muted text-[10px] font-mono">
         {row.error_category || '–'}
       </td>
     </tr>

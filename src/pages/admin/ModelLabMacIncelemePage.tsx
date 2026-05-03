@@ -110,7 +110,7 @@ export default function ModelLabMacIncelemePage() {
   return (
     <div className="min-h-screen bg-navy-950 p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center gap-2 text-xs text-navy-500 mb-6">
+        <div className="flex items-center gap-2 text-xs text-readable-muted mb-6">
           <Link to="/admin/model-lab" className="hover:text-champagne transition-colors">Model Lab</Link>
           <ChevronRight className="w-3 h-3" />
           <span className="text-navy-400">Maç İnceleme</span>
@@ -135,9 +135,9 @@ export default function ModelLabMacIncelemePage() {
 
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-2 mb-4">
-          <Filter className="w-3.5 h-3.5 text-navy-500" />
+          <Filter className="w-3.5 h-3.5 text-readable-muted" />
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-navy-500" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-readable-muted" />
             <input type="text" placeholder="Lig ara..." value={compSearch} onChange={(e) => { setCompSearch(e.target.value); setPage(0); }}
               className="bg-navy-900 border border-navy-700 text-white text-xs rounded-lg pl-8 pr-3 py-2 w-36 placeholder-navy-600 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all" />
           </div>
@@ -160,7 +160,7 @@ export default function ModelLabMacIncelemePage() {
                 ))}
               </div>
             ) : matches.length === 0 ? (
-              <p className="text-sm text-navy-500 text-center py-12">Maç bulunamadı.</p>
+              <p className="text-sm text-readable-muted text-center py-12">Maç bulunamadı.</p>
             ) : (
               <>
                 <div className="space-y-1.5 mb-4">
@@ -174,7 +174,7 @@ export default function ModelLabMacIncelemePage() {
                           : 'bg-navy-900/50 border-navy-800/60 hover:border-navy-700'
                       }`}
                     >
-                      <div className="text-[10px] text-navy-500 mb-1">
+                      <div className="text-[10px] text-readable-muted mb-1">
                         {m.match_date} · {m.competition_name}
                       </div>
                       <div className="flex items-center gap-2 text-xs font-medium text-white">
@@ -194,7 +194,7 @@ export default function ModelLabMacIncelemePage() {
                       className="text-xs text-navy-400 hover:text-white disabled:opacity-30 transition-colors px-3 py-1.5 rounded-lg border border-navy-700 hover:border-navy-600">
                       ← Önceki
                     </button>
-                    <span className="text-xs text-navy-600">{page + 1} / {totalPages}</span>
+                    <span className="text-xs text-readable-muted">{page + 1} / {totalPages}</span>
                     <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}
                       className="text-xs text-navy-400 hover:text-white disabled:opacity-30 transition-colors px-3 py-1.5 rounded-lg border border-navy-700 hover:border-navy-600">
                       Sonraki →
@@ -210,7 +210,7 @@ export default function ModelLabMacIncelemePage() {
             {!selectedMatch ? (
               <div className="flex flex-col items-center justify-center py-20 border border-navy-800 rounded-xl">
                 <Database className="w-8 h-8 text-navy-700 mb-3" />
-                <p className="text-sm text-navy-500">Soldaki listeden bir maç seçin.</p>
+                <p className="text-sm text-readable-muted">Soldaki listeden bir maç seçin.</p>
               </div>
             ) : (
               <>
@@ -222,9 +222,9 @@ export default function ModelLabMacIncelemePage() {
                 {/* Section B: Model decision */}
                 <SectionCard title="B — Modelin Maçtan Önceki Kararı" subtitle="Kaynak: model_lab.match_model_predictions">
                   {loadingDetail ? (
-                    <p className="text-xs text-navy-500 animate-pulse">Yükleniyor...</p>
+                    <p className="text-xs text-readable-muted animate-pulse">Yükleniyor...</p>
                   ) : !prediction ? (
-                    <p className="text-sm text-navy-600">Bu maç için henüz model tahmini yok. Backtest çalıştırılmamış veya bu maç kapsama alınmamış.</p>
+                    <p className="text-sm text-readable-muted">Bu maç için henüz model tahmini yok. Backtest çalıştırılmamış veya bu maç kapsama alınmamış.</p>
                   ) : (
                     <ModelDecision prediction={prediction} showDebug={showDebug} onToggleDebug={() => setShowDebug(!showDebug)} />
                   )}
@@ -263,7 +263,7 @@ function SectionCard({
     <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-4">
       <div className="mb-3">
         <p className="text-xs font-semibold text-champagne/80">{title}</p>
-        <p className="text-[10px] text-navy-600">{subtitle}</p>
+        <p className="text-[10px] text-readable-muted">{subtitle}</p>
       </div>
       {children}
     </div>
@@ -280,13 +280,13 @@ function MatchActual({ match }: { match: ArchiveMatch }) {
             {match.has_ft_score ? `${match.home_score_ft}–${match.away_score_ft}` : '?–?'}
           </div>
           {match.home_score_ht !== null && (
-            <div className="text-[10px] text-navy-500">İY {match.home_score_ht}–{match.away_score_ht}</div>
+            <div className="text-[10px] text-readable-muted">İY {match.home_score_ht}–{match.away_score_ht}</div>
           )}
         </div>
         <span className="flex-1 text-sm font-semibold text-white text-left truncate">{match.away_team_name}</span>
       </div>
 
-      <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-navy-500">
+      <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-readable-muted">
         <span>{match.match_date}</span>
         <span>·</span>
         <span>{match.competition_name}</span>
@@ -360,12 +360,12 @@ function ModelDecision({
         <span className={`font-bold ${gradeCls}`}>Güven: {prediction.confidence_grade} ({(prediction.confidence_score * 100).toFixed(1)}%)</span>
       </div>
 
-      <div className="text-[10px] text-navy-600 font-mono">
+      <div className="text-[10px] text-readable-muted font-mono">
         <span>Cutoff: {prediction.feature_cutoff_date} | Eğitim: {prediction.trained_until_date} | Era: {prediction.era_bucket}</span>
       </div>
 
       <button onClick={onToggleDebug}
-        className="flex items-center gap-1 text-xs text-navy-500 hover:text-white transition-colors">
+        className="flex items-center gap-1 text-xs text-readable-muted hover:text-white transition-colors">
         <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showDebug ? 'rotate-180' : ''}`} />
         Feature Snapshot
       </button>
@@ -383,7 +383,7 @@ function ProbCell({ label, value, result, predicted }: { label: string; value: n
   const isChosen = result === predicted;
   return (
     <div className={`rounded-lg px-3 py-2 border ${isChosen ? 'bg-champagne/10 border-champagne/30' : 'bg-navy-800/50 border-navy-700/50'}`}>
-      <div className="text-[10px] text-navy-500 mb-0.5">{label}</div>
+      <div className="text-[10px] text-readable-muted mb-0.5">{label}</div>
       <div className={`text-base font-bold tabular-nums ${isChosen ? 'text-champagne' : 'text-white'}`}>
         {(value * 100).toFixed(1)}%
       </div>
@@ -401,14 +401,14 @@ function EvaluationDetail({ evaluation }: { evaluation: EvaluationRow }) {
           {evaluation.is_result_correct ? 'Doğru' : 'Yanlış'}
         </span>
       </div>
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-navy-500">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-readable-muted">
         <span>Brier: {Number(evaluation.brier_1x2).toFixed(4)}</span>
         <span>Log Loss: {Number(evaluation.log_loss_1x2).toFixed(4)}</span>
         <span>2.5Ü: {evaluation.over_2_5_correct ? '✓' : '✗'}</span>
         <span>BTTS: {evaluation.btts_correct ? '✓' : '✗'}</span>
       </div>
       {evaluation.error_category && (
-        <div className="text-[10px] text-navy-600">
+        <div className="text-[10px] text-readable-muted">
           Hata: <span className="text-navy-400">{evaluation.error_category}</span>
           {evaluation.error_notes && <span> — {evaluation.error_notes}</span>}
         </div>
@@ -436,12 +436,12 @@ function DataAvailabilityPanel({ match }: { match: ArchiveMatch }) {
 
   return (
     <div>
-      <div className="text-xs text-navy-500 mb-2">
+      <div className="text-xs text-readable-muted mb-2">
         Era: <span className="text-champagne font-mono">{era}</span>
       </div>
       <div className="flex flex-wrap gap-2">
         {fields.map(([label, val]) => (
-          <span key={label} className={`text-[10px] px-2 py-0.5 rounded-full border ${val ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-navy-800 text-navy-600 border-navy-700'}`}>
+          <span key={label} className={`text-[10px] px-2 py-0.5 rounded-full border ${val ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-navy-800 text-readable-muted border-navy-700'}`}>
             {label}: {val ? '✓' : '–'}
           </span>
         ))}

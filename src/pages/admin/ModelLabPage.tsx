@@ -116,7 +116,7 @@ export default function ModelLabPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white font-display">Model Lab</h1>
-              <p className="text-sm text-navy-400 mt-1">
+              <p className="text-sm text-readable-muted mt-1">
                 B3 Historical Backbone — Deterministik futbol modeli araştırma merkezi
               </p>
             </div>
@@ -165,7 +165,7 @@ export default function ModelLabPage() {
             <button
               onClick={runCleanup}
               disabled={cleanupLoading}
-              className="flex items-center gap-1.5 text-xs text-navy-600 hover:text-navy-400 transition-colors disabled:opacity-40"
+              className="flex items-center gap-1.5 text-xs text-readable-muted hover:text-white transition-colors disabled:opacity-40"
             >
               {cleanupLoading ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
               Stale Temizle
@@ -222,7 +222,7 @@ export default function ModelLabPage() {
         {/* Active model version */}
         {!loading && activeModel && (
           <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-5 mb-6">
-            <h2 className="text-xs font-semibold text-navy-500 uppercase tracking-wider mb-3">
+            <h2 className="text-xs font-semibold text-readable-muted uppercase tracking-wider mb-3">
               Aktif Model Versiyonu
             </h2>
             <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
@@ -249,7 +249,7 @@ export default function ModelLabPage() {
                 <p className="text-sm font-semibold text-white group-hover:text-champagne transition-colors">
                   {q.label}
                 </p>
-                <p className="text-xs text-navy-500 mt-0.5">{q.desc}</p>
+                <p className="text-xs text-readable-muted mt-0.5">{q.desc}</p>
               </div>
               <ChevronRight className="w-4 h-4 text-navy-700 group-hover:text-navy-400 shrink-0 mt-0.5" />
             </Link>
@@ -258,7 +258,7 @@ export default function ModelLabPage() {
 
         {/* Latest runs */}
         <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-5">
-          <h2 className="text-xs font-semibold text-navy-500 uppercase tracking-wider mb-4">
+          <h2 className="text-xs font-semibold text-readable-muted uppercase tracking-wider mb-4">
             Son Backtest Çalışmaları
           </h2>
           {loading ? (
@@ -268,7 +268,7 @@ export default function ModelLabPage() {
               ))}
             </div>
           ) : latestRuns.length === 0 ? (
-            <p className="text-sm text-navy-600">Henüz backtest çalışması oluşturulmadı.</p>
+            <p className="text-sm text-readable-muted">Henüz backtest çalışması oluşturulmadı.</p>
           ) : (
             <div className="space-y-1.5">
               {latestRuns.map((run) => (
@@ -297,12 +297,12 @@ function RunRow({ run }: { run: BacktestRun }) {
     }`}>
       <StatusIcon status={run.run_status} />
       <span className="text-white font-medium shrink-0">{run.run_scope}</span>
-      <span className="text-navy-500 tabular-nums shrink-0">
+      <span className="text-readable-muted tabular-nums shrink-0">
         {run.processed_matches}/{run.total_matches}
       </span>
       {run.average_brier_1x2 !== null && run.run_status === 'completed' && (
-        <span className="text-navy-500 tabular-nums shrink-0">
-          Brier <span className="text-navy-300">{Number(run.average_brier_1x2).toFixed(4)}</span>
+        <span className="text-readable-muted tabular-nums shrink-0">
+          Brier <span className="text-readable-subtle">{Number(run.average_brier_1x2).toFixed(4)}</span>
         </span>
       )}
       {run.run_status === 'failed' && run.error_message && (
@@ -310,7 +310,7 @@ function RunRow({ run }: { run: BacktestRun }) {
           {run.error_message}
         </span>
       )}
-      <span className="text-navy-600 shrink-0 ml-auto tabular-nums">{date}</span>
+      <span className="text-readable-muted shrink-0 ml-auto tabular-nums">{date}</span>
     </div>
   );
 }
@@ -341,7 +341,7 @@ function StatCard({
       <div className={`font-bold tabular-nums ${valueColor} ${small ? 'text-lg' : 'text-xl'}`}>
         {value}
       </div>
-      <div className="text-[11px] text-navy-500 mt-0.5">{label}</div>
+      <div className="text-[11px] text-readable-muted mt-0.5">{label}</div>
     </div>
   );
 }
@@ -349,7 +349,7 @@ function StatCard({
 function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <span className="text-xs text-navy-500">{label}: </span>
+      <span className="text-xs text-readable-muted">{label}: </span>
       <span className={`text-sm text-white ${mono ? 'font-mono' : ''}`}>{value}</span>
     </div>
   );

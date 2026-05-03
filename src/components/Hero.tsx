@@ -123,8 +123,8 @@ export function Hero() {
                 <span className="text-xl sm:text-2xl font-bold text-white font-mono tabular-nums leading-none">
                   {s.value}
                 </span>
-                <span className="text-[11px] font-medium text-navy-400 mt-1">{s.label}</span>
-                <span className="text-[10px] text-navy-600 mt-0.5">{s.detail}</span>
+                <span className="text-[11px] font-medium text-readable-muted mt-1">{s.label}</span>
+                <span className="text-[10px] text-readable-muted/70 mt-0.5">{s.detail}</span>
               </div>
               {i < arr.length - 1 && (
                 <div className="w-px h-10 bg-navy-800 shrink-0" />
@@ -162,33 +162,33 @@ export function Hero() {
                 <div className="flex flex-col items-center gap-2 flex-1">
                   <MexicoFlag />
                   <span className="text-sm font-semibold text-white leading-tight">Mexico</span>
-                  <span className="text-[10px] text-navy-500 leading-tight -mt-1">Meksika</span>
+                  <span className="text-[10px] text-readable-muted leading-tight -mt-1">Meksika</span>
                 </div>
                 <div className="flex flex-col items-center gap-1 shrink-0 px-2">
                   <div className="w-px h-3 bg-navy-700" />
-                  <span className="text-[11px] font-bold text-navy-500 tracking-widest uppercase">vs</span>
+                  <span className="text-[11px] font-bold text-readable-muted tracking-widest uppercase">vs</span>
                   <div className="w-px h-3 bg-navy-700" />
                 </div>
                 <div className="flex flex-col items-center gap-2 flex-1">
                   <SouthAfricaFlag />
                   <span className="text-sm font-semibold text-white leading-tight">South Africa</span>
-                  <span className="text-[10px] text-navy-500 leading-tight -mt-1">Güney Afrika</span>
+                  <span className="text-[10px] text-readable-muted leading-tight -mt-1">Güney Afrika</span>
                 </div>
               </div>
 
               {/* Match metadata */}
-              <div className="mt-3 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 text-navy-500 text-xs">
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 text-readable-muted text-xs">
                 <span>Per, 11 Haziran 2026</span>
-                <span className="text-navy-700">·</span>
-                <span className="text-navy-400 font-medium">22:00 TSİ</span>
-                <span className="text-navy-700">·</span>
+                <span className="text-navy-600">·</span>
+                <span className="text-readable-subtle font-medium">22:00 TSİ</span>
+                <span className="text-navy-600">·</span>
                 <MapPin className="w-3 h-3 shrink-0" />
                 <span>Estadio Azteca, Mexico City</span>
               </div>
               {userTz !== 'Europe/Istanbul' && (
-                <p className="mt-1 text-[11px] text-navy-600 text-center">
-                  Yerel saatiniz: <span className="text-navy-400">{localKickoff}</span>
-                  <span className="ml-1 text-navy-700">({userTz})</span>
+                <p className="mt-1 text-[11px] text-readable-muted/70 text-center">
+                  Yerel saatiniz: <span className="text-readable-muted">{localKickoff}</span>
+                  <span className="ml-1 text-readable-muted/50">({userTz})</span>
                 </p>
               )}
             </div>
@@ -205,7 +205,7 @@ export function Hero() {
                           {String(b.value).padStart(2, '0')}
                         </span>
                       </div>
-                      <span className="mt-1 text-[8px] font-semibold tracking-[0.1em] text-navy-500 uppercase">
+                      <span className="mt-1 text-[8px] font-semibold tracking-[0.1em] text-readable-muted uppercase">
                         {b.label}
                       </span>
                     </div>

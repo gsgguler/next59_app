@@ -69,7 +69,7 @@ function StatusBadge({ status }: { status: string }) {
 function MetricCell({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-navy-800/50 rounded-lg px-3 py-2">
-      <div className="text-[10px] text-navy-500 mb-0.5">{label}</div>
+      <div className="text-[10px] text-readable-muted mb-0.5">{label}</div>
       <div className="text-sm font-semibold text-white tabular-nums">{value}</div>
     </div>
   );
@@ -151,15 +151,15 @@ function RunCard({
         <div className="flex flex-wrap items-center gap-3 mb-3">
           <StatusBadge status={run.run_status} />
           <span className="text-sm font-medium text-white">{run.run_scope}</span>
-          <span className="text-xs text-navy-600 font-mono">{run.run_key.slice(-16)}</span>
+          <span className="text-xs text-readable-muted font-mono">{run.run_key.slice(-16)}</span>
           {isChunked && (
-            <span className="text-xs text-navy-500 flex items-center gap-1">
+            <span className="text-xs text-readable-muted flex items-center gap-1">
               <Layers className="w-3 h-3" />
               {completedChunks}/{totalChunks} chunks
               {failedChunks > 0 && <span className="text-red-400 ml-1">· {failedChunks} failed</span>}
             </span>
           )}
-          <span className="ml-auto text-xs text-navy-500 tabular-nums">{pct}%</span>
+          <span className="ml-auto text-xs text-readable-muted tabular-nums">{pct}%</span>
         </div>
 
         {run.total_matches > 0 && (
@@ -225,7 +225,7 @@ function RunCard({
             )}
             <button
               onClick={() => { setExpanded((v) => !v); }}
-              className="flex items-center gap-1 text-xs text-navy-500 hover:text-navy-300 transition-colors ml-auto"
+              className="flex items-center gap-1 text-xs text-readable-muted hover:text-navy-300 transition-colors ml-auto"
             >
               {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
               Chunk Detayı
@@ -332,7 +332,7 @@ export default function ModelLabBacktestPage() {
   return (
     <div className="min-h-screen bg-navy-950 p-6">
       <div className="max-w-5xl mx-auto">
-        <div className="flex items-center gap-2 text-xs text-navy-500 mb-6">
+        <div className="flex items-center gap-2 text-xs text-readable-muted mb-6">
           <Link to="/admin/model-lab" className="hover:text-champagne transition-colors">Model Lab</Link>
           <ChevronRight className="w-3 h-3" />
           <span className="text-navy-400">Backtest</span>
@@ -385,7 +385,7 @@ export default function ModelLabBacktestPage() {
         )}
 
         {/* Info */}
-        <div className="bg-navy-900/40 border border-navy-800/50 rounded-xl p-4 mb-6 text-xs text-navy-500 space-y-1">
+        <div className="bg-navy-900/40 border border-navy-800/50 rounded-xl p-4 mb-6 text-xs text-readable-muted space-y-1">
           <p><strong className="text-navy-400">Chunk modu:</strong> create_run → run_chunk (tekrar tekrar) → finalize_run</p>
           <p><strong className="text-navy-400">Retry:</strong> Başarısız chunklar tekrar pending'e alınır, tamamlananlar korunur</p>
           <p><strong className="text-navy-400">Finalize:</strong> Tüm chunklar tamamlandığında kalibrasyon ve düzeltme adayları hesaplanır</p>
@@ -401,7 +401,7 @@ export default function ModelLabBacktestPage() {
         ) : runs.length === 0 ? (
           <div className="flex flex-col items-center py-16 gap-3">
             <AlertCircle className="w-8 h-8 text-navy-700" />
-            <p className="text-sm text-navy-500">Henüz backtest çalışması yok.</p>
+            <p className="text-sm text-readable-muted">Henüz backtest çalışması yok.</p>
           </div>
         ) : (
           <div className="space-y-3">

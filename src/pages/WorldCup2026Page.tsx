@@ -288,18 +288,18 @@ export default function WorldCup2026Page() {
             <div className="flex flex-col items-end gap-1 min-w-0">
               <span className="fi fi-mx w-8 h-[22px] rounded-[3px] shadow-sm" style={{ display: 'inline-block' }} />
               <span className="text-sm font-semibold text-white leading-tight">Mexico</span>
-              <span className="text-[10px] text-navy-500">Meksika</span>
+              <span className="text-[10px] text-readable-muted">Meksika</span>
             </div>
             <div className="flex flex-col items-center px-4">
               <span className="text-[10px] font-bold text-champagne/60 tracking-widest uppercase">Açılış Maçı</span>
-              <span className="text-xs text-navy-400 mt-1">11 Haz · 22:00 TRT</span>
-              <span className="text-[10px] text-navy-500 mt-0.5">Estadio Azteca</span>
+              <span className="text-xs text-readable-subtle mt-1">11 Haz · 22:00 TRT</span>
+              <span className="text-[10px] text-readable-muted mt-0.5">Estadio Azteca</span>
               <span className="text-[10px] text-champagne/40 mt-1 group-hover:text-champagne/70 transition-colors">Detay →</span>
             </div>
             <div className="flex flex-col items-start gap-1 min-w-0">
               <span className="fi fi-za w-8 h-[22px] rounded-[3px] shadow-sm" style={{ display: 'inline-block' }} />
               <span className="text-sm font-semibold text-white leading-tight">South Africa</span>
-              <span className="text-[10px] text-navy-500">Güney Afrika</span>
+              <span className="text-[10px] text-readable-muted">Güney Afrika</span>
             </div>
           </Link>
         </div>
@@ -313,7 +313,7 @@ export default function WorldCup2026Page() {
               <div key={s.label} className="text-center">
                 <div className="text-2xl font-black text-champagne tabular-nums">{s.value}</div>
                 <div className="text-xs font-semibold text-white mt-0.5">{s.label}</div>
-                <div className="text-[11px] text-navy-500 mt-0.5">{s.sub}</div>
+                <div className="text-[11px] text-readable-muted mt-0.5">{s.sub}</div>
               </div>
             ))}
           </div>
@@ -376,7 +376,7 @@ export default function WorldCup2026Page() {
                             {c?.name_en ?? fifaCode}
                           </span>
                           {c && (
-                            <span className="text-[10px] text-navy-500 truncate block leading-tight">
+                            <span className="text-[10px] text-readable-muted truncate block leading-tight">
                               {c.name_tr}
                             </span>
                           )}
@@ -450,7 +450,7 @@ export default function WorldCup2026Page() {
           <div className="flex items-center gap-3 mb-8">
             <Calendar className="w-5 h-5 text-champagne" />
             <h2 className="text-lg font-bold text-white">Tüm Maçlar</h2>
-            <span className="text-xs text-navy-500 font-mono ml-auto">{filtered.length} maç</span>
+            <span className="text-xs text-readable-muted font-mono ml-auto">{filtered.length} maç</span>
           </div>
 
           {filtered.length === 0 ? (
@@ -499,9 +499,9 @@ export default function WorldCup2026Page() {
       {/* ── Editorial note ── */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-5 flex gap-3">
-          <Info className="w-4 h-4 text-navy-500 shrink-0 mt-0.5" />
-          <div className="text-xs text-navy-500 leading-relaxed">
-            <span className="font-semibold text-navy-400">Fikstür Kaynağı:</span> Maç saatleri ve
+          <Info className="w-4 h-4 text-readable-muted shrink-0 mt-0.5" />
+          <div className="text-xs text-readable-muted leading-relaxed">
+            <span className="font-semibold text-readable-subtle">Fikstür Kaynağı:</span> Maç saatleri ve
             eşleşmeler Fox Sports, Roadtrips ve Yahoo Sports üzerinden çapraz doğrulanmıştır.
             FIFA'nın resmi dijital kanalı doğrudan erişime kapalı olduğundan tüm veriler
             üçüncü taraf kaynaklara dayanmaktadır. Resmi açıklamalar çıktıkça güncellenecektir.

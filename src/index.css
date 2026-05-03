@@ -41,6 +41,21 @@
 }
 
 @layer utilities {
+  /* Semantic surface tokens */
+  .bg-surface-page { background-color: #030912; }
+  .bg-surface-card { background: rgba(10, 25, 41, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .bg-surface-card-solid { background-color: #0a1929; }
+  .bg-surface-card-strong { background-color: #0d1f33; }
+  .bg-surface-inner { background-color: #142d4a; }
+
+  /* Semantic text tokens */
+  .text-readable-muted { color: #8baacf; }
+  .text-readable-subtle { color: #a0bdd9; }
+
+  /* Semantic border tokens */
+  .border-readable-soft { border-color: rgba(102, 144, 195, 0.12); }
+  .border-readable-hover { border-color: rgba(102, 144, 195, 0.22); }
+
   .animate-slide-up {
     animation: slideUp 0.4s ease-out;
   }

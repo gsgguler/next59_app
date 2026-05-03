@@ -240,7 +240,7 @@ const GROUP_TYPES = [
 ];
 
 function BiasChip({ value }: { value: number | null }) {
-  if (value === null) return <span className="text-navy-600">–</span>;
+  if (value === null) return <span className="text-readable-muted">–</span>;
   const abs = Math.abs(value);
   const pct = (value * 100).toFixed(1);
   if (abs < 0.02) return <span className="text-navy-400 tabular-nums">{pct}%</span>;
@@ -257,7 +257,7 @@ function BiasChip({ value }: { value: number | null }) {
 }
 
 function AccBadge({ value }: { value: number | null }) {
-  if (value === null) return <span className="text-navy-600">–</span>;
+  if (value === null) return <span className="text-readable-muted">–</span>;
   const pct = (Number(value) * 100).toFixed(1);
   const good = Number(value) > 0.5;
   return <span className={good ? 'text-emerald-400 tabular-nums' : 'text-navy-400 tabular-nums'}>{pct}%</span>;
@@ -274,7 +274,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function DeltaCell({ raw, adj }: { raw: number | null; adj: number | null }) {
-  if (raw === null || adj === null) return <span className="text-navy-600">–</span>;
+  if (raw === null || adj === null) return <span className="text-readable-muted">–</span>;
   const delta = Number(adj) - Number(raw);
   const improved = delta < 0;
   return (
@@ -285,7 +285,7 @@ function DeltaCell({ raw, adj }: { raw: number | null; adj: number | null }) {
 }
 
 function DeltaAccCell({ raw, adj }: { raw: number | null; adj: number | null }) {
-  if (raw === null || adj === null) return <span className="text-navy-600">–</span>;
+  if (raw === null || adj === null) return <span className="text-readable-muted">–</span>;
   const delta = Number(adj) - Number(raw);
   const improved = delta > 0;
   return (
@@ -298,11 +298,11 @@ function DeltaAccCell({ raw, adj }: { raw: number | null; adj: number | null }) 
 function RateBar({ raw, adj, actual, label }: { raw: number | null; adj: number | null; actual: number | null; label: string }) {
   return (
     <div className="flex items-center gap-2 text-xs">
-      <span className="text-navy-500 w-3">{label}</span>
+      <span className="text-readable-muted w-3">{label}</span>
       <span className="text-navy-400 tabular-nums w-10">{(Number(raw ?? 0) * 100).toFixed(1)}%</span>
-      <span className="text-navy-600">→</span>
+      <span className="text-readable-muted">→</span>
       <span className="text-white tabular-nums w-10">{(Number(adj ?? 0) * 100).toFixed(1)}%</span>
-      <span className="text-navy-600">(actual:</span>
+      <span className="text-readable-muted">(actual:</span>
       <span className="text-champagne tabular-nums">{(Number(actual ?? 0) * 100).toFixed(1)}%)</span>
     </div>
   );
@@ -454,7 +454,7 @@ export default function ModelLabKalibrasyonPage() {
       <div className="max-w-6xl mx-auto">
 
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-xs text-navy-500 mb-6">
+        <div className="flex items-center gap-2 text-xs text-readable-muted mb-6">
           <Link to="/admin/model-lab" className="hover:text-champagne transition-colors">Model Lab</Link>
           <ChevronRight className="w-3 h-3" />
           <span className="text-navy-400">Kalibrasyon</span>
@@ -484,7 +484,7 @@ export default function ModelLabKalibrasyonPage() {
               className={`text-sm font-medium px-4 py-2 border-b-2 transition-all -mb-px whitespace-nowrap ${
                 tab === t
                   ? 'border-champagne text-champagne'
-                  : 'border-transparent text-navy-500 hover:text-white'
+                  : 'border-transparent text-readable-muted hover:text-white'
               }`}
             >
               {t === 'summary' ? 'Kalibrasyon Özeti'
@@ -527,31 +527,31 @@ export default function ModelLabKalibrasyonPage() {
             ) : rows.length === 0 ? (
               <div className="flex flex-col items-center py-16 gap-3">
                 <AlertCircle className="w-8 h-8 text-navy-700" />
-                <p className="text-sm text-navy-500 text-center">Bu grup için kalibrasyon verisi yok.</p>
-                <p className="text-xs text-navy-600 text-center max-w-sm">Backtest tamamlandıktan sonra otomatik hesaplanır.</p>
+                <p className="text-sm text-readable-muted text-center">Bu grup için kalibrasyon verisi yok.</p>
+                <p className="text-xs text-readable-muted text-center max-w-sm">Backtest tamamlandıktan sonra otomatik hesaplanır.</p>
               </div>
             ) : (
               <div className="overflow-x-auto rounded-xl border border-navy-800">
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-navy-800 bg-navy-900/60">
-                      <th className="text-left text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Grup</th>
-                      <th className="text-right text-navy-500 font-medium px-3 py-2.5">N</th>
-                      <th className="text-right text-navy-500 font-medium px-3 py-2.5">Brier</th>
-                      <th className="text-right text-navy-500 font-medium px-3 py-2.5">Log Loss</th>
-                      <th className="text-right text-navy-500 font-medium px-3 py-2.5">Doğruluk</th>
+                      <th className="text-left text-readable-muted font-medium px-3 py-2.5 whitespace-nowrap">Grup</th>
+                      <th className="text-right text-readable-muted font-medium px-3 py-2.5">N</th>
+                      <th className="text-right text-readable-muted font-medium px-3 py-2.5">Brier</th>
+                      <th className="text-right text-readable-muted font-medium px-3 py-2.5">Log Loss</th>
+                      <th className="text-right text-readable-muted font-medium px-3 py-2.5">Doğruluk</th>
                       {showMarkets && <>
-                        <th className="text-right text-navy-500 font-medium px-3 py-2.5">O/U 2.5</th>
-                        <th className="text-right text-navy-500 font-medium px-3 py-2.5">BTTS</th>
+                        <th className="text-right text-readable-muted font-medium px-3 py-2.5">O/U 2.5</th>
+                        <th className="text-right text-readable-muted font-medium px-3 py-2.5">BTTS</th>
                       </>}
                       {showBias && <>
-                        <th className="text-right text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Ev Bias</th>
-                        <th className="text-right text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Ber Bias</th>
-                        <th className="text-right text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Dep Bias</th>
+                        <th className="text-right text-readable-muted font-medium px-3 py-2.5 whitespace-nowrap">Ev Bias</th>
+                        <th className="text-right text-readable-muted font-medium px-3 py-2.5 whitespace-nowrap">Ber Bias</th>
+                        <th className="text-right text-readable-muted font-medium px-3 py-2.5 whitespace-nowrap">Dep Bias</th>
                       </>}
-                      <th className="text-right text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">HCW%</th>
-                      <th className="text-right text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Cal Err</th>
-                      {showPva && <th className="text-left text-navy-500 font-medium px-3 py-2.5">Matris</th>}
+                      <th className="text-right text-readable-muted font-medium px-3 py-2.5 whitespace-nowrap">HCW%</th>
+                      <th className="text-right text-readable-muted font-medium px-3 py-2.5 whitespace-nowrap">Cal Err</th>
+                      {showPva && <th className="text-left text-readable-muted font-medium px-3 py-2.5">Matris</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-navy-800/40">
@@ -576,7 +576,7 @@ export default function ModelLabKalibrasyonPage() {
                             ? <span className={Number(r.high_confidence_wrong_rate) > 0.35 ? 'text-red-400 tabular-nums' : 'text-navy-400 tabular-nums'}>
                                 {(Number(r.high_confidence_wrong_rate) * 100).toFixed(1)}%
                               </span>
-                            : <span className="text-navy-600">–</span>}
+                            : <span className="text-readable-muted">–</span>}
                         </td>
                         <td className="px-3 py-2.5 text-right text-navy-400 tabular-nums">
                           {r.calibration_error !== null ? Number(r.calibration_error).toFixed(4) : '–'}
@@ -584,7 +584,7 @@ export default function ModelLabKalibrasyonPage() {
                         {showPva && (
                           <td className="px-3 py-2.5">
                             {r.predicted_vs_actual_json
-                              ? <span className="text-navy-500 font-mono">{JSON.stringify(r.predicted_vs_actual_json)}</span>
+                              ? <span className="text-readable-muted font-mono">{JSON.stringify(r.predicted_vs_actual_json)}</span>
                               : '–'}
                           </td>
                         )}
@@ -623,8 +623,8 @@ export default function ModelLabKalibrasyonPage() {
             ) : adjustments.length === 0 ? (
               <div className="flex flex-col items-center py-16 gap-3">
                 <Minus className="w-8 h-8 text-navy-700" />
-                <p className="text-sm text-navy-500">Henüz düzeltme adayı yok.</p>
-                <p className="text-xs text-navy-600 max-w-sm text-center">Backtest tamamlandıktan sonra otomatik hesaplanır. Hiçbir aday otomatik aktif edilmez.</p>
+                <p className="text-sm text-readable-muted">Henüz düzeltme adayı yok.</p>
+                <p className="text-xs text-readable-muted max-w-sm text-center">Backtest tamamlandıktan sonra otomatik hesaplanır. Hiçbir aday otomatik aktif edilmez.</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -634,31 +634,31 @@ export default function ModelLabKalibrasyonPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <StatusBadge status={adj.status} />
                         <span className="text-xs font-mono text-champagne">{adj.adjustment_type}</span>
-                        <span className="text-xs text-navy-500">{adj.group_type} / <span className="text-navy-300">{adj.group_key}</span></span>
+                        <span className="text-xs text-readable-muted">{adj.group_type} / <span className="text-navy-300">{adj.group_key}</span></span>
                       </div>
                       <div className="flex items-center gap-3 text-xs shrink-0">
-                        <span className="text-navy-500">N={adj.sample_size}</span>
+                        <span className="text-readable-muted">N={adj.sample_size}</span>
                         {adj.confidence !== null && (
                           <span className="text-navy-400">conf={Number(adj.confidence).toFixed(2)}</span>
                         )}
-                        <span className={adj.is_active ? 'text-emerald-400' : 'text-navy-600'}>
+                        <span className={adj.is_active ? 'text-emerald-400' : 'text-readable-muted'}>
                           {adj.is_active ? 'ACTIVE' : 'inactive'}
                         </span>
                       </div>
                     </div>
                     <div className="grid grid-cols-3 gap-3 mb-2 text-xs">
                       <div className="bg-navy-800/60 rounded-lg p-2">
-                        <p className="text-navy-500 mb-0.5">Ölçülen bias</p>
+                        <p className="text-readable-muted mb-0.5">Ölçülen bias</p>
                         <p className="text-white font-mono tabular-nums">{adj.evidence_metric !== null ? Number(adj.evidence_metric).toFixed(4) : '–'}</p>
                       </div>
                       <div className="bg-navy-800/60 rounded-lg p-2">
-                        <p className="text-navy-500 mb-0.5">Düzeltme değeri</p>
+                        <p className="text-readable-muted mb-0.5">Düzeltme değeri</p>
                         <p className={`font-mono tabular-nums ${Number(adj.adjustment_value) > 0 ? 'text-sky-400' : 'text-amber-400'}`}>
                           {Number(adj.adjustment_value) > 0 ? '+' : ''}{Number(adj.adjustment_value).toFixed(4)}
                         </p>
                       </div>
                       <div className="bg-navy-800/60 rounded-lg p-2">
-                        <p className="text-navy-500 mb-0.5">Baseline Brier</p>
+                        <p className="text-readable-muted mb-0.5">Baseline Brier</p>
                         <p className="text-navy-300 font-mono tabular-nums">{adj.before_metric !== null ? Number(adj.before_metric).toFixed(4) : '–'}</p>
                       </div>
                     </div>
@@ -689,7 +689,7 @@ export default function ModelLabKalibrasyonPage() {
             ) : simulations.length === 0 ? (
               <div className="flex flex-col items-center py-16 gap-3">
                 <RefreshCw className="w-8 h-8 text-navy-700" />
-                <p className="text-sm text-navy-500">Henüz simülasyon yok.</p>
+                <p className="text-sm text-readable-muted">Henüz simülasyon yok.</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -704,7 +704,7 @@ export default function ModelLabKalibrasyonPage() {
                       <div className="flex items-center justify-between gap-4 mb-4">
                         <div>
                           <span className="text-sm font-bold text-white font-mono">{sim.simulation_key}</span>
-                          <span className="ml-2 text-xs text-navy-500">N={sim.sample_size.toLocaleString('tr-TR')}</span>
+                          <span className="ml-2 text-xs text-readable-muted">N={sim.sample_size.toLocaleString('tr-TR')}</span>
                         </div>
                         {brierImproved && llImproved && accImproved
                           ? <span className="flex items-center gap-1 text-xs font-medium text-emerald-400"><CheckCircle className="w-3.5 h-3.5" />Tüm metrikler iyileşti</span>
@@ -715,7 +715,7 @@ export default function ModelLabKalibrasyonPage() {
                       {/* Metric cards */}
                       <div className="grid grid-cols-3 gap-3 mb-4">
                         <div className="bg-navy-800/50 rounded-xl p-3">
-                          <p className="text-[10px] text-navy-500 font-medium uppercase tracking-wider mb-2">Brier 1X2</p>
+                          <p className="text-[10px] text-readable-muted font-medium uppercase tracking-wider mb-2">Brier 1X2</p>
                           <div className="space-y-1 text-xs">
                             <div className="flex justify-between">
                               <span className="text-navy-400">Ham</span>
@@ -728,14 +728,14 @@ export default function ModelLabKalibrasyonPage() {
                               </span>
                             </div>
                             <div className="flex justify-between border-t border-navy-700/50 pt-1">
-                              <span className="text-navy-500">Δ</span>
+                              <span className="text-readable-muted">Δ</span>
                               <DeltaCell raw={sim.raw_avg_brier_1x2} adj={sim.adjusted_avg_brier_1x2} />
                             </div>
                           </div>
                         </div>
 
                         <div className="bg-navy-800/50 rounded-xl p-3">
-                          <p className="text-[10px] text-navy-500 font-medium uppercase tracking-wider mb-2">Log Loss</p>
+                          <p className="text-[10px] text-readable-muted font-medium uppercase tracking-wider mb-2">Log Loss</p>
                           <div className="space-y-1 text-xs">
                             <div className="flex justify-between">
                               <span className="text-navy-400">Ham</span>
@@ -748,14 +748,14 @@ export default function ModelLabKalibrasyonPage() {
                               </span>
                             </div>
                             <div className="flex justify-between border-t border-navy-700/50 pt-1">
-                              <span className="text-navy-500">Δ</span>
+                              <span className="text-readable-muted">Δ</span>
                               <DeltaCell raw={sim.raw_avg_log_loss_1x2} adj={sim.adjusted_avg_log_loss_1x2} />
                             </div>
                           </div>
                         </div>
 
                         <div className="bg-navy-800/50 rounded-xl p-3">
-                          <p className="text-[10px] text-navy-500 font-medium uppercase tracking-wider mb-2">Doğruluk</p>
+                          <p className="text-[10px] text-readable-muted font-medium uppercase tracking-wider mb-2">Doğruluk</p>
                           <div className="space-y-1 text-xs">
                             <div className="flex justify-between">
                               <span className="text-navy-400">Ham</span>
@@ -768,7 +768,7 @@ export default function ModelLabKalibrasyonPage() {
                               </span>
                             </div>
                             <div className="flex justify-between border-t border-navy-700/50 pt-1">
-                              <span className="text-navy-500">Δ</span>
+                              <span className="text-readable-muted">Δ</span>
                               <DeltaAccCell raw={sim.raw_result_accuracy} adj={sim.adjusted_result_accuracy} />
                             </div>
                           </div>
@@ -777,7 +777,7 @@ export default function ModelLabKalibrasyonPage() {
 
                       {/* Class distribution */}
                       <div className="bg-navy-800/30 rounded-xl p-3 mb-3">
-                        <p className="text-[10px] text-navy-500 font-medium uppercase tracking-wider mb-2">
+                        <p className="text-[10px] text-readable-muted font-medium uppercase tracking-wider mb-2">
                           Tahmin Dağılımı (Ham → Düzeltilmiş | Gerçek)
                         </p>
                         <div className="space-y-1.5">
@@ -813,7 +813,7 @@ export default function ModelLabKalibrasyonPage() {
             ) : decisionSims.length === 0 ? (
               <div className="flex flex-col items-center py-16 gap-3">
                 <RefreshCw className="w-8 h-8 text-navy-700" />
-                <p className="text-sm text-navy-500">Henüz decision simülasyonu yok.</p>
+                <p className="text-sm text-readable-muted">Henüz decision simülasyonu yok.</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -832,7 +832,7 @@ export default function ModelLabKalibrasyonPage() {
                       <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
                         <div className="flex items-center gap-3">
                           <span className="text-sm font-bold text-white font-mono">{sim.simulation_key}</span>
-                          <span className="text-xs text-navy-500">N={sim.sample_size.toLocaleString('tr-TR')}</span>
+                          <span className="text-xs text-readable-muted">N={sim.sample_size.toLocaleString('tr-TR')}</span>
                           {sim.probability_unchanged && (
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-sky-500/10 border border-sky-500/20 text-sky-400">
                               prob unchanged
@@ -844,7 +844,7 @@ export default function ModelLabKalibrasyonPage() {
                             ? <span className="flex items-center gap-1 text-xs font-medium text-emerald-400"><CheckCircle className="w-3.5 h-3.5" />Promising</span>
                             : hasRisk
                             ? <span className="flex items-center gap-1 text-xs font-medium text-red-400"><AlertTriangle className="w-3.5 h-3.5" />Risk flags</span>
-                            : <span className="flex items-center gap-1 text-xs font-medium text-navy-500"><Minus className="w-3.5 h-3.5" />Neutral</span>
+                            : <span className="flex items-center gap-1 text-xs font-medium text-readable-muted"><Minus className="w-3.5 h-3.5" />Neutral</span>
                           }
                         </div>
                       </div>
@@ -852,7 +852,7 @@ export default function ModelLabKalibrasyonPage() {
                       {isScenario ? (
                         /* Scenario class distribution */
                         <div className="bg-navy-800/30 rounded-xl p-3 mb-3">
-                          <p className="text-[10px] text-navy-500 font-medium uppercase tracking-wider mb-2">Scenario Sınıf Dağılımı</p>
+                          <p className="text-[10px] text-readable-muted font-medium uppercase tracking-wider mb-2">Scenario Sınıf Dağılımı</p>
                           <div className="flex flex-wrap gap-2">
                             {sim.scenario_class_distribution_json && Object.entries(sim.scenario_class_distribution_json)
                               .sort((a, b) => b[1] - a[1])
@@ -866,11 +866,11 @@ export default function ModelLabKalibrasyonPage() {
                                     : 'text-navy-300'
                                   }>{cls}</span>
                                   <span className="text-white font-medium tabular-nums">{cnt}</span>
-                                  <span className="text-navy-500">({((cnt / sim.sample_size) * 100).toFixed(1)}%)</span>
+                                  <span className="text-readable-muted">({((cnt / sim.sample_size) * 100).toFixed(1)}%)</span>
                                 </div>
                               ))}
                           </div>
-                          <p className="text-xs text-navy-500 mt-2">
+                          <p className="text-xs text-readable-muted mt-2">
                             home_control dominates ({sim.scenario_class_distribution_json?.home_control ?? 0}/{sim.sample_size} = {((Number(sim.scenario_class_distribution_json?.home_control ?? 0)/sim.sample_size)*100).toFixed(0)}%) — confirms structural home bias in raw model output.
                           </p>
                         </div>
@@ -879,36 +879,36 @@ export default function ModelLabKalibrasyonPage() {
                           {/* Metric row */}
                           <div className="grid grid-cols-2 gap-3 mb-4 sm:grid-cols-4">
                             <div className="bg-navy-800/50 rounded-xl p-3 text-xs">
-                              <p className="text-[10px] text-navy-500 uppercase tracking-wider mb-1.5">Doğruluk</p>
+                              <p className="text-[10px] text-readable-muted uppercase tracking-wider mb-1.5">Doğruluk</p>
                               <p className="text-navy-400">Ham: <span className="text-navy-300 tabular-nums">{(Number(sim.raw_result_accuracy)*100).toFixed(2)}%</span></p>
                               <p className="text-navy-400">Adj: <span className={`tabular-nums font-medium ${accImproved ? 'text-emerald-400' : 'text-red-400'}`}>{(Number(sim.adjusted_result_accuracy)*100).toFixed(2)}%</span></p>
                             </div>
                             <div className="bg-navy-800/50 rounded-xl p-3 text-xs">
-                              <p className="text-[10px] text-navy-500 uppercase tracking-wider mb-1.5">Draw Yakalama</p>
+                              <p className="text-[10px] text-readable-muted uppercase tracking-wider mb-1.5">Draw Yakalama</p>
                               <p className={`text-lg font-bold tabular-nums ${drawCapture !== null && drawCapture > 0.10 ? 'text-emerald-400' : 'text-red-400'}`}>
                                 {drawCapture !== null ? (drawCapture * 100).toFixed(1) + '%' : '0%'}
                               </p>
-                              <p className="text-navy-500">gerçek berabere tahmini</p>
+                              <p className="text-readable-muted">gerçek berabere tahmini</p>
                             </div>
                             <div className="bg-navy-800/50 rounded-xl p-3 text-xs">
-                              <p className="text-[10px] text-navy-500 uppercase tracking-wider mb-1.5">Home Overcall Azaltma</p>
+                              <p className="text-[10px] text-readable-muted uppercase tracking-wider mb-1.5">Home Overcall Azaltma</p>
                               <p className={`text-lg font-bold tabular-nums ${homeReduction !== null && homeReduction > 0.05 ? 'text-emerald-400' : 'text-navy-400'}`}>
                                 {homeReduction !== null ? (homeReduction * 100).toFixed(1) + 'pp' : '0pp'}
                               </p>
-                              <p className="text-navy-500">ev tahmin azalması</p>
+                              <p className="text-readable-muted">ev tahmin azalması</p>
                             </div>
                             <div className={`rounded-xl p-3 text-xs ${drawRateOk ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-navy-800/50'}`}>
-                              <p className="text-[10px] text-navy-500 uppercase tracking-wider mb-1.5">Pred D Rate</p>
+                              <p className="text-[10px] text-readable-muted uppercase tracking-wider mb-1.5">Pred D Rate</p>
                               <p className={`text-lg font-bold tabular-nums ${drawRateOk ? 'text-emerald-400' : 'text-red-400'}`}>
                                 {(Number(sim.adjusted_pred_draw_rate ?? 0)*100).toFixed(1)}%
                               </p>
-                              <p className="text-navy-500">Gerçek: {(Number(sim.actual_draw_rate ?? 0)*100).toFixed(1)}%</p>
+                              <p className="text-readable-muted">Gerçek: {(Number(sim.actual_draw_rate ?? 0)*100).toFixed(1)}%</p>
                             </div>
                           </div>
 
                           {/* H/D/A distribution */}
                           <div className="bg-navy-800/30 rounded-xl p-3 mb-3">
-                            <p className="text-[10px] text-navy-500 font-medium uppercase tracking-wider mb-2">
+                            <p className="text-[10px] text-readable-muted font-medium uppercase tracking-wider mb-2">
                               Tahmin Dağılımı (Ham → Düzeltilmiş | Gerçek)
                             </p>
                             <div className="space-y-1.5">
@@ -932,11 +932,11 @@ export default function ModelLabKalibrasyonPage() {
                     <table className="w-full text-xs">
                       <thead>
                         <tr className="border-b border-navy-800">
-                          <th className="text-left text-navy-500 font-medium px-2 py-2">Mod</th>
-                          <th className="text-right text-navy-500 font-medium px-2 py-2">Accuracy</th>
-                          <th className="text-right text-navy-500 font-medium px-2 py-2">Pred D%</th>
-                          <th className="text-right text-navy-500 font-medium px-2 py-2">Draw Capture</th>
-                          <th className="text-right text-navy-500 font-medium px-2 py-2">Home Reduction</th>
+                          <th className="text-left text-readable-muted font-medium px-2 py-2">Mod</th>
+                          <th className="text-right text-readable-muted font-medium px-2 py-2">Accuracy</th>
+                          <th className="text-right text-readable-muted font-medium px-2 py-2">Pred D%</th>
+                          <th className="text-right text-readable-muted font-medium px-2 py-2">Draw Capture</th>
+                          <th className="text-right text-readable-muted font-medium px-2 py-2">Home Reduction</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-navy-800/40">
@@ -990,7 +990,7 @@ export default function ModelLabKalibrasyonPage() {
             ) : drawFloorSims.length === 0 ? (
               <div className="flex flex-col items-center py-16 gap-3">
                 <RefreshCw className="w-8 h-8 text-navy-700" />
-                <p className="text-sm text-navy-500">Henüz draw floor simülasyonu yok.</p>
+                <p className="text-sm text-readable-muted">Henüz draw floor simülasyonu yok.</p>
               </div>
             ) : (
               <>
@@ -999,20 +999,20 @@ export default function ModelLabKalibrasyonPage() {
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-navy-800 bg-navy-900/60">
-                        <th className="text-left text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Mod</th>
-                        <th className="text-center text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Verdict</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Brier adj</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">LL adj</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Acc adj</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Pred H</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Pred D</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Pred A</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">D-Prec</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">D-Rec</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">D-F1</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">A-Rec</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Home↓</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">ECE-D</th>
+                        <th className="text-left text-readable-muted font-medium px-3 py-2.5 whitespace-nowrap">Mod</th>
+                        <th className="text-center text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">Verdict</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">Brier adj</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">LL adj</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">Acc adj</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">Pred H</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">Pred D</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">Pred A</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">D-Prec</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">D-Rec</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">D-F1</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">A-Rec</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">Home↓</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">ECE-D</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-navy-800/40">
@@ -1021,7 +1021,7 @@ export default function ModelLabKalibrasyonPage() {
                         const verdictColor = verdict === 'promising' ? 'text-emerald-400'
                           : verdict === 'rejected' ? 'text-red-400'
                           : verdict === 'risky' ? 'text-amber-400'
-                          : 'text-navy-500';
+                          : 'text-readable-muted';
                         const brierBetter = Number(sim.adjusted_avg_brier_1x2 ?? 1) < Number(sim.raw_avg_brier_1x2 ?? 0);
                         const accBetter   = Number(sim.adjusted_result_accuracy ?? 0) > Number(sim.raw_result_accuracy ?? 1);
                         return (
@@ -1074,7 +1074,7 @@ export default function ModelLabKalibrasyonPage() {
                 </div>
 
                 {/* Actual vs target row */}
-                <div className="bg-navy-900/40 border border-navy-800 rounded-xl px-4 py-3 mb-6 text-xs text-navy-400 flex flex-wrap gap-4">
+                <div className="bg-navy-900/40 border border-navy-800 rounded-xl px-4 py-3 mb-6 text-xs text-readable-muted flex flex-wrap gap-4">
                   <span>Gerçek H/D/A: <span className="text-white tabular-nums">44.9% / 26.1% / 29.0%</span></span>
                   <span>Raw Pred H/D/A: <span className="text-amber-400 tabular-nums">96.3% / 0.0% / 3.7%</span></span>
                   <span>Raw Brier: <span className="text-white tabular-nums">0.211876</span></span>
@@ -1100,7 +1100,7 @@ export default function ModelLabKalibrasyonPage() {
                           {(sim.reliability_bins_draw?.length ?? 0) > 0 && (
                             <button
                               onClick={() => setExpandedBins(isExpanded ? null : sim.id)}
-                              className="text-[10px] text-navy-500 hover:text-champagne transition-colors flex items-center gap-1"
+                              className="text-[10px] text-readable-muted hover:text-champagne transition-colors flex items-center gap-1"
                             >
                               Reliability Bins {isExpanded ? '▲' : '▼'}
                             </button>
@@ -1122,41 +1122,41 @@ export default function ModelLabKalibrasyonPage() {
                         {/* Key metrics inline */}
                         <div className="grid grid-cols-4 gap-2 text-xs sm:grid-cols-8">
                           <div className="bg-navy-800/40 rounded-lg p-2">
-                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">D-F1</p>
+                            <p className="text-[9px] text-readable-muted uppercase mb-0.5">D-F1</p>
                             <p className={`font-bold tabular-nums ${Number(sim.draw_f1??0)>0.20 ? 'text-emerald-400' : Number(sim.draw_f1??0)>0.10 ? 'text-amber-400' : 'text-red-400'}`}>
                               {sim.draw_f1 !== null ? Number(sim.draw_f1).toFixed(3) : '–'}
                             </p>
                           </div>
                           <div className="bg-navy-800/40 rounded-lg p-2">
-                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">D-Prec</p>
+                            <p className="text-[9px] text-readable-muted uppercase mb-0.5">D-Prec</p>
                             <p className="text-white tabular-nums">{sim.draw_precision !== null ? (Number(sim.draw_precision)*100).toFixed(0)+'%' : '–'}</p>
                           </div>
                           <div className="bg-navy-800/40 rounded-lg p-2">
-                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">D-Rec</p>
+                            <p className="text-[9px] text-readable-muted uppercase mb-0.5">D-Rec</p>
                             <p className="text-white tabular-nums">{sim.draw_recall !== null ? (Number(sim.draw_recall)*100).toFixed(0)+'%' : '–'}</p>
                           </div>
                           <div className="bg-navy-800/40 rounded-lg p-2">
-                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">Draw↑</p>
+                            <p className="text-[9px] text-readable-muted uppercase mb-0.5">Draw↑</p>
                             <p className={`tabular-nums ${Number(sim.adjusted_pred_draw_rate??0)>=0.12?'text-emerald-400':'text-amber-400'}`}>
                               {(Number(sim.adjusted_pred_draw_rate??0)*100).toFixed(1)}%
                             </p>
                           </div>
                           <div className="bg-navy-800/40 rounded-lg p-2">
-                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">A-F1</p>
+                            <p className="text-[9px] text-readable-muted uppercase mb-0.5">A-F1</p>
                             <p className="text-navy-300 tabular-nums">{sim.away_f1 !== null ? Number(sim.away_f1).toFixed(3) : '–'}</p>
                           </div>
                           <div className="bg-navy-800/40 rounded-lg p-2">
-                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">Home↓</p>
+                            <p className="text-[9px] text-readable-muted uppercase mb-0.5">Home↓</p>
                             <p className="text-sky-400 tabular-nums">{sim.home_overcall_reduction !== null ? (Number(sim.home_overcall_reduction)*100).toFixed(1)+'pp' : '–'}</p>
                           </div>
                           <div className="bg-navy-800/40 rounded-lg p-2">
-                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">Acc adj</p>
+                            <p className="text-[9px] text-readable-muted uppercase mb-0.5">Acc adj</p>
                             <p className={`tabular-nums ${Number(sim.adjusted_result_accuracy??0)>Number(sim.raw_result_accuracy??0)?'text-emerald-400':'text-navy-400'}`}>
                               {(Number(sim.adjusted_result_accuracy??0)*100).toFixed(2)}%
                             </p>
                           </div>
                           <div className="bg-navy-800/40 rounded-lg p-2">
-                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">ECE-D</p>
+                            <p className="text-[9px] text-readable-muted uppercase mb-0.5">ECE-D</p>
                             <p className={`tabular-nums ${Number(sim.expected_calibration_error_draw??1)<0.04?'text-emerald-400':'text-amber-400'}`}>
                               {sim.expected_calibration_error_draw !== null ? Number(sim.expected_calibration_error_draw).toFixed(4) : '–'}
                             </p>
@@ -1169,11 +1169,11 @@ export default function ModelLabKalibrasyonPage() {
                             <table className="w-full text-[10px]">
                               <thead>
                                 <tr className="border-b border-navy-800">
-                                  <th className="text-left text-navy-500 font-medium px-2 py-1.5">Bin (p_draw)</th>
-                                  <th className="text-right text-navy-500 font-medium px-2 py-1.5">N</th>
-                                  <th className="text-right text-navy-500 font-medium px-2 py-1.5">Avg Pred D</th>
-                                  <th className="text-right text-navy-500 font-medium px-2 py-1.5">Actual D Rate</th>
-                                  <th className="text-right text-navy-500 font-medium px-2 py-1.5">Gap</th>
+                                  <th className="text-left text-readable-muted font-medium px-2 py-1.5">Bin (p_draw)</th>
+                                  <th className="text-right text-readable-muted font-medium px-2 py-1.5">N</th>
+                                  <th className="text-right text-readable-muted font-medium px-2 py-1.5">Avg Pred D</th>
+                                  <th className="text-right text-readable-muted font-medium px-2 py-1.5">Actual D Rate</th>
+                                  <th className="text-right text-readable-muted font-medium px-2 py-1.5">Gap</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-navy-800/40">
@@ -1228,7 +1228,7 @@ export default function ModelLabKalibrasyonPage() {
             ) : tempGridSims.length === 0 ? (
               <div className="flex flex-col items-center py-16 gap-3">
                 <RefreshCw className="w-8 h-8 text-navy-700" />
-                <p className="text-sm text-navy-500">Henüz temperature grid simülasyonu yok.</p>
+                <p className="text-sm text-readable-muted">Henüz temperature grid simülasyonu yok.</p>
               </div>
             ) : (
               <>
@@ -1237,25 +1237,25 @@ export default function ModelLabKalibrasyonPage() {
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-navy-800 bg-navy-900/60">
-                        <th className="text-left text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Mod</th>
-                        <th className="text-center text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Sıra</th>
-                        <th className="text-center text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">T</th>
-                        <th className="text-center text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Verdict</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Brier adj</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Skill/Raw</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Skill/CB</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">LL adj</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Acc adj</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Pred H</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Pred D</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Pred A</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">D-Prec</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">D-Rec</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">D-F1</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">A-Rec</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Home↓</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">ECE-D</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">CalSlope</th>
+                        <th className="text-left text-readable-muted font-medium px-3 py-2.5 whitespace-nowrap">Mod</th>
+                        <th className="text-center text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">Sıra</th>
+                        <th className="text-center text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">T</th>
+                        <th className="text-center text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">Verdict</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">Brier adj</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">Skill/Raw</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">Skill/CB</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">LL adj</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">Acc adj</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">Pred H</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">Pred D</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">Pred A</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">D-Prec</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">D-Rec</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">D-F1</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">A-Rec</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">Home↓</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">ECE-D</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">CalSlope</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-navy-800/40">
@@ -1264,7 +1264,7 @@ export default function ModelLabKalibrasyonPage() {
                         const verdictColor = verdict === 'promising' ? 'text-emerald-400'
                           : verdict === 'rejected' ? 'text-red-400'
                           : verdict === 'risky' ? 'text-amber-400'
-                          : 'text-navy-500';
+                          : 'text-readable-muted';
                         const cfg = sim.probability_transform_config as Record<string, unknown> | null;
                         const pipelineLabel = cfg?.pipeline_order as string ?? '–';
                         const tVal = cfg?.temperature as number ?? null;
@@ -1332,7 +1332,7 @@ export default function ModelLabKalibrasyonPage() {
                             <td className={`px-2 py-2.5 text-right tabular-nums ${Number(sim.expected_calibration_error_draw??1) < 0.04 ? 'text-emerald-400' : 'text-amber-400'}`}>
                               {sim.expected_calibration_error_draw !== null ? Number(sim.expected_calibration_error_draw).toFixed(4) : '–'}
                             </td>
-                            <td className={`px-2 py-2.5 text-right tabular-nums font-mono ${slopeOk ? 'text-emerald-400' : slope !== null ? 'text-amber-400' : 'text-navy-600'}`}>
+                            <td className={`px-2 py-2.5 text-right tabular-nums font-mono ${slopeOk ? 'text-emerald-400' : slope !== null ? 'text-amber-400' : 'text-readable-muted'}`}>
                               {slope !== null ? Number(slope).toFixed(3) : 'n/a'}
                             </td>
                           </tr>
@@ -1371,7 +1371,7 @@ export default function ModelLabKalibrasyonPage() {
                           {(sim.reliability_bins_draw?.length ?? 0) > 0 && (
                             <button
                               onClick={() => setExpandedBins(isExpanded ? null : sim.id)}
-                              className="text-[10px] text-navy-500 hover:text-champagne transition-colors flex items-center gap-1 shrink-0"
+                              className="text-[10px] text-readable-muted hover:text-champagne transition-colors flex items-center gap-1 shrink-0"
                             >
                               Reliability Bins {isExpanded ? '▲' : '▼'}
                             </button>
@@ -1391,45 +1391,45 @@ export default function ModelLabKalibrasyonPage() {
 
                         <div className="grid grid-cols-4 gap-2 text-xs sm:grid-cols-8">
                           <div className="bg-navy-800/40 rounded-lg p-2">
-                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">D-F1</p>
+                            <p className="text-[9px] text-readable-muted uppercase mb-0.5">D-F1</p>
                             <p className={`font-bold tabular-nums ${Number(sim.draw_f1??0) > 0.20 ? 'text-emerald-400' : Number(sim.draw_f1??0) > 0.15 ? 'text-amber-400' : 'text-red-400'}`}>
                               {sim.draw_f1 !== null ? Number(sim.draw_f1).toFixed(3) : '–'}
                             </p>
                           </div>
                           <div className="bg-navy-800/40 rounded-lg p-2">
-                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">D-Prec</p>
+                            <p className="text-[9px] text-readable-muted uppercase mb-0.5">D-Prec</p>
                             <p className="text-white tabular-nums">{sim.draw_precision !== null ? (Number(sim.draw_precision)*100).toFixed(0)+'%' : '–'}</p>
                           </div>
                           <div className="bg-navy-800/40 rounded-lg p-2">
-                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">D-Rec</p>
+                            <p className="text-[9px] text-readable-muted uppercase mb-0.5">D-Rec</p>
                             <p className="text-white tabular-nums">{sim.draw_recall !== null ? (Number(sim.draw_recall)*100).toFixed(0)+'%' : '–'}</p>
                           </div>
                           <div className="bg-navy-800/40 rounded-lg p-2">
-                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">Draw Rate</p>
+                            <p className="text-[9px] text-readable-muted uppercase mb-0.5">Draw Rate</p>
                             <p className={`tabular-nums ${Number(sim.adjusted_pred_draw_rate??0) >= 0.12 ? 'text-emerald-400' : 'text-amber-400'}`}>
                               {(Number(sim.adjusted_pred_draw_rate??0)*100).toFixed(1)}%
                             </p>
                           </div>
                           <div className="bg-navy-800/40 rounded-lg p-2">
-                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">Skill/Raw</p>
+                            <p className="text-[9px] text-readable-muted uppercase mb-0.5">Skill/Raw</p>
                             <p className={`tabular-nums ${Number(sim.brier_skill_vs_raw??0) > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                               {sim.brier_skill_vs_raw !== null ? (Number(sim.brier_skill_vs_raw)*100).toFixed(3)+'%' : '–'}
                             </p>
                           </div>
                           <div className="bg-navy-800/40 rounded-lg p-2">
-                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">Skill/CB</p>
+                            <p className="text-[9px] text-readable-muted uppercase mb-0.5">Skill/CB</p>
                             <p className={`tabular-nums ${Number(sim.brier_skill_vs_compbias??0) > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                               {sim.brier_skill_vs_compbias !== null ? (Number(sim.brier_skill_vs_compbias)*100).toFixed(3)+'%' : '–'}
                             </p>
                           </div>
                           <div className="bg-navy-800/40 rounded-lg p-2">
-                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">Cal Slope</p>
-                            <p className={`tabular-nums font-mono ${sim.calibration_slope_draw !== null && Number(sim.calibration_slope_draw) >= 0.9 && Number(sim.calibration_slope_draw) <= 1.1 ? 'text-emerald-400' : sim.calibration_slope_draw !== null ? 'text-amber-400' : 'text-navy-600'}`}>
+                            <p className="text-[9px] text-readable-muted uppercase mb-0.5">Cal Slope</p>
+                            <p className={`tabular-nums font-mono ${sim.calibration_slope_draw !== null && Number(sim.calibration_slope_draw) >= 0.9 && Number(sim.calibration_slope_draw) <= 1.1 ? 'text-emerald-400' : sim.calibration_slope_draw !== null ? 'text-amber-400' : 'text-readable-muted'}`}>
                               {sim.calibration_slope_draw !== null ? Number(sim.calibration_slope_draw).toFixed(3) : 'n/a'}
                             </p>
                           </div>
                           <div className="bg-navy-800/40 rounded-lg p-2">
-                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">ECE-D</p>
+                            <p className="text-[9px] text-readable-muted uppercase mb-0.5">ECE-D</p>
                             <p className={`tabular-nums ${Number(sim.expected_calibration_error_draw??1) < 0.04 ? 'text-emerald-400' : 'text-amber-400'}`}>
                               {sim.expected_calibration_error_draw !== null ? Number(sim.expected_calibration_error_draw).toFixed(4) : '–'}
                             </p>
@@ -1441,11 +1441,11 @@ export default function ModelLabKalibrasyonPage() {
                             <table className="w-full text-[10px]">
                               <thead>
                                 <tr className="border-b border-navy-800">
-                                  <th className="text-left text-navy-500 font-medium px-2 py-1.5">Bin (p_draw)</th>
-                                  <th className="text-right text-navy-500 font-medium px-2 py-1.5">N</th>
-                                  <th className="text-right text-navy-500 font-medium px-2 py-1.5">Avg Pred D</th>
-                                  <th className="text-right text-navy-500 font-medium px-2 py-1.5">Actual D Rate</th>
-                                  <th className="text-right text-navy-500 font-medium px-2 py-1.5">Gap</th>
+                                  <th className="text-left text-readable-muted font-medium px-2 py-1.5">Bin (p_draw)</th>
+                                  <th className="text-right text-readable-muted font-medium px-2 py-1.5">N</th>
+                                  <th className="text-right text-readable-muted font-medium px-2 py-1.5">Avg Pred D</th>
+                                  <th className="text-right text-readable-muted font-medium px-2 py-1.5">Actual D Rate</th>
+                                  <th className="text-right text-readable-muted font-medium px-2 py-1.5">Gap</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-navy-800/40">
@@ -1490,15 +1490,15 @@ export default function ModelLabKalibrasyonPage() {
                 <p className="text-xs text-navy-400 mb-3">Tahmin Beraberlik Oranı (hedef: ≤40%)</p>
                 <div className="space-y-1 text-xs">
                   <div className="flex justify-between">
-                    <span className="text-navy-500">Ham bias (draw)</span>
+                    <span className="text-readable-muted">Ham bias (draw)</span>
                     <span className="text-amber-400 tabular-nums font-mono">+0.0927</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-navy-500">Ham bias (home)</span>
+                    <span className="text-readable-muted">Ham bias (home)</span>
                     <span className="text-sky-400 tabular-nums font-mono">−0.1429</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-navy-500">Sonuç (127/137)</span>
+                    <span className="text-readable-muted">Sonuç (127/137)</span>
                     <span className="text-red-400 tabular-nums">%92.7 argmax değişti</span>
                   </div>
                 </div>
@@ -1509,15 +1509,15 @@ export default function ModelLabKalibrasyonPage() {
                 <p className="text-xs text-navy-400 mb-3">Doğruluk Düşüşü (hedef: ≥−2pp)</p>
                 <div className="space-y-1 text-xs">
                   <div className="flex justify-between">
-                    <span className="text-navy-500">Ham bias (away)</span>
+                    <span className="text-readable-muted">Ham bias (away)</span>
                     <span className="text-amber-400 tabular-nums font-mono">+0.0559</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-navy-500">Ham bias (draw)</span>
+                    <span className="text-readable-muted">Ham bias (draw)</span>
                     <span className="text-sky-400 tabular-nums font-mono">−0.0422</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-navy-500">Sonuç (21/104)</span>
+                    <span className="text-readable-muted">Sonuç (21/104)</span>
                     <span className="text-amber-400 tabular-nums">10 zarar, 6 katkı</span>
                   </div>
                 </div>
@@ -1533,8 +1533,8 @@ export default function ModelLabKalibrasyonPage() {
             ) : pathologySims.length === 0 ? (
               <div className="flex flex-col items-center py-16 gap-3">
                 <RefreshCw className="w-8 h-8 text-navy-700" />
-                <p className="text-sm text-navy-500">Patoloji simülasyonu bulunamadı.</p>
-                <p className="text-xs text-navy-600 text-center max-w-sm">
+                <p className="text-sm text-readable-muted">Patoloji simülasyonu bulunamadı.</p>
+                <p className="text-xs text-readable-muted text-center max-w-sm">
                   ml_run_pathology_simulation() RPC'si çalıştırıldıktan sonra görünür.
                 </p>
               </div>
@@ -1545,18 +1545,18 @@ export default function ModelLabKalibrasyonPage() {
                   <table className="w-full text-[11px]">
                     <thead>
                       <tr className="border-b border-navy-800 bg-navy-900/60">
-                        <th className="text-left text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Mod</th>
-                        <th className="text-left text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Transform</th>
-                        <th className="text-center text-navy-500 font-medium px-2 py-2.5">Verdict</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5">Brier</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5">Acc</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5">Pred D%</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5">D-F1</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Skill/CB</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Cal Slope</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">L1 D%</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">BL Δacc</th>
-                        <th className="text-right text-navy-500 font-medium px-2 py-2.5 whitespace-nowrap">Changed%</th>
+                        <th className="text-left text-readable-muted font-medium px-3 py-2.5 whitespace-nowrap">Mod</th>
+                        <th className="text-left text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">Transform</th>
+                        <th className="text-center text-readable-muted font-medium px-2 py-2.5">Verdict</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5">Brier</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5">Acc</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5">Pred D%</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5">D-F1</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">Skill/CB</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">Cal Slope</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">L1 D%</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">BL Δacc</th>
+                        <th className="text-right text-readable-muted font-medium px-2 py-2.5 whitespace-nowrap">Changed%</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-navy-800/40">
@@ -1598,7 +1598,7 @@ export default function ModelLabKalibrasyonPage() {
                             <td className={`px-2 py-2.5 text-right tabular-nums ${Number(sim.brier_skill_vs_compbias ?? 0) > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                               {sim.brier_skill_vs_compbias !== null ? (Number(sim.brier_skill_vs_compbias) * 100).toFixed(3) + '%' : '–'}
                             </td>
-                            <td className={`px-2 py-2.5 text-right tabular-nums font-mono ${slope !== null && Number(slope) >= 0.8 && Number(slope) <= 1.2 ? 'text-emerald-400' : slope !== null ? 'text-red-400' : 'text-navy-600'}`}>
+                            <td className={`px-2 py-2.5 text-right tabular-nums font-mono ${slope !== null && Number(slope) >= 0.8 && Number(slope) <= 1.2 ? 'text-emerald-400' : slope !== null ? 'text-red-400' : 'text-readable-muted'}`}>
                               {slope !== null ? Number(slope).toFixed(3) : 'n/a'}
                             </td>
                             <td className={`px-2 py-2.5 text-right tabular-nums ${l1Pct !== null && l1Pct <= 40 ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -1639,13 +1639,13 @@ export default function ModelLabKalibrasyonPage() {
                             {verdict === 'RISKY' && <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/15 text-amber-400 border border-amber-500/25">RISKY</span>}
                             {verdict === 'REJECT' && <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-500/15 text-red-400 border border-red-500/25">REJECT</span>}
                             {sim.bias_transform_config && (
-                              <span className="text-[10px] text-navy-500 font-mono">{sim.bias_transform_config.bias_type}</span>
+                              <span className="text-[10px] text-readable-muted font-mono">{sim.bias_transform_config.bias_type}</span>
                             )}
                           </div>
                           {(sim.reliability_bins_draw?.length ?? 0) > 0 && (
                             <button
                               onClick={() => setExpandedBins(isExpanded ? null : sim.id)}
-                              className="text-[10px] text-navy-500 hover:text-champagne transition-colors flex items-center gap-1 shrink-0"
+                              className="text-[10px] text-readable-muted hover:text-champagne transition-colors flex items-center gap-1 shrink-0"
                             >
                               Reliability Bins {isExpanded ? '▲' : '▼'}
                             </button>
@@ -1671,20 +1671,20 @@ export default function ModelLabKalibrasyonPage() {
                               <p className="text-[9px] text-red-400 font-semibold uppercase tracking-wider mb-2">Ligue 1</p>
                               <div className="grid grid-cols-3 gap-2 text-xs">
                                 <div>
-                                  <p className="text-[9px] text-navy-500 mb-0.5">Pred D%</p>
+                                  <p className="text-[9px] text-readable-muted mb-0.5">Pred D%</p>
                                   <p className={`font-bold tabular-nums ${pn.ligue1_pred_draw_pct <= 40 ? 'text-emerald-400' : 'text-red-400'}`}>
                                     {pn.ligue1_pred_draw_pct.toFixed(1)}%
                                   </p>
                                 </div>
                                 <div>
-                                  <p className="text-[9px] text-navy-500 mb-0.5">Değişen</p>
+                                  <p className="text-[9px] text-readable-muted mb-0.5">Değişen</p>
                                   <p className="text-navy-300 tabular-nums">{pn.ligue1_changed}/{pn.ligue1_n}</p>
                                 </div>
                                 <div>
-                                  <p className="text-[9px] text-navy-500 mb-0.5">Katkı/Zarar</p>
+                                  <p className="text-[9px] text-readable-muted mb-0.5">Katkı/Zarar</p>
                                   <p className="tabular-nums">
                                     <span className="text-emerald-400">+{pn.ligue1_helped}</span>
-                                    <span className="text-navy-600"> / </span>
+                                    <span className="text-readable-muted"> / </span>
                                     <span className="text-red-400">−{pn.ligue1_harmed}</span>
                                   </p>
                                 </div>
@@ -1694,20 +1694,20 @@ export default function ModelLabKalibrasyonPage() {
                               <p className="text-[9px] text-amber-400 font-semibold uppercase tracking-wider mb-2">Bundesliga</p>
                               <div className="grid grid-cols-3 gap-2 text-xs">
                                 <div>
-                                  <p className="text-[9px] text-navy-500 mb-0.5">Acc Delta</p>
+                                  <p className="text-[9px] text-readable-muted mb-0.5">Acc Delta</p>
                                   <p className={`font-bold tabular-nums ${pn.bundesliga_acc_delta >= -2 ? 'text-emerald-400' : 'text-red-400'}`}>
                                     {pn.bundesliga_acc_delta >= 0 ? '+' : ''}{pn.bundesliga_acc_delta.toFixed(2)}pp
                                   </p>
                                 </div>
                                 <div>
-                                  <p className="text-[9px] text-navy-500 mb-0.5">Değişen</p>
+                                  <p className="text-[9px] text-readable-muted mb-0.5">Değişen</p>
                                   <p className="text-navy-300 tabular-nums">{pn.bundesliga_changed}/{pn.bundesliga_n}</p>
                                 </div>
                                 <div>
-                                  <p className="text-[9px] text-navy-500 mb-0.5">Katkı/Zarar</p>
+                                  <p className="text-[9px] text-readable-muted mb-0.5">Katkı/Zarar</p>
                                   <p className="tabular-nums">
                                     <span className="text-emerald-400">+{pn.bundesliga_helped}</span>
-                                    <span className="text-navy-600"> / </span>
+                                    <span className="text-readable-muted"> / </span>
                                     <span className="text-red-400">−{pn.bundesliga_harmed}</span>
                                   </p>
                                 </div>
@@ -1719,46 +1719,46 @@ export default function ModelLabKalibrasyonPage() {
                         {/* Global metrics + margin buckets */}
                         <div className="grid grid-cols-4 gap-2 text-xs sm:grid-cols-8 mb-2">
                           <div className="bg-navy-800/40 rounded-lg p-2">
-                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">Brier</p>
+                            <p className="text-[9px] text-readable-muted uppercase mb-0.5">Brier</p>
                             <p className={`font-bold tabular-nums ${Number(sim.adjusted_avg_brier_1x2 ?? 1) < 0.21187602 ? 'text-emerald-400' : 'text-red-400'}`}>
                               {sim.adjusted_avg_brier_1x2 !== null ? Number(sim.adjusted_avg_brier_1x2).toFixed(5) : '–'}
                             </p>
                           </div>
                           <div className="bg-navy-800/40 rounded-lg p-2">
-                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">Acc</p>
+                            <p className="text-[9px] text-readable-muted uppercase mb-0.5">Acc</p>
                             <p className="text-white tabular-nums">
                               {sim.adjusted_result_accuracy !== null ? Number(sim.adjusted_result_accuracy).toFixed(2) + '%' : '–'}
                             </p>
                           </div>
                           <div className="bg-navy-800/40 rounded-lg p-2">
-                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">D-F1</p>
+                            <p className="text-[9px] text-readable-muted uppercase mb-0.5">D-F1</p>
                             <p className={`font-bold tabular-nums ${Number(sim.draw_f1 ?? 0) > 15 ? 'text-emerald-400' : Number(sim.draw_f1 ?? 0) > 5 ? 'text-amber-400' : 'text-red-400'}`}>
                               {sim.draw_f1 !== null ? Number(sim.draw_f1).toFixed(1) : '–'}
                             </p>
                           </div>
                           <div className="bg-navy-800/40 rounded-lg p-2">
-                            <p className="text-[9px] text-navy-500 uppercase mb-0.5">Cal Slope</p>
-                            <p className={`tabular-nums font-mono ${sim.calibration_slope_draw !== null && Number(sim.calibration_slope_draw) >= 0.8 && Number(sim.calibration_slope_draw) <= 1.2 ? 'text-emerald-400' : sim.calibration_slope_draw !== null ? 'text-red-400' : 'text-navy-600'}`}>
+                            <p className="text-[9px] text-readable-muted uppercase mb-0.5">Cal Slope</p>
+                            <p className={`tabular-nums font-mono ${sim.calibration_slope_draw !== null && Number(sim.calibration_slope_draw) >= 0.8 && Number(sim.calibration_slope_draw) <= 1.2 ? 'text-emerald-400' : sim.calibration_slope_draw !== null ? 'text-red-400' : 'text-readable-muted'}`}>
                               {sim.calibration_slope_draw !== null ? Number(sim.calibration_slope_draw).toFixed(3) : 'n/a'}
                             </p>
                           </div>
                           {stab && <>
                             <div className="bg-navy-800/40 rounded-lg p-2">
-                              <p className="text-[9px] text-navy-500 uppercase mb-0.5">Changed%</p>
+                              <p className="text-[9px] text-readable-muted uppercase mb-0.5">Changed%</p>
                               <p className={`tabular-nums ${stab.changed_rate <= 45 ? 'text-navy-300' : 'text-amber-400'}`}>
                                 {stab.changed_rate.toFixed(1)}%
                               </p>
                             </div>
                             <div className="bg-navy-800/40 rounded-lg p-2">
-                              <p className="text-[9px] text-navy-500 uppercase mb-0.5">→Draw</p>
+                              <p className="text-[9px] text-readable-muted uppercase mb-0.5">→Draw</p>
                               <p className="text-navy-300 tabular-nums">{stab.changed_to_draw}</p>
                             </div>
                             <div className="bg-navy-800/40 rounded-lg p-2">
-                              <p className="text-[9px] text-navy-500 uppercase mb-0.5">Katkı</p>
+                              <p className="text-[9px] text-readable-muted uppercase mb-0.5">Katkı</p>
                               <p className="text-emerald-400 tabular-nums">+{stab.helped}</p>
                             </div>
                             <div className="bg-navy-800/40 rounded-lg p-2">
-                              <p className="text-[9px] text-navy-500 uppercase mb-0.5">Zarar</p>
+                              <p className="text-[9px] text-readable-muted uppercase mb-0.5">Zarar</p>
                               <p className="text-red-400 tabular-nums">−{stab.harmed}</p>
                             </div>
                           </>}
@@ -1769,7 +1769,7 @@ export default function ModelLabKalibrasyonPage() {
                           <div className="grid grid-cols-3 gap-2 text-xs mb-2">
                             {(['decisive', 'contested', 'close'] as const).map((bucket) => (
                               <div key={bucket} className="bg-navy-800/30 rounded-lg p-2">
-                                <p className="text-[9px] text-navy-500 uppercase mb-1 tracking-wider">{bucket}</p>
+                                <p className="text-[9px] text-readable-muted uppercase mb-1 tracking-wider">{bucket}</p>
                                 <p className="text-navy-400 tabular-nums">N={mb[bucket].n}</p>
                                 <p className="text-white tabular-nums">{mb[bucket].acc !== null ? mb[bucket].acc.toFixed(1) + '%' : '–'}</p>
                               </div>
@@ -1783,10 +1783,10 @@ export default function ModelLabKalibrasyonPage() {
                             <table className="w-full text-[10px]">
                               <thead>
                                 <tr className="border-b border-navy-800">
-                                  <th className="text-left text-navy-500 font-medium px-2 py-1.5">Bin</th>
-                                  <th className="text-right text-navy-500 font-medium px-2 py-1.5">N</th>
-                                  <th className="text-right text-navy-500 font-medium px-2 py-1.5">Avg Pred</th>
-                                  <th className="text-right text-navy-500 font-medium px-2 py-1.5">Actual Rate</th>
+                                  <th className="text-left text-readable-muted font-medium px-2 py-1.5">Bin</th>
+                                  <th className="text-right text-readable-muted font-medium px-2 py-1.5">N</th>
+                                  <th className="text-right text-readable-muted font-medium px-2 py-1.5">Avg Pred</th>
+                                  <th className="text-right text-readable-muted font-medium px-2 py-1.5">Actual Rate</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-navy-800/40">
@@ -1835,31 +1835,31 @@ export default function ModelLabKalibrasyonPage() {
             {/* Header cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
               <div className="bg-navy-900/60 border border-navy-800 rounded-xl p-4">
-                <p className="text-xs text-navy-500 mb-1">Toplam Mod</p>
+                <p className="text-xs text-readable-muted mb-1">Toplam Mod</p>
                 <p className="text-2xl font-bold text-white tabular-nums">{REFINEMENT_MODES.length}</p>
-                <p className="text-xs text-navy-500 mt-0.5">5 aile · T→CB &amp; CB→T pipeline</p>
+                <p className="text-xs text-readable-muted mt-0.5">5 aile · T→CB &amp; CB→T pipeline</p>
               </div>
               <div className="bg-navy-900/60 border border-navy-800 rounded-xl p-4">
-                <p className="text-xs text-navy-500 mb-1">Geçen / Reddedilen</p>
+                <p className="text-xs text-readable-muted mb-1">Geçen / Reddedilen</p>
                 <p className="text-2xl font-bold tabular-nums">
                   <span className="text-emerald-400">{refinementSims.filter(s => s.simulation_verdict === 'PASS').length}</span>
-                  <span className="text-navy-600 mx-1">/</span>
+                  <span className="text-readable-muted mx-1">/</span>
                   <span className="text-red-400">{refinementSims.filter(s => s.simulation_verdict === 'REJECT').length}</span>
                 </p>
-                <p className="text-xs text-navy-500 mt-0.5">{refinementSims.length} simülasyon yüklendi</p>
+                <p className="text-xs text-readable-muted mt-0.5">{refinementSims.length} simülasyon yüklendi</p>
               </div>
               <div className="bg-navy-900/60 border border-navy-800 rounded-xl p-4">
-                <p className="text-xs text-navy-500 mb-1">En İyi Brier</p>
+                <p className="text-xs text-readable-muted mb-1">En İyi Brier</p>
                 {refinementSims.length > 0 ? (() => {
                   const best = [...refinementSims].filter(s => s.adjusted_avg_brier_1x2 !== null)
                     .sort((a, b) => Number(a.adjusted_avg_brier_1x2) - Number(b.adjusted_avg_brier_1x2))[0];
                   return best ? (
                     <>
                       <p className="text-2xl font-bold text-white tabular-nums font-mono">{Number(best.adjusted_avg_brier_1x2).toFixed(6)}</p>
-                      <p className="text-xs text-navy-500 mt-0.5 truncate">{best.simulation_key}</p>
+                      <p className="text-xs text-readable-muted mt-0.5 truncate">{best.simulation_key}</p>
                     </>
-                  ) : <p className="text-navy-600 text-sm">–</p>;
-                })() : <p className="text-navy-600 text-sm">–</p>}
+                  ) : <p className="text-readable-muted text-sm">–</p>;
+                })() : <p className="text-readable-muted text-sm">–</p>}
               </div>
             </div>
 
@@ -1898,8 +1898,8 @@ export default function ModelLabKalibrasyonPage() {
             ) : refinementSims.length === 0 ? (
               <div className="flex flex-col items-center py-16 gap-3">
                 <AlertCircle className="w-8 h-8 text-navy-700" />
-                <p className="text-sm text-navy-500">Refinement simülasyonu yok.</p>
-                <p className="text-xs text-navy-600">ml_run_bias_refinement_simulation RPC ile çalıştırın.</p>
+                <p className="text-sm text-readable-muted">Refinement simülasyonu yok.</p>
+                <p className="text-xs text-readable-muted">ml_run_bias_refinement_simulation RPC ile çalıştırın.</p>
               </div>
             ) : (
               <>
@@ -1908,19 +1908,19 @@ export default function ModelLabKalibrasyonPage() {
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-navy-800 bg-navy-900/60">
-                        <th className="text-left text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Mod</th>
-                        <th className="text-left text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Aile</th>
-                        <th className="text-left text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Pipeline</th>
-                        <th className="text-right text-navy-500 font-medium px-3 py-2.5">Brier</th>
-                        <th className="text-right text-navy-500 font-medium px-3 py-2.5">ΔBrier</th>
-                        <th className="text-right text-navy-500 font-medium px-3 py-2.5">Acc</th>
-                        <th className="text-right text-navy-500 font-medium px-3 py-2.5">Draw F1</th>
-                        <th className="text-right text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Cal Slope</th>
-                        <th className="text-right text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Pred D%</th>
-                        <th className="text-right text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Helped</th>
-                        <th className="text-right text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Harmed</th>
-                        <th className="text-left text-navy-500 font-medium px-3 py-2.5">Verdict</th>
-                        <th className="text-left text-navy-500 font-medium px-3 py-2.5 whitespace-nowrap">Reject Flags</th>
+                        <th className="text-left text-readable-muted font-medium px-3 py-2.5 whitespace-nowrap">Mod</th>
+                        <th className="text-left text-readable-muted font-medium px-3 py-2.5 whitespace-nowrap">Aile</th>
+                        <th className="text-left text-readable-muted font-medium px-3 py-2.5 whitespace-nowrap">Pipeline</th>
+                        <th className="text-right text-readable-muted font-medium px-3 py-2.5">Brier</th>
+                        <th className="text-right text-readable-muted font-medium px-3 py-2.5">ΔBrier</th>
+                        <th className="text-right text-readable-muted font-medium px-3 py-2.5">Acc</th>
+                        <th className="text-right text-readable-muted font-medium px-3 py-2.5">Draw F1</th>
+                        <th className="text-right text-readable-muted font-medium px-3 py-2.5 whitespace-nowrap">Cal Slope</th>
+                        <th className="text-right text-readable-muted font-medium px-3 py-2.5 whitespace-nowrap">Pred D%</th>
+                        <th className="text-right text-readable-muted font-medium px-3 py-2.5 whitespace-nowrap">Helped</th>
+                        <th className="text-right text-readable-muted font-medium px-3 py-2.5 whitespace-nowrap">Harmed</th>
+                        <th className="text-left text-readable-muted font-medium px-3 py-2.5">Verdict</th>
+                        <th className="text-left text-readable-muted font-medium px-3 py-2.5 whitespace-nowrap">Reject Flags</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-navy-800/40">
@@ -1990,7 +1990,7 @@ export default function ModelLabKalibrasyonPage() {
                                   </span>
                                 ))}
                                 {flags.length > 3 && (
-                                  <span className="text-[9px] text-navy-500">+{flags.length - 3}</span>
+                                  <span className="text-[9px] text-readable-muted">+{flags.length - 3}</span>
                                 )}
                               </div>
                             </td>
@@ -2029,13 +2029,13 @@ export default function ModelLabKalibrasyonPage() {
                         <div className="flex gap-3 shrink-0">
                           {bestBrier && (
                             <div className="text-right">
-                              <p className="text-[10px] text-navy-600">En iyi Brier</p>
+                              <p className="text-[10px] text-readable-muted">En iyi Brier</p>
                               <p className="text-xs font-mono text-white tabular-nums">{Number(bestBrier.adjusted_avg_brier_1x2).toFixed(6)}</p>
                             </div>
                           )}
                           {bestF1 && (
                             <div className="text-right">
-                              <p className="text-[10px] text-navy-600">En iyi Draw F1</p>
+                              <p className="text-[10px] text-readable-muted">En iyi Draw F1</p>
                               <p className="text-xs font-mono tabular-nums text-amber-400">{Number(bestF1.draw_f1).toFixed(2)}</p>
                             </div>
                           )}
@@ -2048,28 +2048,28 @@ export default function ModelLabKalibrasyonPage() {
                         if (!Array.isArray(health) || health.length === 0) return null;
                         return (
                           <div className="mt-2">
-                            <p className="text-[10px] text-navy-600 mb-1.5">En iyi Brier modu per-competition health ({bestBrier.simulation_key})</p>
+                            <p className="text-[10px] text-readable-muted mb-1.5">En iyi Brier modu per-competition health ({bestBrier.simulation_key})</p>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                               {health.map((c) => (
                                 <div key={c.competition} className="bg-navy-800/50 rounded-lg px-2.5 py-2">
                                   <p className="text-[10px] font-medium text-white truncate">{c.competition}</p>
                                   <div className="mt-1 space-y-0.5">
                                     <div className="flex justify-between">
-                                      <span className="text-[9px] text-navy-500">Acc</span>
+                                      <span className="text-[9px] text-readable-muted">Acc</span>
                                       <span className="text-[9px] text-white tabular-nums">{c.accuracy}%</span>
                                     </div>
                                     <div className="flex justify-between">
-                                      <span className="text-[9px] text-navy-500">ΔAcc</span>
+                                      <span className="text-[9px] text-readable-muted">ΔAcc</span>
                                       <span className={`text-[9px] tabular-nums ${c.accuracy_delta >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                         {c.accuracy_delta > 0 ? '+' : ''}{c.accuracy_delta}pp
                                       </span>
                                     </div>
                                     <div className="flex justify-between">
-                                      <span className="text-[9px] text-navy-500">Pred D%</span>
+                                      <span className="text-[9px] text-readable-muted">Pred D%</span>
                                       <span className="text-[9px] text-navy-300 tabular-nums">{c.pred_draw_rate}%</span>
                                     </div>
                                     <div className="flex justify-between">
-                                      <span className="text-[9px] text-navy-500">Net</span>
+                                      <span className="text-[9px] text-readable-muted">Net</span>
                                       <span className={`text-[9px] tabular-nums font-medium ${(c.helped - c.harmed) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                         {c.helped - c.harmed > 0 ? '+' : ''}{c.helped - c.harmed}
                                       </span>
