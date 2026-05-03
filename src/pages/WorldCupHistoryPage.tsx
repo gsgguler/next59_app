@@ -210,13 +210,14 @@ export default function WorldCupHistoryPage() {
   const [stageFilter, setStageFilter] = useState('');
 
   useEffect(() => {
-    document.title = 'Dünya Kupası Tarihi (1930–2006) — Next59';
+    document.title = 'Dünya Kupası Tarihi (1930–2022) — Next59';
   }, []);
 
   useEffect(() => {
     supabaseWcHistory
       .from('wch_editions')
       .select('edition_year,host_country,champion,total_matches,total_teams,start_date,end_date')
+      .not('host_country', 'is', null)
       .order('edition_year', { ascending: false })
       .then(({ data }) => {
         if (data) {
@@ -297,10 +298,10 @@ export default function WorldCupHistoryPage() {
           </div>
           <h1 className="text-3xl sm:text-5xl font-black text-white leading-tight mb-3">
             Dünya Kupası Tarihi<br />
-            <span className="text-champagne">1930 — 2006</span>
+            <span className="text-champagne">1930 — 2022</span>
           </h1>
           <p className="text-navy-300 text-base max-w-xl mx-auto mb-7">
-            18 turnuva · 965 maç · Her skoru, sahasını ve şampiyonunu keşfet.
+            22 turnuva · Her skoru, sahasını ve şampiyonunu keşfet.
           </p>
           {!loadingEditions && (
             <div className="flex flex-wrap justify-center gap-2">

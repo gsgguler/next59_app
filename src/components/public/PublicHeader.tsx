@@ -81,7 +81,7 @@ const NAV: NavItem[] = [
     to: '/world-cup-2026',
     children: [
       { label: 'WC 2026 Fikstür', to: '/world-cup-2026' },
-      { label: 'Tarihsel Arşiv (1930–2006)', to: '/world-cup/tarihce' },
+      { label: 'Tarihsel Arşiv (1930–2022)', to: '/world-cup/tarihce' },
     ],
   },
 ];

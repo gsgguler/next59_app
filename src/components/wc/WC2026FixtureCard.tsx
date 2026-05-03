@@ -1,4 +1,5 @@
-import { MapPin, HelpCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { MapPin, HelpCircle, ChevronRight } from 'lucide-react';
 import { COUNTRY_BY_FIFA } from '../../data/worldCup2026Countries';
 import {
   STAGE_LABELS_TR,
@@ -7,12 +8,7 @@ import {
   type WC2026Fixture,
 } from '../../data/worldCup2026Fixtures';
 
-// ---------------------------------------------------------------------------
-// Flag — flag-icons CSS (MIT licence).
-// The .fi class sets display:inline-block and uses background-image.
-// We must supply explicit px dimensions via style, not Tailwind w-/h- classes,
-// because flag-icons' own `width:1.333333em` overrides Tailwind utility widths.
-// ---------------------------------------------------------------------------
+// ── Flag ──────────────────────────────────────────────────────────────────────
 
 function CountryFlag({ iso2 }: { iso2: string }) {
   return (
@@ -24,9 +20,7 @@ function CountryFlag({ iso2 }: { iso2: string }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// TBD placeholder — neutral icon, no flag, bilingual label
-// ---------------------------------------------------------------------------
+// ── TBD placeholder ───────────────────────────────────────────────────────────
 
 function TBDTeam({ label, align = 'left' }: { label: string; align?: 'left' | 'right' }) {
   const isRight = align === 'right';
@@ -49,9 +43,7 @@ function TBDTeam({ label, align = 'left' }: { label: string; align?: 'left' | 'r
   );
 }
 
-// ---------------------------------------------------------------------------
-// Team display — flag + EN name + TR name
-// ---------------------------------------------------------------------------
+// ── Team display ──────────────────────────────────────────────────────────────
 
 function TeamDisplay({ code, align = 'left' }: { code: string; align?: 'left' | 'right' }) {
   const country = COUNTRY_BY_FIFA[code];
@@ -63,12 +55,8 @@ function TeamDisplay({ code, align = 'left' }: { code: string; align?: 'left' | 
     <div className={`flex-1 flex items-center gap-2 min-w-0 ${isRight ? 'justify-end' : ''}`}>
       {isRight && (
         <div className="flex flex-col items-end min-w-0">
-          <span className="text-sm font-semibold text-white truncate leading-tight">
-            {country.name_en}
-          </span>
-          <span className="text-[10px] text-navy-500 leading-tight truncate">
-            {country.name_tr}
-          </span>
+          <span className="text-sm font-semibold text-white truncate leading-tight">{country.name_en}</span>
+          <span className="text-[10px] text-navy-500 leading-tight truncate">{country.name_tr}</span>
         </div>
       )}
       <div
@@ -79,21 +67,15 @@ function TeamDisplay({ code, align = 'left' }: { code: string; align?: 'left' | 
       </div>
       {!isRight && (
         <div className="flex flex-col items-start min-w-0">
-          <span className="text-sm font-semibold text-white truncate leading-tight">
-            {country.name_en}
-          </span>
-          <span className="text-[10px] text-navy-500 leading-tight truncate">
-            {country.name_tr}
-          </span>
+          <span className="text-sm font-semibold text-white truncate leading-tight">{country.name_en}</span>
+          <span className="text-[10px] text-navy-500 leading-tight truncate">{country.name_tr}</span>
         </div>
       )}
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Fixture card
-// ---------------------------------------------------------------------------
+// ── Card ──────────────────────────────────────────────────────────────────────
 
 export function WC2026FixtureCard({ fixture }: { fixture: WC2026Fixture }) {
   const isTBD = fixture.home_team_code === 'TBD' || fixture.home_team === 'TBD';
@@ -107,13 +89,21 @@ export function WC2026FixtureCard({ fixture }: { fixture: WC2026Fixture }) {
   }
 
   return (
-    <div className="relative bg-navy-900 border border-navy-800 rounded-xl p-4 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-champagne/5 hover:border-champagne/20 transition-all duration-200">
+    <Link
+      to={`/world-cup-2026/mac/${fixture.id}`}
+      className="block relative bg-navy-900 border border-navy-800 rounded-xl p-4
+        hover:-translate-y-0.5 hover:shadow-lg hover:shadow-champagne/5 hover:border-champagne/20
+        transition-all duration-200 group cursor-pointer"
+    >
       {/* Stage + match no */}
       <div className="flex items-center justify-between mb-3">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-champagne/70">
           {groupLabel ? `${stageLabel} — ${groupLabel}` : stageLabel}
         </span>
-        <span className="text-[10px] font-mono text-navy-600">#{fixture.match_no}</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] font-mono text-navy-600">#{fixture.match_no}</span>
+          <ChevronRight className="w-3 h-3 text-navy-700 group-hover:text-champagne/60 transition-colors" />
+        </div>
       </div>
 
       {/* Teams row */}
@@ -138,7 +128,7 @@ export function WC2026FixtureCard({ fixture }: { fixture: WC2026Fixture }) {
       {/* Divider */}
       <div className="h-px bg-navy-800 my-3" />
 
-      {/* Venue meta row — rich: country_tr · city_display / stadium · capacity */}
+      {/* Venue meta */}
       <div className="flex items-start justify-between gap-2 text-[11px] text-navy-400">
         <div className="flex items-start gap-1 min-w-0">
           <MapPin className="w-3 h-3 text-navy-600 shrink-0 mt-px" />
@@ -160,6 +150,6 @@ export function WC2026FixtureCard({ fixture }: { fixture: WC2026Fixture }) {
         </div>
         <div className="shrink-0 tabular-nums text-navy-400 font-medium">{trTime}</div>
       </div>
-    </div>
+    </Link>
   );
 }
