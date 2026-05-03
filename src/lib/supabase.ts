@@ -17,3 +17,13 @@ export const supabase = createClient(
     },
   },
 );
+
+// Separate client for wc_history schema — .schema() is not supported in supabase-js v2
+export const supabaseWcHistory = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder-key',
+  {
+    db: { schema: 'wc_history' },
+    auth: { autoRefreshToken: false, persistSession: false },
+  },
+);

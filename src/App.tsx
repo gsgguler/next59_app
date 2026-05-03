@@ -11,6 +11,7 @@ import PublicLayout from './components/layout/PublicLayout';
 import HomePage from './pages/HomePage';
 import WorldCup2026Page from './pages/WorldCup2026Page';
 import WorldCupHistoryPage from './pages/WorldCupHistoryPage';
+import WcMatchDetailPage from './pages/WcMatchDetailPage';
 import MatchDetailPage from './pages/MatchDetailPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -93,6 +94,7 @@ export default function App() {
                 <Route path="/mac/:matchId" element={<MatchDetailPage />} />
                 <Route path="/world-cup-2026" element={<WorldCup2026Page />} />
                 <Route path="/world-cup/tarihce" element={<WorldCupHistoryPage />} />
+                <Route path="/world-cup/tarihce/mac/:matchId" element={<WcMatchDetailPage />} />
 
                 {/* Maç Arşivi */}
                 <Route path="/mac-arsivi" element={<ArchivePage />} />
