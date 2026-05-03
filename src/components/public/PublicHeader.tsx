@@ -76,7 +76,14 @@ const NAV: NavItem[] = [
       { label: 'İletişim', to: '/next59/iletisim' },
     ],
   },
-  { label: 'World Cup 2026', to: '/world-cup-2026' },
+  {
+    label: 'World Cup',
+    to: '/world-cup-2026',
+    children: [
+      { label: 'WC 2026 Fikstür', to: '/world-cup-2026' },
+      { label: 'Tarihsel Arşiv (1930–2006)', to: '/world-cup/tarihce' },
+    ],
+  },
 ];
 
 // ─── Desktop dropdown item ────────────────────────────────────────────────────

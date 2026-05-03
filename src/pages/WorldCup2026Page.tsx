@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Trophy, Search, Filter, Calendar, Globe, ChevronDown, Info } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Trophy, Search, Filter, Calendar, Globe, ChevronDown, Info, History } from 'lucide-react';
 import {
   ALL_WC2026_FIXTURES,
   WC2026_GROUPS,
@@ -264,8 +265,19 @@ export default function WorldCup2026Page() {
           </p>
 
           {/* Countdown */}
-          <div className="flex justify-center mb-10">
+          <div className="flex justify-center mb-6">
             <Countdown />
+          </div>
+
+          {/* History link */}
+          <div className="flex justify-center mb-10">
+            <Link
+              to="/world-cup/tarihce"
+              className="inline-flex items-center gap-2 text-sm text-navy-400 hover:text-champagne border border-navy-700/60 hover:border-champagne/30 bg-navy-900/60 hover:bg-navy-900 px-4 py-2 rounded-full transition-all"
+            >
+              <History className="w-3.5 h-3.5" />
+              Geçmiş Turnuvalar: 1930–2006 Arşivi
+            </Link>
           </div>
 
           {/* Opening match card */}
