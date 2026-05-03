@@ -29,7 +29,7 @@ Deno.serve(async (req: Request) => {
     const stageFilter: string | null = body.stage_type ?? null;
     const chunkOffset: number = body.chunk_offset ?? 0;
     const chunkSize: number = body.chunk_size ?? 50;
-    // Only fetch FT finished fixtures
+    // Only fetch FT/AET/PEN finished fixtures
     const finishedOnly: boolean = body.finished_only !== false;
 
     let query = supabase
