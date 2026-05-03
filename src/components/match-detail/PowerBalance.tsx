@@ -14,19 +14,19 @@ export default function PowerBalance({ match }: { match: UIMatch }) {
       <Section title="Elo Karşılaştırması">
         <div className="flex items-end justify-between mb-4">
           <div className="text-center">
-            <p className="text-xs text-navy-500 mb-1">{match.home_team.short_name}</p>
+            <p className="text-xs text-readable-muted mb-1">{match.home_team.short_name}</p>
             <p className="text-3xl sm:text-4xl font-mono font-bold text-champagne tabular-nums">
               {Math.round(homeElo)}
             </p>
           </div>
           <div className="text-center px-4">
-            <p className="text-xs text-navy-600 mb-1">Fark</p>
+            <p className="text-xs text-readable-muted mb-1">Fark</p>
             <p className={`text-lg font-mono font-bold tabular-nums ${eloDiff >= 0 ? 'text-champagne' : 'text-navy-300'}`}>
               {eloDiff >= 0 ? '+' : ''}{Math.round(eloDiff)}
             </p>
           </div>
           <div className="text-center">
-            <p className="text-xs text-navy-500 mb-1">{match.away_team.short_name}</p>
+            <p className="text-xs text-readable-muted mb-1">{match.away_team.short_name}</p>
             <p className="text-3xl sm:text-4xl font-mono font-bold text-navy-300 tabular-nums">
               {Math.round(awayElo)}
             </p>
@@ -44,7 +44,7 @@ export default function PowerBalance({ match }: { match: UIMatch }) {
             style={{ width: `${100 - homePct}%` }}
           />
         </div>
-        <div className="flex justify-between text-[10px] text-navy-500 mt-1.5">
+        <div className="flex justify-between text-[10px] text-readable-muted mt-1.5">
           <span>{match.home_team.name}</span>
           <span>{match.away_team.name}</span>
         </div>
@@ -55,7 +55,7 @@ export default function PowerBalance({ match }: { match: UIMatch }) {
           </p>
         )}
 
-        <p className="text-[10px] text-navy-600 mt-2 leading-relaxed">
+        <p className="text-[10px] text-readable-muted mt-2 leading-relaxed">
           Elo, takımın son 30 uluslararası maçına dayalı hesaplanmış güç endeksidir.
         </p>
       </Section>
@@ -74,9 +74,9 @@ export default function PowerBalance({ match }: { match: UIMatch }) {
             elo={awayElo}
           />
         </div>
-        <div className="mt-4 flex items-center gap-4 text-[10px] text-navy-600">
+        <div className="mt-4 flex items-center gap-4 text-[10px] text-readable-muted">
           <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> G = Galibiyet</span>
-          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-navy-600" /> B = Beraberlik</span>
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-navy-500" /> B = Beraberlik</span>
           <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-red-500" /> M = Mağlubiyet</span>
         </div>
       </Section>
@@ -94,7 +94,7 @@ export default function PowerBalance({ match }: { match: UIMatch }) {
       {/* Squad Assessment */}
       <Section title="Kadro Değerlendirmesi">
         <div className="bg-navy-800/40 border border-navy-700/40 rounded-lg p-6 text-center">
-          <p className="text-sm text-navy-500">
+          <p className="text-sm text-readable-muted">
             Kadro bilgisi maç saatine yakın eklenecektir.
           </p>
         </div>
@@ -133,7 +133,7 @@ function FormDisplay({ teamName, shortName, elo }: { teamName: string; shortName
           </div>
         ))}
       </div>
-      <p className="text-[10px] text-navy-600 mt-2">
+      <p className="text-[10px] text-readable-muted mt-2">
         {shortName} son 5 maç: {form.map((r) => (r === 'W' ? 'G' : r === 'D' ? 'B' : 'M')).join('-')}
       </p>
     </div>
@@ -157,10 +157,10 @@ function generateMockForm(elo: number): ('W' | 'D' | 'L')[] {
 function StatCard({ label, home, away }: { label: string; home: string; away: string }) {
   return (
     <div className="bg-navy-900/60 border border-navy-800 rounded-lg p-3">
-      <p className="text-[10px] text-navy-500 mb-2 uppercase tracking-wider">{label}</p>
+      <p className="text-[10px] text-readable-muted mb-2 uppercase tracking-wider">{label}</p>
       <div className="flex items-center justify-between">
         <span className="text-sm font-mono font-semibold text-champagne tabular-nums">{home}</span>
-        <span className="text-[10px] text-navy-600">vs</span>
+        <span className="text-[10px] text-readable-muted">vs</span>
         <span className="text-sm font-mono font-semibold text-navy-300 tabular-nums">{away}</span>
       </div>
     </div>

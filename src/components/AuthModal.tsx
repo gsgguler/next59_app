@@ -188,7 +188,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'register' }:
             )}
           </div>
 
-          <p className="text-[11px] text-navy-500 text-center leading-relaxed">
+          <p className="text-[11px] text-readable-muted text-center leading-relaxed">
             Üye olarak{' '}
             <a href="/terms" className="underline hover:text-navy-300 transition-colors">Kullanım Koşulları</a>
             {' '}ve{' '}

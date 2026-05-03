@@ -59,7 +59,7 @@ export default function PreMatchOracle({ match }: { match: UIMatch }) {
           </div>
           <div className="flex items-center justify-between text-xs font-mono font-semibold mt-1.5 tabular-nums">
             <span className="text-champagne">{(p.home_prob * 100).toFixed(0)}%</span>
-            <span className="text-navy-500">{(p.draw_prob * 100).toFixed(0)}%</span>
+            <span className="text-readable-muted">{(p.draw_prob * 100).toFixed(0)}%</span>
             <span className="text-navy-300">{(p.away_prob * 100).toFixed(0)}%</span>
           </div>
         </div>
@@ -98,7 +98,7 @@ export default function PreMatchOracle({ match }: { match: UIMatch }) {
           <div className="h-2 rounded-full bg-navy-800 overflow-hidden">
             <div className="h-full w-0 bg-emerald-500 rounded-full transition-all" />
           </div>
-          <p className="text-[10px] text-navy-600 mt-1.5">
+          <p className="text-[10px] text-readable-muted mt-1.5">
             Maç sonuçları doğrulandıktan sonra güncellenir.
           </p>
         </div>

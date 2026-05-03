@@ -56,7 +56,7 @@ export default function CookieBanner() {
           </div>
           <button
             onClick={decline}
-            className="text-navy-500 hover:text-navy-300 transition-colors shrink-0"
+            className="text-readable-muted hover:text-white transition-colors shrink-0"
             aria-label="Çerezi kapat"
           >
             <X className="w-4 h-4" />

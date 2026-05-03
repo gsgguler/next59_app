@@ -5,7 +5,7 @@ import type { UIMatch } from '../../types/ui-models';
 const statusConfig = {
   scheduled: { label: 'Yaklaşıyor', cls: 'bg-navy-800 text-navy-300 border-navy-700' },
   live: { label: 'CANLI', cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 animate-pulse' },
-  finished: { label: 'Tamamlandı', cls: 'bg-navy-800/60 text-navy-500 border-navy-700/50' },
+  finished: { label: 'Tamamlandı', cls: 'bg-navy-800/60 text-navy-300 border-navy-700/50' },
 } as const;
 
 const flagMap: Record<string, string> = {
@@ -66,7 +66,7 @@ export default function MatchHeader({ match }: { match: UIMatch }) {
 
       <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-8">
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-xs text-navy-500 mb-6">
+        <div className="flex items-center gap-2 text-xs text-readable-muted mb-6">
           <Link to="/" className="inline-flex items-center gap-1 text-navy-400 hover:text-champagne transition-colors">
             <ArrowLeft className="w-3.5 h-3.5" />
             Tüm Maçlar
@@ -86,7 +86,7 @@ export default function MatchHeader({ match }: { match: UIMatch }) {
               {match.home_team.name}
             </h1>
             {match.home_elo && (
-              <span className="text-[10px] font-mono text-navy-500 tabular-nums">
+              <span className="text-[10px] font-mono text-readable-muted tabular-nums">
                 ELO {Math.round(match.home_elo)}
               </span>
             )}
@@ -109,7 +109,7 @@ export default function MatchHeader({ match }: { match: UIMatch }) {
               {match.away_team.name}
             </h1>
             {match.away_elo && (
-              <span className="text-[10px] font-mono text-navy-500 tabular-nums">
+              <span className="text-[10px] font-mono text-readable-muted tabular-nums">
                 ELO {Math.round(match.away_elo)}
               </span>
             )}
@@ -117,7 +117,7 @@ export default function MatchHeader({ match }: { match: UIMatch }) {
         </div>
 
         {/* Metadata row */}
-        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 mt-6 text-[11px] text-navy-500">
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 mt-6 text-[11px] text-readable-muted">
           {match.stadium && (
             <span className="inline-flex items-center gap-1">
               <MapPin className="w-3 h-3" />
