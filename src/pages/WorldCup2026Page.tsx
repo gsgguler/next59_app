@@ -276,12 +276,15 @@ export default function WorldCup2026Page() {
               className="inline-flex items-center gap-2 text-sm text-navy-400 hover:text-champagne border border-navy-700/60 hover:border-champagne/30 bg-navy-900/60 hover:bg-navy-900 px-4 py-2 rounded-full transition-all"
             >
               <History className="w-3.5 h-3.5" />
-              Geçmiş Turnuvalar: 1930–2006 Arşivi
+              Geçmiş Turnuvalar: 1930–2022 Arşivi
             </Link>
           </div>
 
-          {/* Opening match card */}
-          <div className="inline-flex items-center gap-4 bg-navy-800/60 border border-navy-700/60 backdrop-blur-sm rounded-2xl px-6 py-4">
+          {/* Opening match card — clickable */}
+          <Link
+            to="/world-cup-2026/mac/wc2026-001"
+            className="inline-flex items-center gap-4 bg-navy-800/60 border border-navy-700/60 backdrop-blur-sm rounded-2xl px-6 py-4 hover:border-champagne/30 hover:bg-navy-800/80 transition-all group"
+          >
             <div className="flex flex-col items-end gap-1 min-w-0">
               <span className="fi fi-mx w-8 h-[22px] rounded-[3px] shadow-sm" style={{ display: 'inline-block' }} />
               <span className="text-sm font-semibold text-white leading-tight">Mexico</span>
@@ -291,13 +294,14 @@ export default function WorldCup2026Page() {
               <span className="text-[10px] font-bold text-champagne/60 tracking-widest uppercase">Açılış Maçı</span>
               <span className="text-xs text-navy-400 mt-1">11 Haz · 22:00 TRT</span>
               <span className="text-[10px] text-navy-500 mt-0.5">Estadio Azteca</span>
+              <span className="text-[10px] text-champagne/40 mt-1 group-hover:text-champagne/70 transition-colors">Detay →</span>
             </div>
             <div className="flex flex-col items-start gap-1 min-w-0">
               <span className="fi fi-za w-8 h-[22px] rounded-[3px] shadow-sm" style={{ display: 'inline-block' }} />
               <span className="text-sm font-semibold text-white leading-tight">South Africa</span>
               <span className="text-[10px] text-navy-500">Güney Afrika</span>
             </div>
-          </div>
+          </Link>
         </div>
       </section>
 

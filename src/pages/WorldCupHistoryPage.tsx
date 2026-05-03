@@ -48,9 +48,14 @@ export interface WcMatch {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const CHAMPION_ICON: Record<string, string> = {
-  Brazil: '🇧🇷', Germany: '🇩🇪', 'West Germany': '🇩🇪', Italy: '🇮🇹',
-  Argentina: '🇦🇷', France: '🇫🇷', Uruguay: '🇺🇾', England: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', Spain: '🇪🇸',
+const CHAMPION_ISO2: Record<string, string> = {
+  Brazil: 'br', Germany: 'de', 'West Germany': 'de', Italy: 'it',
+  Argentina: 'ar', France: 'fr', Uruguay: 'uy', England: 'gb-eng', Spain: 'es',
+};
+
+const CHAMPION_TR: Record<string, string> = {
+  Brazil: 'Brezilya', Germany: 'Almanya', 'West Germany': 'Batı Almanya', Italy: 'İtalya',
+  Argentina: 'Arjantin', France: 'Fransa', Uruguay: 'Uruguay', England: 'İngiltere', Spain: 'İspanya',
 };
 
 export const STAGE_LABELS: Record<string, string> = {
@@ -158,10 +163,19 @@ function EditionCard({
           </span>
           <p className="text-xs text-navy-500 mt-0.5 leading-tight">{edition.host_country}</p>
         </div>
-        <div className="text-right shrink-0">
-          <div className="text-base leading-none mb-0.5">{CHAMPION_ICON[edition.champion] ?? '🏆'}</div>
-          <p className="text-xs font-semibold text-navy-200 leading-tight">{edition.champion}</p>
-        </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {CHAMPION_ISO2[edition.champion] ? (
+              <span
+                className={`fi fi-${CHAMPION_ISO2[edition.champion]} rounded-[2px] shrink-0`}
+                style={{ width: 18, height: 13, display: 'inline-block' }}
+              />
+            ) : (
+              <Trophy className="w-3 h-3 text-champagne shrink-0" />
+            )}
+            <p className="text-xs font-semibold text-navy-200 leading-tight">
+              {CHAMPION_TR[edition.champion] ?? edition.champion}
+            </p>
+          </div>
       </div>
       <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-navy-800/50">
         <span className="text-xs text-navy-600">{edition.total_teams} tk</span>
@@ -307,8 +321,12 @@ export default function WorldCupHistoryPage() {
             <div className="flex flex-wrap justify-center gap-2">
               {championCounts.map(([name, count]) => (
                 <span key={name} className="flex items-center gap-1.5 bg-navy-900/80 border border-navy-700/50 px-3 py-1.5 rounded-full text-xs">
-                  <span>{CHAMPION_ICON[name] ?? '🏆'}</span>
-                  <span className="font-semibold text-white">{name}</span>
+                  {CHAMPION_ISO2[name] ? (
+                    <span className={`fi fi-${CHAMPION_ISO2[name]} rounded-[2px] shrink-0`} style={{ width: 16, height: 11, display: 'inline-block' }} />
+                  ) : (
+                    <Trophy className="w-3 h-3 text-champagne" />
+                  )}
+                  <span className="font-semibold text-white">{CHAMPION_TR[name] ?? name}</span>
                   <span className="font-bold text-champagne">{count}×</span>
                 </span>
               ))}
