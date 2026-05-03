@@ -383,6 +383,250 @@ async function runReport(sb: Sb) {
   };
 }
 
+// ── OPENFOOTBALL 1930–2006 helpers ────────────────────────────────────────────
+
+const OF_OLD_EDITIONS = [
+  1930,1934,1938,1950,1954,1958,1962,1966,
+  1970,1974,1978,1982,1986,1990,1994,1998,2002,2006,
+];
+
+// Known host countries per edition
+const EDITION_META: Record<number, { host: string; champion: string }> = {
+  1930: { host: "Uruguay",       champion: "Uruguay" },
+  1934: { host: "Italy",         champion: "Italy" },
+  1938: { host: "France",        champion: "Italy" },
+  1950: { host: "Brazil",        champion: "Uruguay" },
+  1954: { host: "Switzerland",   champion: "West Germany" },
+  1958: { host: "Sweden",        champion: "Brazil" },
+  1962: { host: "Chile",         champion: "Brazil" },
+  1966: { host: "England",       champion: "England" },
+  1970: { host: "Mexico",        champion: "Brazil" },
+  1974: { host: "West Germany",  champion: "West Germany" },
+  1978: { host: "Argentina",     champion: "Argentina" },
+  1982: { host: "Spain",         champion: "Italy" },
+  1986: { host: "Mexico",        champion: "Argentina" },
+  1990: { host: "Italy",         champion: "West Germany" },
+  1994: { host: "USA",           champion: "Brazil" },
+  1998: { host: "France",        champion: "France" },
+  2002: { host: "South Korea / Japan", champion: "Brazil" },
+  2006: { host: "Germany",       champion: "Italy" },
+};
+
+function normalizeStage(round: string): { stageCode: string; stageName: string } {
+  const r = round.toLowerCase();
+  if (r.includes("matchday") || r.includes("group") || r.includes("first round") || r.includes("second round") || r.includes("preliminary")) {
+    return { stageCode: "Group stage", stageName: round };
+  }
+  if (r.includes("round of 16") || r.includes("eighth") || r.includes("second round of 16")) {
+    return { stageCode: "Round of 16", stageName: round };
+  }
+  if (r.includes("quarterfinal") || r.includes("quarter-final") || r.includes("quarter final")) {
+    return { stageCode: "Quarter-finals", stageName: round };
+  }
+  if (r.includes("semifinal") || r.includes("semi-final") || r.includes("semi final")) {
+    return { stageCode: "Semi-finals", stageName: round };
+  }
+  if (r.includes("third") || r.includes("3rd") || r.includes("bronze") || r.includes("place play")) {
+    return { stageCode: "3rd Place Final", stageName: round };
+  }
+  if (r.includes("final")) {
+    return { stageCode: "Final", stageName: round };
+  }
+  // 1950 had a final pool/round robin, 1954+ had knockouts
+  if (r.includes("pool") || r.includes("final round")) {
+    return { stageCode: "Final Pool", stageName: round };
+  }
+  return { stageCode: round, stageName: round };
+}
+
+function parseGround(ground: string | null | undefined): { venue: string; city: string } {
+  if (!ground) return { venue: "", city: "" };
+  const parts = ground.split(",").map(p => p.trim());
+  if (parts.length === 1) return { venue: parts[0], city: "" };
+  const city = parts[parts.length - 1];
+  const venue = parts.slice(0, parts.length - 1).join(", ");
+  return { venue, city };
+}
+
+interface OfMatch {
+  round: string;
+  date: string;
+  team1: string;
+  team2: string;
+  score: { ft: [number, number]; ht?: [number, number]; et?: [number, number]; p?: [number, number] };
+  group?: string;
+  ground?: string;
+}
+
+function transformOfMatch(m: OfMatch, year: number, idx: number): Record<string, string> {
+  const ft = m.score?.ft ?? [0, 0];
+  const et = m.score?.et ?? null;
+  const p  = m.score?.p  ?? null;
+  const { stageCode, stageName } = normalizeStage(m.round ?? "");
+  const { venue, city } = parseGround(m.ground);
+
+  const h90 = ft[0], a90 = ft[1];
+  const hAet = et ? et[0] : null;
+  const aAet = et ? et[1] : null;
+  const hPen = p ? p[0] : null;
+  const aPen = p ? p[1] : null;
+
+  let result90: string;
+  if (h90 > a90) result90 = "home_win";
+  else if (h90 < a90) result90 = "away_win";
+  else result90 = "draw";
+
+  let resultAet: string | null = null;
+  if (et) {
+    if (hAet! > aAet!) resultAet = "home_win";
+    else if (hAet! < aAet!) resultAet = "away_win";
+    else resultAet = "draw";
+  }
+
+  let resultPen: string | null = null;
+  if (p) resultPen = hPen! > aPen! ? "home_win" : "away_win";
+
+  let decidedBy: string;
+  if (p) decidedBy = "penalties";
+  else if (et) decidedBy = "extra_time";
+  else decidedBy = "regulation";
+
+  let finalWinner: string | null = null;
+  if (p) finalWinner = hPen! > aPen! ? m.team1 : m.team2;
+  else if (et) finalWinner = hAet! > aAet! ? m.team1 : (aAet! > hAet! ? m.team2 : null);
+  else if (h90 > a90) finalWinner = m.team1;
+  else if (a90 > h90) finalWinner = m.team2;
+
+  // Overall result (what the match ended as for DB result field)
+  let result: string;
+  if (p || et) result = "draw"; // result at 90 min
+  else result = result90;
+
+  // For group stage the final result IS the 90min result
+  if (stageCode === "Group stage" || stageCode === "Final Pool") result = result90;
+
+  return {
+    edition_year:          String(year),
+    match_no:              String(idx + 1),
+    stage_code:            stageCode,
+    stage_name_en:         stageName,
+    group_name:            m.group ?? "",
+    match_date:            m.date,
+    home_team_name:        m.team1,
+    away_team_name:        m.team2,
+    home_score_90:         String(h90),
+    away_score_90:         String(a90),
+    result_90:             result90,
+    home_score_aet:        hAet !== null ? String(hAet) : "",
+    away_score_aet:        aAet !== null ? String(aAet) : "",
+    result_aet:            resultAet ?? "",
+    home_penalties:        hPen !== null ? String(hPen) : "",
+    away_penalties:        aPen !== null ? String(aPen) : "",
+    result_penalties:      resultPen ?? "",
+    final_winner_name:     finalWinner ?? "",
+    decided_by:            decidedBy,
+    result:                result,
+    venue_name:            venue,
+    city:                  city,
+    score_semantics_status: "verified",
+  };
+}
+
+// ── MODE: openfootball-ingest (fetch + store + transform one year) ─────────────
+async function runOfIngest(sb: Sb, year: number): Promise<Record<string, unknown>> {
+  const url = `https://raw.githubusercontent.com/openfootball/worldcup.json/master/${year}/worldcup.json`;
+  const log: string[] = [];
+  const errors: string[] = [];
+
+  // Fetch raw JSON
+  let ofJson: { name: string; matches: OfMatch[] };
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+    ofJson = await res.json();
+  } catch (e) {
+    return { year, error: String(e), matches_fetched: 0 };
+  }
+
+  const matches = ofJson.matches ?? [];
+  log.push(`${year}: fetched ${matches.length} matches`);
+
+  // Store raw (idempotent via hash)
+  const hashBuf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(ofJson)));
+  const hash = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, "0")).join("");
+
+  try {
+    await rpc(sb, "wch_store_of_raw", {
+      p_year: year, p_source_url: url, p_hash: hash, p_json: ofJson as unknown,
+    });
+    log.push(`${year}: raw stored hash=${hash.slice(0, 16)}...`);
+  } catch (e) {
+    errors.push(`raw store: ${String(e)}`);
+  }
+
+  // Upsert edition
+  const meta = EDITION_META[year];
+  const dates = matches.map(m => m.date).filter(Boolean).sort();
+  try {
+    await rpc(sb, "wch_upsert_edition_full", {
+      p_year:          year,
+      p_host:          meta?.host ?? null,
+      p_start_date:    dates[0] ?? null,
+      p_end_date:      dates[dates.length - 1] ?? null,
+      p_total_teams:   [...new Set([...matches.map(m => m.team1), ...matches.map(m => m.team2)])].length,
+      p_total_matches: matches.length,
+      p_champion:      meta?.champion ?? null,
+    });
+  } catch (e) {
+    errors.push(`edition upsert: ${String(e)}`);
+  }
+
+  // Collect unique team names
+  const teamNames = [...new Set([...matches.map(m => m.team1), ...matches.map(m => m.team2)])];
+  const teamRows = teamNames.map(name => ({ edition_year: String(year), name_en: name }));
+  try {
+    await rpc(sb, "wch_upsert_teams_bulk", { p_rows: teamRows });
+    log.push(`${year}: upserted ${teamRows.length} teams`);
+  } catch (e) {
+    errors.push(`teams: ${String(e)}`);
+  }
+
+  // Transform + insert matches in chunks of 30
+  const matchRows = matches.map((m, i) => transformOfMatch(m, year, i));
+  let inserted = 0;
+  for (let i = 0; i < matchRows.length; i += 30) {
+    try {
+      const n = (await rpc(sb, "wch_insert_of_matches", { p_rows: matchRows.slice(i, i + 30) })) as number;
+      inserted += n;
+    } catch (e) {
+      errors.push(`matches chunk ${i}: ${String(e)}`);
+    }
+  }
+  log.push(`${year}: inserted ${inserted}/${matches.length} matches`);
+
+  // Mark raw as transformed
+  try {
+    await rpc(sb, "wch_mark_of_raw_transformed", { p_year: year });
+  } catch (_) { /* non-fatal */ }
+
+  return { year, matches_fetched: matches.length, matches_inserted: inserted, teams: teamRows.length, errors, log };
+}
+
+// ── MODE: openfootball-report ──────────────────────────────────────────────────
+async function runOfReport(sb: Sb): Promise<Record<string, unknown>> {
+  const { data: counts } = await sb.rpc("wch_get_edition_match_counts");
+  const { data: rawEditions } = await sb.rpc("wch_get_of_raw_editions");
+  const { data: totals } = await sb.rpc("wch_get_totals");
+  const t = (totals as Array<Record<string, number>>)?.[0] ?? {};
+
+  return {
+    mode: "openfootball-report",
+    raw_editions: rawEditions,
+    edition_match_counts: counts,
+    db_totals: { matches: t.matches, teams: t.teams, events: t.events, statistics: t.statistics },
+  };
+}
+
 // ── Main handler ───────────────────────────────────────────────────────────────
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 200, headers: corsHeaders });
@@ -404,11 +648,13 @@ Deno.serve(async (req: Request) => {
     const limit  = parseInt(url.searchParams.get("limit")  ?? "34");
     const offset = parseInt(url.searchParams.get("offset") ?? "0");
     switch (mode) {
-      case "coverage":   result = await runCoverage(sb);                              break;
-      case "fixtures":   result = await runFixtures(sb, year);                        break;
-      case "events":     result = await runEvents(sb, year, limit, offset);           break;
-      case "statistics": result = await runStatistics(sb, year, limit, offset);       break;
-      case "report":     result = await runReport(sb);                                break;
+      case "coverage":            result = await runCoverage(sb);                              break;
+      case "fixtures":            result = await runFixtures(sb, year);                        break;
+      case "events":              result = await runEvents(sb, year, limit, offset);           break;
+      case "statistics":          result = await runStatistics(sb, year, limit, offset);       break;
+      case "report":              result = await runReport(sb);                                break;
+      case "openfootball-ingest": result = await runOfIngest(sb, year);                       break;
+      case "openfootball-report": result = await runOfReport(sb);                             break;
       default:
         return new Response(JSON.stringify({ error: `Unknown mode: ${mode}` }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
