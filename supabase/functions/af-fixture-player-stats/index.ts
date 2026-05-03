@@ -28,16 +28,31 @@ Deno.serve(async (req: Request) => {
     const chunkOffset: number = body.chunk_offset ?? 0;
     const chunkSize: number = body.chunk_size ?? 50;
 
-    if (!leagueId) throw new Error("league_id required");
+    // Support explicit fixture_ids array for gap-fill mode (no league_id required)
+    const explicitIds: number[] | undefined = body.fixture_ids;
 
-    const { data: fixtures, error: fErr } = await supabase.rpc("get_domestic_fixture_ids", {
-      p_af_league_id: leagueId,
-      p_season_year: seasonYear,
-      p_offset: chunkOffset,
-      p_limit: chunkSize,
-    });
-    if (fErr) throw fErr;
-    const batch: Array<{ match_id: string; api_football_fixture_id: number }> = fixtures ?? [];
+    if (!explicitIds?.length && !leagueId) throw new Error("league_id or fixture_ids required");
+
+    let batch: Array<{ match_id: string | null; api_football_fixture_id: number }>;
+
+    if (explicitIds && explicitIds.length > 0) {
+      // Gap-fill mode: fetch specific fixture IDs, resolve match_id via DB
+      const { data: mapped } = await supabase
+        .from("matches")
+        .select("id, api_football_fixture_id")
+        .in("api_football_fixture_id", explicitIds);
+      const matchMap = new Map((mapped ?? []).map((m: any) => [m.api_football_fixture_id, m.id]));
+      batch = explicitIds.map((fid) => ({ match_id: matchMap.get(fid) ?? null, api_football_fixture_id: fid }));
+    } else {
+      const { data: fixtures, error: fErr } = await supabase.rpc("get_domestic_fixture_ids", {
+        p_af_league_id: leagueId,
+        p_season_year: seasonYear,
+        p_offset: chunkOffset,
+        p_limit: chunkSize,
+      });
+      if (fErr) throw fErr;
+      batch = fixtures ?? [];
+    }
 
     let fetched = 0, skipped = 0, failed = 0;
     const errors: string[] = [];
