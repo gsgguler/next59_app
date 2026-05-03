@@ -52,7 +52,7 @@ function PreviousMeetings({ homeTeamId, awayTeamId, excludeId }: {
     if (!homeTeamId || !awayTeamId) { setLoading(false); return; }
 
     supabaseWcHistory
-      .from('matches')
+      .from('wch_matches')
       .select('id,edition_year,match_no,stage_code,group_name,match_date,home_team_name,away_team_name,home_score_ft,away_score_ft,home_score_90,away_score_90,decided_by,home_score_aet,away_score_aet,home_penalties,away_penalties,final_winner_name,result_90')
       .or(`and(home_team_id.eq.${homeTeamId},away_team_id.eq.${awayTeamId}),and(home_team_id.eq.${awayTeamId},away_team_id.eq.${homeTeamId})`)
       .neq('id', excludeId)
@@ -118,7 +118,7 @@ function TeamHistory({ teamId, teamName, excludeId }: {
   useEffect(() => {
     if (!teamId) { setLoading(false); return; }
     supabaseWcHistory
-      .from('matches')
+      .from('wch_matches')
       .select('id,edition_year,match_no,stage_code,group_name,match_date,home_team_name,away_team_name,home_score_ft,away_score_ft,home_score_90,away_score_90,decided_by,home_score_aet,away_score_aet,home_penalties,away_penalties,final_winner_name,result_90')
       .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
       .neq('id', excludeId)
@@ -215,7 +215,7 @@ export default function WcMatchDetailPage() {
   useEffect(() => {
     if (!matchId) return;
     supabaseWcHistory
-      .from('matches')
+      .from('wch_matches')
       .select('*')
       .eq('id', matchId)
       .maybeSingle()
@@ -228,7 +228,7 @@ export default function WcMatchDetailPage() {
         // Load teams
         if (m.home_team_id) {
           supabaseWcHistory
-            .from('teams')
+            .from('wch_teams')
             .select('id,edition_year,name_en,name_tr,iso2,fifa_code,confederation')
             .eq('id', m.home_team_id)
             .maybeSingle()
@@ -236,7 +236,7 @@ export default function WcMatchDetailPage() {
         }
         if (m.away_team_id) {
           supabaseWcHistory
-            .from('teams')
+            .from('wch_teams')
             .select('id,edition_year,name_en,name_tr,iso2,fifa_code,confederation')
             .eq('id', m.away_team_id)
             .maybeSingle()

@@ -18,12 +18,7 @@ export const supabase = createClient(
   },
 );
 
-// Separate client for wc_history schema — .schema() is not supported in supabase-js v2
-export const supabaseWcHistory = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-key',
-  {
-    db: { schema: 'wc_history' },
-    auth: { autoRefreshToken: false, persistSession: false },
-  },
-);
+// Alias — wc_history data is exposed via public.wch_* views,
+// so the standard client is sufficient. This re-export keeps
+// existing imports working without a file-wide rename.
+export const supabaseWcHistory = supabase;

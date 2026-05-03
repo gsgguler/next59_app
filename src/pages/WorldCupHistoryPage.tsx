@@ -215,9 +215,8 @@ export default function WorldCupHistoryPage() {
 
   useEffect(() => {
     supabaseWcHistory
-      .from('editions')
+      .from('wch_editions')
       .select('edition_year,host_country,champion,total_matches,total_teams,start_date,end_date')
-      .not('host_country', 'is', null)
       .order('edition_year', { ascending: false })
       .then(({ data }) => {
         if (data) {
@@ -234,7 +233,7 @@ export default function WorldCupHistoryPage() {
     setSearch('');
     setStageFilter('');
     supabaseWcHistory
-      .from('matches')
+      .from('wch_matches')
       .select('id,edition_year,match_no,stage_code,stage_name_en,group_name,match_date,home_team_name,away_team_name,home_score_ft,away_score_ft,home_score_90,away_score_90,home_score_ht,away_score_ht,decided_by,home_score_aet,away_score_aet,home_penalties,away_penalties,final_winner_name,venue_name,city,attendance,referee,result_90,home_team_id,away_team_id')
       .eq('edition_year', selectedYear)
       .order('match_date', { ascending: true })
