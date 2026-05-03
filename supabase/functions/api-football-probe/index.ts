@@ -130,6 +130,37 @@ Deno.serve(async (req: Request) => {
         away: f.teams.away.name,
       }));
 
+    } else if (step === "player-fixture") {
+      const fixtureId = url.searchParams.get("id") ?? "1208024";
+      const r = await callApi(`/fixtures/players?fixture=${fixtureId}`);
+      const body = r.body as { response?: Array<{ team: { id: number; name: string }; players: Array<{ player: { id: number; name: string }; statistics: unknown[] }> }> };
+      const teams = body.response ?? [];
+      result = {
+        fixture_id: fixtureId,
+        teams_count: teams.length,
+        players_per_team: teams.map(t => ({ team: t.team.name, player_count: t.players.length })),
+        sample_player_stat_keys: teams[0]?.players[0]?.statistics[0] ? Object.keys(teams[0].players[0].statistics[0] as object) : [],
+        sample_player_keys: teams[0]?.players[0] ? Object.keys(teams[0].players[0].player) : [],
+      };
+
+    } else if (step === "player-season") {
+      const league = url.searchParams.get("league") ?? "39";
+      const season = url.searchParams.get("season") ?? "2024";
+      const page = url.searchParams.get("page") ?? "1";
+      const r = await callApi(`/players?league=${league}&season=${season}&page=${page}`);
+      const body = r.body as { paging?: { current: number; total: number }; response?: Array<{ player: { id: number; name: string; birth: { date: string }; nationality: string }; statistics: Array<Record<string, unknown>> }> };
+      const players = body.response ?? [];
+      result = {
+        paging: body.paging,
+        player_count: players.length,
+        sample_player_profile_keys: players[0] ? Object.keys(players[0].player) : [],
+        sample_stat_section_keys: players[0]?.statistics[0] ? Object.keys(players[0].statistics[0]) : [],
+        sample_games_keys: players[0]?.statistics[0] ? Object.keys((players[0].statistics[0] as Record<string, unknown>).games as object ?? {}) : [],
+      };
+
+    } else if (step === "player-status") {
+      result = await callApi("/status");
+
     } else {
       result = { error: "Unknown step" };
     }
