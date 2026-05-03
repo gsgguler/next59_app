@@ -53,7 +53,7 @@ export default function NotificationOptIn() {
             </button>
             <button
               onClick={() => setDismissed(true)}
-              className="px-3 py-2 rounded-lg text-xs text-navy-500 hover:text-navy-300 hover:bg-navy-800 transition-colors"
+              className="px-3 py-2 rounded-lg text-xs text-navy-400 hover:text-navy-300 hover:bg-navy-800 transition-colors"
             >
               Simdi Degil
             </button>
@@ -62,7 +62,7 @@ export default function NotificationOptIn() {
 
         <button
           onClick={() => setDismissed(true)}
-          className="p-1 rounded text-navy-600 hover:text-navy-400 transition-colors shrink-0"
+          className="p-1 rounded text-navy-400 hover:text-navy-300 transition-colors shrink-0"
         >
           <X className="w-4 h-4" />
         </button>

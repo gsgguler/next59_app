@@ -50,7 +50,7 @@ export default function FutbolAnalitigiPage() {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-white font-display">Futbol Analitiği</h1>
-              <p className="mt-2 text-sm text-navy-400 max-w-xl leading-relaxed">
+              <p className="mt-2 text-sm text-readable-muted max-w-xl leading-relaxed">
                 Next59 geçmiş maç verilerini, skorları, takım performanslarını ve maç istatistiklerini kullanarak futbolu veri üzerinden okumaya çalışır. Bahis tavsiyesi değil; futbol okuması.
               </p>
             </div>
@@ -73,7 +73,7 @@ export default function FutbolAnalitigiPage() {
                 <p className="text-sm font-semibold text-white group-hover:text-champagne transition-colors">
                   {s.title}
                 </p>
-                <p className="text-xs text-navy-500 mt-1 leading-relaxed">{s.desc}</p>
+                <p className="text-xs text-readable-muted mt-1 leading-relaxed">{s.desc}</p>
               </div>
               <ChevronRight className="w-4 h-4 text-navy-700 group-hover:text-navy-400 transition-colors shrink-0 mt-0.5" />
             </Link>

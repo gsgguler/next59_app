@@ -139,8 +139,8 @@ function TeamPastWC({ teamCode, teamNameEn }: { teamCode: string; teamNameEn: st
   if (matches.length === 0) return (
     <div className="text-center py-8">
       <Globe className="w-8 h-8 mx-auto mb-2 text-navy-700"/>
-      <p className="text-sm text-navy-500">Dünya Kupası geçmiş kaydı bulunamadı.</p>
-      <p className="text-xs text-navy-600 mt-1">({dbName} olarak arandı)</p>
+      <p className="text-sm text-navy-400">Dünya Kupası geçmiş kaydı bulunamadı.</p>
+      <p className="text-xs text-navy-400 mt-1">({dbName} olarak arandı)</p>
     </div>
   );
 
@@ -167,7 +167,7 @@ function TeamPastWC({ teamCode, teamNameEn }: { teamCode: string; teamNameEn: st
         ].map(s => (
           <div key={s.label} className="flex-1 text-center bg-navy-900/60 border border-navy-800 rounded-lg py-2">
             <p className={`text-lg font-black ${s.cls}`}>{s.val}</p>
-            <p className="text-[10px] text-navy-500">{s.label}</p>
+            <p className="text-[10px] text-navy-400">{s.label}</p>
           </div>
         ))}
       </div>
@@ -176,7 +176,7 @@ function TeamPastWC({ teamCode, teamNameEn }: { teamCode: string; teamNameEn: st
       <div className="space-y-4">
         {[...byEdition.entries()].sort((a, b) => b[0] - a[0]).map(([year, ems]) => (
           <div key={year}>
-            <p className="text-xs font-bold text-navy-500 uppercase tracking-wider mb-1.5 px-0.5">{year} Dünya Kupası</p>
+            <p className="text-xs font-bold text-navy-400 uppercase tracking-wider mb-1.5 px-0.5">{year} Dünya Kupası</p>
             <div className="space-y-1">
               {ems.sort((a, b) => stageOrder(a.stage_code) - stageOrder(b.stage_code)).map((m) => {
                 const isHome = m.home_team_name === dbName;
@@ -197,7 +197,7 @@ function TeamPastWC({ teamCode, teamNameEn }: { teamCode: string; teamNameEn: st
                     <span className={`shrink-0 w-5 h-5 rounded text-xs font-bold flex items-center justify-center border ${outcomeClass}`}>
                       {!winner ? 'B' : winner === dbName ? 'G' : 'M'}
                     </span>
-                    <span className="text-xs text-navy-500 shrink-0 w-14">{STAGE_LABELS[m.stage_code] ?? m.stage_code}</span>
+                    <span className="text-xs text-navy-400 shrink-0 w-14">{STAGE_LABELS[m.stage_code] ?? m.stage_code}</span>
                     <span className="flex-1 text-xs text-navy-200 truncate">{isHome ? '(Ev) ' : '(Dep) '}{opponent}</span>
                     <div className="shrink-0 flex items-center gap-1">
                       <span className="text-xs font-bold text-white tabular-nums">{teamScore ?? '?'}–{oppScore ?? '?'}</span>
@@ -259,8 +259,8 @@ function H2HPastWC({ homeCode, awayCode, homeName, awayName }: {
   if (meetings.length === 0) return (
     <div className="text-center py-8">
       <Swords className="w-8 h-8 mx-auto mb-2 text-navy-700"/>
-      <p className="text-sm text-navy-500">Bu iki takım daha önce Dünya Kupası'nda karşılaşmamış.</p>
-      <p className="text-xs text-navy-600 mt-1">({hn} vs {an})</p>
+      <p className="text-sm text-navy-400">Bu iki takım daha önce Dünya Kupası'nda karşılaşmamış.</p>
+      <p className="text-xs text-navy-400 mt-1">({hn} vs {an})</p>
     </div>
   );
 
@@ -278,9 +278,9 @@ function H2HPastWC({ homeCode, awayCode, homeName, awayName }: {
           <p className="text-2xl font-black text-champagne">{hnWins}</p>
         </div>
         <div className="px-4 text-center">
-          <p className="text-xs text-navy-500 mb-0.5">Karşılaşma</p>
+          <p className="text-xs text-navy-400 mb-0.5">Karşılaşma</p>
           <p className="text-xl font-black text-navy-300">{meetings.length}</p>
-          <p className="text-xs text-navy-500 mt-0.5">Beraberlik: {draws}</p>
+          <p className="text-xs text-navy-400 mt-0.5">Beraberlik: {draws}</p>
         </div>
         <div className="flex-1 text-left">
           <p className="text-sm font-bold text-white">{awayName}</p>
@@ -299,7 +299,7 @@ function H2HPastWC({ homeCode, awayCode, homeName, awayName }: {
               className="flex items-center gap-3 px-3 py-2.5 bg-navy-900/60 border border-navy-800 rounded-lg hover:border-navy-600 hover:bg-navy-900 transition-colors group"
             >
               <span className="text-xs font-bold text-navy-400 shrink-0 w-8">{m.edition_year}</span>
-              <span className="text-xs text-navy-500 shrink-0 w-16">{STAGE_LABELS[m.stage_code] ?? m.stage_code}</span>
+              <span className="text-xs text-navy-400 shrink-0 w-16">{STAGE_LABELS[m.stage_code] ?? m.stage_code}</span>
               <span className={`flex-1 text-xs text-right truncate ${winner === m.home_team_name ? 'text-white font-semibold' : 'text-navy-400'}`}>
                 {m.home_team_name}
               </span>
@@ -331,7 +331,7 @@ function GroupContext({ fixture, allFixtures }: { fixture: WC2026Fixture; allFix
 
   return (
     <div>
-      <p className="text-xs font-bold uppercase tracking-wider text-navy-500 mb-3">Grup {fixture.group} Fikstürü</p>
+      <p className="text-xs font-bold uppercase tracking-wider text-navy-400 mb-3">Grup {fixture.group} Fikstürü</p>
       <div className="space-y-1">
         {groupFixtures.map((f) => {
           const hc = COUNTRY_BY_FIFA[f.home_team_code];
@@ -343,12 +343,12 @@ function GroupContext({ fixture, allFixtures }: { fixture: WC2026Fixture; allFix
                 isCurrent ? 'bg-champagne/5 border-champagne/20' : 'bg-navy-900/40 border-navy-800/60'
               }`}
             >
-              <span className="text-xs text-navy-500 shrink-0 w-20">{formatKickoffTR(f.kickoff_utc)}</span>
+              <span className="text-xs text-navy-400 shrink-0 w-20">{formatKickoffTR(f.kickoff_utc)}</span>
               <span className="flex items-center gap-1.5 flex-1 justify-end">
                 {hc && <span className={`fi fi-${hc.iso2} rounded-[3px] shrink-0`} style={{width:16,height:11,display:'inline-block'}}/>}
                 <span className={`text-xs truncate ${isCurrent ? 'text-white font-semibold' : 'text-navy-300'}`}>{hc?.name_tr ?? f.home_team}</span>
               </span>
-              <span className="text-xs text-navy-600 shrink-0">–</span>
+              <span className="text-xs text-navy-400 shrink-0">–</span>
               <span className="flex items-center gap-1.5 flex-1">
                 {ac && <span className={`fi fi-${ac.iso2} rounded-[3px] shrink-0`} style={{width:16,height:11,display:'inline-block'}}/>}
                 <span className={`text-xs truncate ${isCurrent ? 'text-white font-semibold' : 'text-navy-300'}`}>{ac?.name_tr ?? f.away_team}</span>
@@ -428,7 +428,7 @@ export default function WcFixtureDetailPage() {
         </div>
         <div className="relative max-w-3xl mx-auto px-4 sm:px-6">
           {/* Breadcrumb */}
-          <div className="flex items-center gap-2 mb-6 text-xs text-navy-500">
+          <div className="flex items-center gap-2 mb-6 text-xs text-navy-400">
             <Link to="/world-cup-2026" className="flex items-center gap-1 hover:text-champagne transition-colors">
               <ArrowLeft className="w-3.5 h-3.5"/>2026 Fikstür
             </Link>
@@ -443,7 +443,7 @@ export default function WcFixtureDetailPage() {
             }`}>
               {fixture.stage === 'Final' ? <Trophy className="w-3.5 h-3.5"/> : <Shield className="w-3.5 h-3.5"/>}
               {stageLabel}{groupLabel ? ` · ${groupLabel}` : ''}
-              <span className="text-navy-600 font-mono ml-1">#{fixture.match_no}</span>
+              <span className="text-navy-400 font-mono ml-1">#{fixture.match_no}</span>
             </span>
           </div>
 
@@ -455,7 +455,7 @@ export default function WcFixtureDetailPage() {
                 <span className={`fi fi-${homeCountry.iso2} rounded-[4px] shadow-md`} style={{width:56,height:38,display:'inline-block'}}/>
               ) : (
                 <div className="w-14 h-10 rounded-lg bg-navy-800/60 border border-navy-700 flex items-center justify-center">
-                  <HelpCircle className="w-5 h-5 text-navy-600"/>
+                  <HelpCircle className="w-5 h-5 text-navy-400"/>
                 </div>
               )}
               <div className="text-center">
@@ -470,10 +470,10 @@ export default function WcFixtureDetailPage() {
 
             {/* Center */}
             <div className="flex flex-col items-center shrink-0">
-              <span className="text-3xl font-black text-navy-600">VS</span>
+              <span className="text-3xl font-black text-navy-400">VS</span>
               <div className="mt-2 text-center">
                 <p className="text-sm font-bold text-champagne">{trTime}</p>
-                <p className="text-xs text-navy-500 mt-0.5">{matchDate}</p>
+                <p className="text-xs text-navy-400 mt-0.5">{matchDate}</p>
               </div>
             </div>
 
@@ -483,7 +483,7 @@ export default function WcFixtureDetailPage() {
                 <span className={`fi fi-${awayCountry.iso2} rounded-[4px] shadow-md`} style={{width:56,height:38,display:'inline-block'}}/>
               ) : (
                 <div className="w-14 h-10 rounded-lg bg-navy-800/60 border border-navy-700 flex items-center justify-center">
-                  <HelpCircle className="w-5 h-5 text-navy-600"/>
+                  <HelpCircle className="w-5 h-5 text-navy-400"/>
                 </div>
               )}
               <div className="text-center">
@@ -528,10 +528,10 @@ export default function WcFixtureDetailPage() {
         <div className="grid sm:grid-cols-2 gap-4 mb-6">
           {/* Venue detail */}
           <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-navy-500 mb-3">Stadyum Bilgisi</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-navy-400 mb-3">Stadyum Bilgisi</h3>
             <div className="space-y-2.5">
               <div className="flex items-start gap-2">
-                <MapPin className="w-3.5 h-3.5 text-navy-500 mt-0.5 shrink-0"/>
+                <MapPin className="w-3.5 h-3.5 text-navy-400 mt-0.5 shrink-0"/>
                 <div>
                   <p className="text-sm font-bold text-white">{fixture.venue}</p>
                   {venue && (
@@ -569,20 +569,20 @@ export default function WcFixtureDetailPage() {
               { country: awayCountry, code: fixture.away_team_code, name: fixture.away_team, side: 'Deplasman' },
             ].map(({ country, code, name, side }) => (
               <div key={side} className="bg-navy-900/50 border border-navy-800 rounded-xl p-3">
-                <p className="text-xs text-navy-500 mb-2">{side}</p>
+                <p className="text-xs text-navy-400 mb-2">{side}</p>
                 <div className="flex items-center gap-2.5">
                   {country ? (
                     <span className={`fi fi-${country.iso2} rounded-[3px] shadow-sm shrink-0`} style={{width:28,height:20,display:'inline-block'}}/>
                   ) : (
                     <div className="w-7 h-5 rounded bg-navy-800 shrink-0 flex items-center justify-center">
-                      <HelpCircle className="w-3 h-3 text-navy-600"/>
+                      <HelpCircle className="w-3 h-3 text-navy-400"/>
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-white leading-tight truncate">{country?.name_en ?? name}</p>
                     <p className="text-xs text-navy-400 truncate">{country?.name_tr ?? 'Belirlenecek'}</p>
                   </div>
-                  <span className="text-xs font-mono text-navy-500 shrink-0">{code !== 'TBD' ? code : '—'}</span>
+                  <span className="text-xs font-mono text-navy-400 shrink-0">{code !== 'TBD' ? code : '—'}</span>
                 </div>
               </div>
             ))}
@@ -592,10 +592,10 @@ export default function WcFixtureDetailPage() {
         {/* Kadro notice */}
         <div className="bg-navy-900/40 border border-navy-800/60 rounded-xl p-4 mb-6">
           <div className="flex items-center gap-2.5">
-            <HelpCircle className="w-4 h-4 text-navy-500 shrink-0"/>
+            <HelpCircle className="w-4 h-4 text-navy-400 shrink-0"/>
             <div>
               <p className="text-sm font-semibold text-navy-300">Kadrolar Henüz Açıklanmadı</p>
-              <p className="text-xs text-navy-500 mt-0.5">
+              <p className="text-xs text-navy-400 mt-0.5">
                 Resmi maç kadroları turnuva başlamadan önce FIFA tarafından açıklanacak.
                 Teknik direktör bilgileri ve kesin kadro aşağıda görünecek.
               </p>
@@ -608,7 +608,7 @@ export default function WcFixtureDetailPage() {
           {TABS.map(({ key, label }) => (
             <button key={key} onClick={() => setActiveTab(key)}
               className={`flex-1 min-w-[80px] py-2 px-2 text-xs font-semibold rounded-lg transition-all truncate ${
-                activeTab === key ? 'bg-navy-800 text-white shadow-sm' : 'text-navy-500 hover:text-navy-300'
+                activeTab === key ? 'bg-navy-800 text-white shadow-sm' : 'text-navy-400 hover:text-navy-300'
               }`}
             >
               {label}
@@ -620,7 +620,7 @@ export default function WcFixtureDetailPage() {
         <div className="bg-navy-900/40 border border-navy-800 rounded-xl p-4">
           {activeTab === 'info' && (
             <>
-              <p className="text-xs font-bold uppercase tracking-wider text-navy-500 mb-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-navy-400 mb-3">
                 {isGroupStage ? `Grup ${fixture.group} — Diğer Maçlar` : 'Turnuva Bağlamı'}
               </p>
               {isGroupStage ? (
@@ -635,7 +635,7 @@ export default function WcFixtureDetailPage() {
           )}
           {activeTab === 'h2h' && !isTBD && (
             <>
-              <p className="text-xs font-bold uppercase tracking-wider text-navy-500 mb-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-navy-400 mb-3">
                 Dünya Kupası'ndaki Önceki Karşılaşmalar (1930–2022)
               </p>
               <H2HPastWC
@@ -647,29 +647,29 @@ export default function WcFixtureDetailPage() {
             </>
           )}
           {activeTab === 'h2h' && isTBD && (
-            <p className="text-sm text-navy-500 py-6 text-center">Rakipler henüz belli olmadığından geçmiş karşılaşma gösterilemiyor.</p>
+            <p className="text-sm text-navy-400 py-6 text-center">Rakipler henüz belli olmadığından geçmiş karşılaşma gösterilemiyor.</p>
           )}
           {activeTab === 'home' && (
             <>
-              <p className="text-xs font-bold uppercase tracking-wider text-navy-500 mb-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-navy-400 mb-3">
                 {homeCountry?.name_tr ?? fixture.home_team} — Dünya Kupası Geçmişi (1930–2022)
               </p>
               {homeCountry ? (
                 <TeamPastWC teamCode={fixture.home_team_code} teamNameEn={homeCountry.name_en}/>
               ) : (
-                <p className="text-sm text-navy-500 py-6 text-center">Takım henüz belli olmadı.</p>
+                <p className="text-sm text-navy-400 py-6 text-center">Takım henüz belli olmadı.</p>
               )}
             </>
           )}
           {activeTab === 'away' && (
             <>
-              <p className="text-xs font-bold uppercase tracking-wider text-navy-500 mb-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-navy-400 mb-3">
                 {awayCountry?.name_tr ?? fixture.away_team} — Dünya Kupası Geçmişi (1930–2022)
               </p>
               {awayCountry ? (
                 <TeamPastWC teamCode={fixture.away_team_code} teamNameEn={awayCountry.name_en}/>
               ) : (
-                <p className="text-sm text-navy-500 py-6 text-center">Takım henüz belli olmadı.</p>
+                <p className="text-sm text-navy-400 py-6 text-center">Takım henüz belli olmadı.</p>
               )}
             </>
           )}

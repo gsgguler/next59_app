@@ -34,7 +34,7 @@ export default function SozlukPage() {
     <div className="min-h-screen bg-navy-950">
       <div className="border-b border-navy-800/60">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-8">
-          <div className="flex items-center gap-2 text-xs text-navy-500 mb-4">
+          <div className="flex items-center gap-2 text-xs text-readable-muted mb-4">
             <Link to="/futbol-analitigi" className="hover:text-champagne transition-colors">Futbol Analitiği</Link>
             <ChevronRight className="w-3 h-3" /><span className="text-navy-400">Sözlük</span>
           </div>
@@ -48,9 +48,9 @@ export default function SozlukPage() {
             </div>
           </div>
           <div className="mt-6 relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-navy-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-readable-muted" />
             <input type="text" placeholder="Terim ara..." value={q} onChange={(e) => setQ(e.target.value)}
-              className="w-full bg-navy-900 border border-navy-700 text-white text-sm rounded-lg pl-9 pr-4 py-2.5 placeholder-navy-600 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all" />
+              className="w-full bg-navy-900 border border-navy-700 text-white text-sm rounded-lg pl-9 pr-4 py-2.5 placeholder-navy-500 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all" />
           </div>
         </div>
       </div>
@@ -63,7 +63,7 @@ export default function SozlukPage() {
             </div>
           ))}
           {filtered.length === 0 && (
-            <p className="text-sm text-navy-500 py-12 text-center">Eşleşen terim bulunamadı.</p>
+            <p className="text-sm text-readable-muted py-12 text-center">Eşleşen terim bulunamadı.</p>
           )}
         </div>
       </div>

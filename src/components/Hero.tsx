@@ -179,9 +179,9 @@ export function Hero() {
               {/* Match metadata */}
               <div className="mt-3 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 text-readable-muted text-xs">
                 <span>Per, 11 Haziran 2026</span>
-                <span className="text-navy-600">·</span>
+                <span className="text-navy-500">·</span>
                 <span className="text-readable-subtle font-medium">22:00 TSİ</span>
-                <span className="text-navy-600">·</span>
+                <span className="text-navy-500">·</span>
                 <MapPin className="w-3 h-3 shrink-0" />
                 <span>Estadio Azteca, Mexico City</span>
               </div>

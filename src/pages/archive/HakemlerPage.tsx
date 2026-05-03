@@ -67,7 +67,7 @@ export default function HakemlerPage() {
     <div className="min-h-screen bg-navy-950">
       <div className="border-b border-navy-800/60 bg-navy-950">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-8">
-          <div className="flex items-center gap-2 text-xs text-navy-500 mb-4">
+          <div className="flex items-center gap-2 text-xs text-readable-muted mb-4">
             <Link to="/mac-arsivi" className="hover:text-champagne transition-colors">
               Maç Arşivi
             </Link>
@@ -80,20 +80,20 @@ export default function HakemlerPage() {
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-white font-display">Hakem Arşivi</h1>
-              <p className="mt-1 text-sm text-navy-400">
+              <p className="mt-1 text-sm text-readable-muted">
                 Arşivde hakem bilgisi kayıtlı maçlardaki tüm hakemler.
               </p>
             </div>
           </div>
 
           <div className="mt-6 relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-navy-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-navy-400" />
             <input
               type="text"
               placeholder="Hakem adı ara..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full bg-navy-900 border border-navy-700 text-white text-sm rounded-lg pl-9 pr-4 py-2.5 placeholder-navy-600 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all"
+              className="w-full bg-navy-900 border border-navy-700 text-white text-sm rounded-lg pl-9 pr-4 py-2.5 placeholder-navy-500 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all"
             />
           </div>
         </div>
@@ -109,13 +109,13 @@ export default function HakemlerPage() {
         ) : error ? (
           <div className="flex flex-col items-center py-20 gap-3">
             <AlertCircle className="w-8 h-8 text-red-400" />
-            <p className="text-sm text-navy-400">{error}</p>
+            <p className="text-sm text-readable-muted">{error}</p>
           </div>
         ) : referees.length === 0 ? (
-          <p className="text-center text-sm text-navy-500 py-20">Eşleşen hakem bulunamadı.</p>
+          <p className="text-center text-sm text-readable-muted py-20">Eşleşen hakem bulunamadı.</p>
         ) : (
           <>
-            <p className="text-xs text-navy-600 mb-3">
+            <p className="text-xs text-readable-muted mb-3">
               {referees.length.toLocaleString('tr-TR')} hakem
             </p>
             <div className="grid gap-1.5 sm:grid-cols-2">
@@ -128,7 +128,7 @@ export default function HakemlerPage() {
                   <span className="text-sm font-medium text-white group-hover:text-champagne transition-colors truncate">
                     {r.name}
                   </span>
-                  <span className="ml-3 shrink-0 text-xs text-navy-500 tabular-nums">
+                  <span className="ml-3 shrink-0 text-xs text-readable-muted tabular-nums">
                     {r.match_count.toLocaleString('tr-TR')} maç
                   </span>
                 </Link>

@@ -6,7 +6,7 @@ import ShareMatchCard from '../ShareMatchCard';
 const statusConfig = {
   scheduled: { label: 'Yaklaşıyor', cls: 'bg-navy-800 text-navy-300 border-navy-700' },
   live: { label: 'CANLI', cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 animate-pulse' },
-  finished: { label: 'Tamamlandı', cls: 'bg-navy-800/60 text-navy-500 border-navy-700/50' },
+  finished: { label: 'Tamamlandı', cls: 'bg-navy-800/60 text-readable-muted border-navy-700/50' },
 } as const;
 
 function FlagBadge({ code, name }: { code: string; name: string }) {
@@ -48,7 +48,7 @@ function EloBar({ homeElo, awayElo }: { homeElo: number | null; awayElo: number 
         <div className="h-1.5 rounded-full bg-navy-800 overflow-hidden">
           <div className="h-full w-full bg-navy-700" />
         </div>
-        <p className="text-[10px] text-navy-600 mt-1 text-center">Elo verisi yok</p>
+        <p className="text-[10px] text-readable-muted mt-1 text-center">Elo verisi yok</p>
       </div>
     );
   }
@@ -69,9 +69,9 @@ function EloBar({ homeElo, awayElo }: { homeElo: number | null; awayElo: number 
         />
       </div>
       <div className="flex justify-between mt-1">
-        <span className="text-[10px] tabular-nums text-navy-500">{Math.round(homeElo)}</span>
-        <span className="text-[10px] text-navy-600 font-medium">ELO</span>
-        <span className="text-[10px] tabular-nums text-navy-500">{Math.round(awayElo)}</span>
+        <span className="text-[10px] tabular-nums text-readable-muted">{Math.round(homeElo)}</span>
+        <span className="text-[10px] text-readable-muted font-medium">ELO</span>
+        <span className="text-[10px] tabular-nums text-readable-muted">{Math.round(awayElo)}</span>
       </div>
     </div>
   );

@@ -208,7 +208,7 @@ function UpcomingMatchesList() {
               </p>
             </div>
           </div>
-          <span className="text-xs font-medium text-navy-600 bg-navy-50 px-2 py-1 rounded">
+          <span className="text-xs font-medium text-navy-700 bg-navy-100 px-2 py-1 rounded">
             {m.round || ''}
           </span>
         </div>

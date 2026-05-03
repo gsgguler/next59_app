@@ -128,7 +128,7 @@ export default function ModelLabMacIncelemePage() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">Maç İnceleme</h1>
-              <p className="text-xs text-navy-400">Validasyon sezonu: 2018-2019 | Gerçek sonuç + Model kararı karşılaştırması</p>
+              <p className="text-xs text-readable-muted">Validasyon sezonu: 2018-2019 | Gerçek sonuç + Model kararı karşılaştırması</p>
             </div>
           </div>
         </div>
@@ -139,7 +139,7 @@ export default function ModelLabMacIncelemePage() {
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-readable-muted" />
             <input type="text" placeholder="Lig ara..." value={compSearch} onChange={(e) => { setCompSearch(e.target.value); setPage(0); }}
-              className="bg-navy-900 border border-navy-700 text-white text-xs rounded-lg pl-8 pr-3 py-2 w-36 placeholder-navy-600 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all" />
+              className="bg-navy-900 border border-navy-700 text-white text-xs rounded-lg pl-8 pr-3 py-2 w-36 placeholder-navy-500 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all" />
           </div>
           <select value={resultFilter} onChange={(e) => { setResultFilter(e.target.value); setPage(0); }}
             className="appearance-none bg-navy-900 border border-navy-700 text-white text-xs rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-champagne/40 transition-all">
@@ -353,7 +353,7 @@ function ModelDecision({
         <ProbCell label="Dep" value={prediction.p_away} result="A" predicted={prediction.predicted_result} />
       </div>
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-navy-400">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-readable-muted">
         <span>Beklenen gol: <strong className="text-white">{Number(prediction.expected_home_goals).toFixed(2)}–{Number(prediction.expected_away_goals).toFixed(2)}</strong></span>
         <span>2.5 üst: <strong className="text-white">{(prediction.p_over_2_5 * 100).toFixed(1)}%</strong></span>
         <span>BTTS: <strong className="text-white">{(prediction.p_btts * 100).toFixed(1)}%</strong></span>
@@ -395,8 +395,8 @@ function EvaluationDetail({ evaluation }: { evaluation: EvaluationRow }) {
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-        <span className="text-navy-400">Gerçek: <strong className="text-white">{evaluation.actual_result}</strong></span>
-        <span className="text-navy-400">Tahmin: <strong className="text-white">{evaluation.predicted_result}</strong></span>
+        <span className="text-readable-muted">Gerçek: <strong className="text-white">{evaluation.actual_result}</strong></span>
+        <span className="text-readable-muted">Tahmin: <strong className="text-white">{evaluation.predicted_result}</strong></span>
         <span className={`font-bold ${evaluation.is_result_correct ? 'text-emerald-400' : 'text-red-400'}`}>
           {evaluation.is_result_correct ? 'Doğru' : 'Yanlış'}
         </span>
@@ -409,7 +409,7 @@ function EvaluationDetail({ evaluation }: { evaluation: EvaluationRow }) {
       </div>
       {evaluation.error_category && (
         <div className="text-[10px] text-readable-muted">
-          Hata: <span className="text-navy-400">{evaluation.error_category}</span>
+          Hata: <span className="text-readable-subtle">{evaluation.error_category}</span>
           {evaluation.error_notes && <span> — {evaluation.error_notes}</span>}
         </div>
       )}

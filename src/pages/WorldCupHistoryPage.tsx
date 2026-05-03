@@ -90,10 +90,10 @@ function MatchCard({ m }: { m: WcMatch }) {
   const winner = m.final_winner_name;
 
   const homeClass = winner
-    ? winner === m.home_team_name ? 'text-white font-bold' : 'text-navy-500'
+    ? winner === m.home_team_name ? 'text-white font-bold' : 'text-navy-400'
     : 'text-navy-200';
   const awayClass = winner
-    ? winner === m.away_team_name ? 'text-white font-bold' : 'text-navy-500'
+    ? winner === m.away_team_name ? 'text-white font-bold' : 'text-navy-400'
     : 'text-navy-200';
 
   const decidedBadge = m.decided_by === 'penalties' ? 'PEN'
@@ -135,7 +135,7 @@ function MatchCard({ m }: { m: WcMatch }) {
 
       {/* Venue + arrow */}
       <div className="hidden lg:flex items-center gap-2 shrink-0">
-        <span className="text-xs text-navy-600 truncate max-w-[100px]">{m.city ?? m.venue_name ?? ''}</span>
+        <span className="text-xs text-navy-400 truncate max-w-[100px]">{m.city ?? m.venue_name ?? ''}</span>
         <span className="text-navy-700 group-hover:text-champagne transition-colors text-xs">›</span>
       </div>
     </Link>
@@ -161,7 +161,7 @@ function EditionCard({
           <span className={`text-xl font-black leading-none ${isSelected ? 'text-champagne' : 'text-white'}`}>
             {edition.edition_year}
           </span>
-          <p className="text-xs text-navy-500 mt-0.5 leading-tight">{edition.host_country}</p>
+          <p className="text-xs text-navy-400 mt-0.5 leading-tight">{edition.host_country}</p>
         </div>
           <div className="flex items-center gap-1.5 shrink-0">
             {CHAMPION_ISO2[edition.champion] ? (
@@ -178,9 +178,9 @@ function EditionCard({
           </div>
       </div>
       <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-navy-800/50">
-        <span className="text-xs text-navy-600">{edition.total_teams} tk</span>
+        <span className="text-xs text-navy-400">{edition.total_teams} tk</span>
         <span className="w-1 h-1 rounded-full bg-navy-700" />
-        <span className="text-xs text-navy-600">{edition.total_matches} maç</span>
+        <span className="text-xs text-navy-400">{edition.total_matches} maç</span>
       </div>
     </button>
   );
@@ -205,7 +205,7 @@ function EditionStats({ matches }: { matches: WcMatch[] }) {
       ].map((s) => (
         <div key={s.label} className="bg-navy-900/50 border border-navy-800 rounded-xl px-3 py-2.5 text-center">
           <p className="text-xl font-black text-white">{s.value}</p>
-          <p className="text-xs text-navy-500 mt-0.5">{s.label}</p>
+          <p className="text-xs text-navy-400 mt-0.5">{s.label}</p>
         </div>
       ))}
     </div>
@@ -341,7 +341,7 @@ export default function WorldCupHistoryPage() {
 
           {/* Edition list */}
           <aside className="lg:w-52 shrink-0">
-            <p className="text-xs font-bold uppercase tracking-wider text-navy-500 mb-3 px-0.5">Turnuvalar</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-navy-400 mb-3 px-0.5">Turnuvalar</p>
             {loadingEditions ? (
               <div className="space-y-2">
                 {Array.from({ length: 8 }).map((_, i) => (
@@ -403,7 +403,7 @@ export default function WorldCupHistoryPage() {
                 {/* Filters */}
                 <div className="flex gap-2 mb-4">
                   <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-navy-500 pointer-events-none" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-navy-400 pointer-events-none" />
                     <input
                       type="text"
                       placeholder="Takım veya şehir ara…"
@@ -423,7 +423,7 @@ export default function WorldCupHistoryPage() {
                         <option key={s} value={s}>{STAGE_LABELS[s] ?? s}</option>
                       ))}
                     </select>
-                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-navy-500 pointer-events-none" />
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-navy-400 pointer-events-none" />
                   </div>
                 </div>
 
@@ -437,7 +437,7 @@ export default function WorldCupHistoryPage() {
                 ) : filtered.length === 0 ? (
                   <div className="text-center py-16">
                     <Swords className="w-8 h-8 mx-auto mb-3 text-navy-700" />
-                    <p className="text-sm text-navy-500">Eşleşen maç yok.</p>
+                    <p className="text-sm text-navy-400">Eşleşen maç yok.</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -448,21 +448,21 @@ export default function WorldCupHistoryPage() {
                             {stage === 'Final' ? (
                               <Trophy className="w-3.5 h-3.5 text-champagne" />
                             ) : (
-                              <Shield className="w-3.5 h-3.5 text-navy-500" />
+                              <Shield className="w-3.5 h-3.5 text-navy-400" />
                             )}
                             <span className={`text-xs font-bold uppercase tracking-wider ${stage === 'Final' ? 'text-champagne' : 'text-navy-400'}`}>
                               {STAGE_LABELS[stage] ?? stage}
                             </span>
                           </div>
-                          <span className="text-xs text-navy-600">{sm.length} maç</span>
+                          <span className="text-xs text-navy-400">{sm.length} maç</span>
                         </div>
                         {/* Column labels */}
                         <div className="hidden sm:flex items-center gap-3 px-4 py-1.5 border-b border-navy-800/30">
-                          <span className="hidden sm:block shrink-0 w-[60px] text-xs text-navy-600">Tur</span>
-                          <span className="flex-1 text-xs text-navy-600 text-right">Ev Sahibi</span>
-                          <span className="shrink-0 min-w-[64px] text-center text-xs text-navy-600">Skor</span>
-                          <span className="flex-1 text-xs text-navy-600">Deplasman</span>
-                          <span className="hidden lg:block shrink-0 w-[100px] text-xs text-navy-600">Şehir</span>
+                          <span className="hidden sm:block shrink-0 w-[60px] text-xs text-navy-400">Tur</span>
+                          <span className="flex-1 text-xs text-navy-400 text-right">Ev Sahibi</span>
+                          <span className="shrink-0 min-w-[64px] text-center text-xs text-navy-400">Skor</span>
+                          <span className="flex-1 text-xs text-navy-400">Deplasman</span>
+                          <span className="hidden lg:block shrink-0 w-[100px] text-xs text-navy-400">Şehir</span>
                         </div>
                         {sm.map((m) => <MatchCard key={m.id} m={m} />)}
                       </div>
@@ -471,7 +471,7 @@ export default function WorldCupHistoryPage() {
                 )}
               </>
             ) : (
-              <div className="flex items-center justify-center h-48 text-navy-600">
+              <div className="flex items-center justify-center h-48 text-navy-400">
                 <p className="text-sm">Soldan bir turnuva seçin.</p>
               </div>
             )}

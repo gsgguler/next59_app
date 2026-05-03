@@ -8,7 +8,7 @@ export default function BahisKarsitDurusPage() {
     <div className="min-h-screen bg-navy-950">
       <div className="border-b border-navy-800/60">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-8">
-          <div className="flex items-center gap-2 text-xs text-navy-500 mb-4">
+          <div className="flex items-center gap-2 text-xs text-readable-muted mb-4">
             <Link to="/next59" className="hover:text-champagne transition-colors">Next59</Link>
             <ChevronRight className="w-3 h-3" /><span className="text-navy-400">Bahis Karşıtı Duruş</span>
           </div>
@@ -18,7 +18,7 @@ export default function BahisKarsitDurusPage() {
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-white font-display">Bahis Karşıtı Duruş</h1>
-              <p className="mt-1 text-sm text-navy-400">
+              <p className="mt-1 text-sm text-readable-muted">
                 Next59'un bahis sektörüne karşı net tutumu.
               </p>
             </div>
@@ -53,7 +53,7 @@ export default function BahisKarsitDurusPage() {
                     ? <Check className="w-3 h-3 text-emerald-400" />
                     : <X className="w-3 h-3 text-red-400" />}
                 </span>
-                <span className="text-sm text-navy-400">{item.text}</span>
+                <span className="text-sm text-readable-muted">{item.text}</span>
               </div>
             ))}
           </div>
@@ -61,14 +61,14 @@ export default function BahisKarsitDurusPage() {
 
         <div>
           <h2 className="text-base font-semibold text-white mb-3">İçerikler Ne Anlama Gelir?</h2>
-          <p className="text-sm text-navy-400 leading-relaxed">
+          <p className="text-sm text-readable-muted leading-relaxed">
             İçerikler; futbolun olasılıklarını, veriye dayalı senaryolarla anlatır. Amaç, maçı izlerken "bu hikâye böyle mi akacak?" sorusunu daha heyecanlı kılmaktır. Sunulan sayısal veriler yatırım veya bahis aracı olarak kullanılmamalıdır.
           </p>
         </div>
 
         <div>
           <h2 className="text-base font-semibold text-white mb-3">Yasal Uyarı</h2>
-          <p className="text-sm text-navy-600 leading-relaxed">
+          <p className="text-sm text-readable-muted leading-relaxed">
             Bu platform yatırım tavsiyesi vermez. İçerikler yalnızca bilgilendirme ve eğlence amaçlıdır. Futbol sonuçları tahmin edilemez; tüm veriler geçmişe aittir ve gelecekteki sonuçları garanti etmez.
           </p>
         </div>

@@ -85,12 +85,12 @@ function TeamSearchBox({
     return (
       <div className="flex items-center justify-between bg-navy-800 border border-champagne/30 rounded-xl px-4 py-3">
         <div>
-          <p className="text-[10px] text-navy-500 uppercase tracking-wider">{label}</p>
+          <p className="text-[10px] text-readable-muted uppercase tracking-wider">{label}</p>
           <p className="text-sm font-semibold text-white mt-0.5">{selected.team_name}</p>
         </div>
         <button
           onClick={onClear}
-          className="p-1 text-navy-500 hover:text-red-400 transition-colors"
+          className="p-1 text-readable-muted hover:text-red-400 transition-colors"
         >
           <X className="w-4 h-4" />
         </button>
@@ -100,9 +100,9 @@ function TeamSearchBox({
 
   return (
     <div className="relative">
-      <p className="text-xs text-navy-500 mb-1.5">{label}</p>
+      <p className="text-xs text-readable-muted mb-1.5">{label}</p>
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-navy-500" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-readable-muted" />
         <input
           type="text"
           placeholder="Takım ara..."
@@ -110,15 +110,15 @@ function TeamSearchBox({
           onChange={(e) => setQ(e.target.value)}
           onFocus={() => setFocused(true)}
           onBlur={() => setTimeout(() => setFocused(false), 200)}
-          className="w-full bg-navy-900 border border-navy-700 text-white text-sm rounded-xl pl-9 pr-4 py-2.5 placeholder-navy-600 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all"
+          className="w-full bg-navy-900 border border-navy-700 text-white text-sm rounded-xl pl-9 pr-4 py-2.5 placeholder-navy-500 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all"
         />
       </div>
       {focused && q.length >= 2 && (
         <div className="absolute left-0 right-0 top-full mt-1 bg-navy-900 border border-navy-700 rounded-xl shadow-2xl z-10 max-h-48 overflow-y-auto">
           {loading ? (
-            <div className="px-4 py-3 text-xs text-navy-500">Aranıyor...</div>
+            <div className="px-4 py-3 text-xs text-navy-400">Aranıyor...</div>
           ) : results.length === 0 ? (
-            <div className="px-4 py-3 text-xs text-navy-500">Takım bulunamadı.</div>
+            <div className="px-4 py-3 text-xs text-navy-400">Takım bulunamadı.</div>
           ) : (
             results.map((t) => (
               <button
@@ -200,7 +200,7 @@ export default function KarsilastirPage() {
     <div className="min-h-screen bg-navy-950">
       <div className="border-b border-navy-800/60 bg-navy-950">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-8">
-          <div className="flex items-center gap-2 text-xs text-navy-500 mb-4">
+          <div className="flex items-center gap-2 text-xs text-readable-muted mb-4">
             <Link to="/mac-arsivi" className="hover:text-champagne transition-colors">
               Maç Arşivi
             </Link>
@@ -242,7 +242,7 @@ export default function KarsilastirPage() {
         {!teamA || !teamB ? (
           <div className="flex flex-col items-center py-16 gap-3 text-center">
             <Swords className="w-10 h-10 text-navy-700" />
-            <p className="text-sm text-navy-500">
+            <p className="text-sm text-readable-muted">
               İki takım seçin; aralarındaki tüm karşılaşmalar listelenecek.
             </p>
           </div>
@@ -258,7 +258,7 @@ export default function KarsilastirPage() {
             <p className="text-sm text-navy-400">{error}</p>
           </div>
         ) : matches.length === 0 ? (
-          <p className="text-center text-sm text-navy-500 py-16">
+          <p className="text-center text-sm text-readable-muted py-16">
             Bu iki takım arasında arşivde kayıtlı karşılaşma bulunamadı.
           </p>
         ) : (
@@ -267,19 +267,19 @@ export default function KarsilastirPage() {
             <div className="grid grid-cols-3 gap-3 mb-8">
               <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-4 text-center">
                 <div className="text-2xl font-bold text-emerald-400">{winsA}</div>
-                <div className="text-xs text-navy-500 mt-1 truncate">{teamA.team_name}</div>
+                <div className="text-xs text-readable-muted mt-1 truncate">{teamA.team_name}</div>
               </div>
               <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-4 text-center">
                 <div className="text-2xl font-bold text-amber-400">{draws}</div>
-                <div className="text-xs text-navy-500 mt-1">Beraberlik</div>
+                <div className="text-xs text-readable-muted mt-1">Beraberlik</div>
               </div>
               <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-4 text-center">
                 <div className="text-2xl font-bold text-sky-400">{winsB}</div>
-                <div className="text-xs text-navy-500 mt-1 truncate">{teamB.team_name}</div>
+                <div className="text-xs text-readable-muted mt-1 truncate">{teamB.team_name}</div>
               </div>
             </div>
 
-            <p className="text-xs text-navy-600 mb-3">{matches.length} karşılaşma</p>
+            <p className="text-xs text-readable-muted mb-3">{matches.length} karşılaşma</p>
 
             <div className="space-y-2">
               {matches.map((m) => (
@@ -287,7 +287,7 @@ export default function KarsilastirPage() {
                   key={m.match_id}
                   className="bg-navy-900/50 border border-navy-800/60 rounded-xl p-4"
                 >
-                  <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-navy-500 mb-2">
+                  <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-navy-400 mb-2">
                     <span>{formatDate(m.match_date)}</span>
                     <span className="text-navy-700">·</span>
                     <span>{m.competition_name}</span>

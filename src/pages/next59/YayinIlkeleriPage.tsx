@@ -17,7 +17,7 @@ export default function YayinIlkeleriPage() {
     <div className="min-h-screen bg-navy-950">
       <div className="border-b border-navy-800/60">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-8">
-          <div className="flex items-center gap-2 text-xs text-navy-500 mb-4">
+          <div className="flex items-center gap-2 text-xs text-readable-muted mb-4">
             <Link to="/next59" className="hover:text-champagne transition-colors">Next59</Link>
             <ChevronRight className="w-3 h-3" /><span className="text-navy-400">Yayın İlkeleri</span>
           </div>
@@ -27,7 +27,7 @@ export default function YayinIlkeleriPage() {
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-white font-display">Yayın İlkeleri</h1>
-              <p className="mt-1 text-sm text-navy-400">Next59'un editoryal ilkeleri ve taahhütleri.</p>
+              <p className="mt-1 text-sm text-readable-muted">Next59'un editoryal ilkeleri ve taahhütleri.</p>
             </div>
           </div>
         </div>
@@ -41,7 +41,7 @@ export default function YayinIlkeleriPage() {
               </div>
               <div>
                 <p className="text-sm font-semibold text-white">{p.title}</p>
-                <p className="text-xs text-navy-500 mt-1 leading-relaxed">{p.desc}</p>
+                <p className="text-xs text-readable-muted mt-1 leading-relaxed">{p.desc}</p>
               </div>
             </div>
           ))}

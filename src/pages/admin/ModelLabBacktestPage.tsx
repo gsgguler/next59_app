@@ -98,7 +98,7 @@ function ChunkGrid({ chunks }: { chunks: Chunk[] }) {
             c.status === 'completed' ? 'bg-emerald-500/30 text-emerald-400' :
             c.status === 'running'   ? 'bg-amber-500/30 text-amber-400 animate-pulse' :
             c.status === 'failed'    ? 'bg-red-500/30 text-red-400' :
-            'bg-navy-800 text-navy-600'
+            'bg-navy-800 text-navy-400'
           }`}
         >
           {c.chunk_index}
@@ -237,9 +237,9 @@ function RunCard({
       {/* Chunk detail panel */}
       {expanded && isChunked && (
         <div className="border-t border-navy-800 px-4 pb-4 pt-3">
-          <div className="flex flex-wrap gap-3 text-xs text-navy-400 mb-3">
+          <div className="flex flex-wrap gap-3 text-xs text-readable-muted mb-3">
             <span className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-400" />{completedChunks} tamamlandı</span>
-            <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-navy-500" />{pendingChunks} bekliyor</span>
+            <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-navy-400" />{pendingChunks} bekliyor</span>
             {runningChunks > 0 && <span className="flex items-center gap-1"><RefreshCw className="w-3 h-3 text-amber-400 animate-spin" />{runningChunks} çalışıyor</span>}
             {failedChunks > 0 && <span className="flex items-center gap-1"><AlertCircle className="w-3 h-3 text-red-400" />{failedChunks} başarısız</span>}
           </div>
@@ -352,7 +352,7 @@ export default function ModelLabBacktestPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white font-display">Backtest</h1>
-              <p className="text-sm text-navy-400 mt-1">
+              <p className="text-sm text-readable-muted mt-1">
                 Validasyon: 2018-2019 | Eğitim: 2000–2018 | Chunk destekli, devam ettirilebilir
               </p>
             </div>

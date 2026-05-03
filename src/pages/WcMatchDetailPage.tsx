@@ -91,7 +91,7 @@ function EventIcon({ type, detail }: { type: string; detail: string | null }) {
   }
   return (
     <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-navy-800">
-      <CircleDot className="w-3 h-3 text-navy-500" />
+      <CircleDot className="w-3 h-3 text-navy-400" />
     </span>
   );
 }
@@ -119,7 +119,7 @@ function EventsTimeline({
   events, homeTeamName, awayTeamName,
 }: { events: WcEvent[]; homeTeamName: string; awayTeamName: string }) {
   if (events.length === 0) return (
-    <p className="text-sm text-navy-500 py-6 text-center">Bu maç için detaylı olay kaydı bulunmuyor.</p>
+    <p className="text-sm text-navy-400 py-6 text-center">Bu maç için detaylı olay kaydı bulunmuyor.</p>
   );
 
   const sorted = [...events].sort((a, b) => {
@@ -153,7 +153,7 @@ function EventsTimeline({
                   <span className={`text-sm leading-tight block ${isGoal ? 'text-white font-semibold' : 'text-navy-200'} truncate`}>
                     {ev.player_name ?? '—'}
                   </span>
-                  <span className="text-xs text-navy-500 leading-tight block">
+                  <span className="text-xs text-navy-400 leading-tight block">
                     {eventLabel(ev)}
                     {ev.assist_player_name && ` · yrd. ${ev.assist_player_name}`}
                   </span>
@@ -173,7 +173,7 @@ function EventsTimeline({
                   <span className={`text-sm leading-tight block ${isGoal ? 'text-white font-semibold' : 'text-navy-200'} truncate`}>
                     {ev.player_name ?? '—'}
                   </span>
-                  <span className="text-xs text-navy-500 leading-tight block">
+                  <span className="text-xs text-navy-400 leading-tight block">
                     {eventLabel(ev)}
                     {ev.assist_player_name && ` · yrd. ${ev.assist_player_name}`}
                   </span>
@@ -218,7 +218,7 @@ function PreviousMeetings({ homeTeamId, awayTeamId, excludeId }: {
     <div className="space-y-2">{[0,1,2].map(i => <div key={i} className="h-10 bg-navy-800/30 rounded-lg animate-pulse"/>)}</div>
   );
   if (meetings.length === 0) return (
-    <p className="text-sm text-navy-500 py-4 text-center">Kayıtlarımızda bu iki takımın önceki karşılaşması bulunamadı.</p>
+    <p className="text-sm text-navy-400 py-4 text-center">Kayıtlarımızda bu iki takımın önceki karşılaşması bulunamadı.</p>
   );
 
   return (
@@ -232,8 +232,8 @@ function PreviousMeetings({ homeTeamId, awayTeamId, excludeId }: {
           <Link key={m.id} to={`/world-cup/tarihce/mac/${m.id}`}
             className="flex items-center gap-3 px-3 py-2.5 bg-navy-900/60 border border-navy-800 rounded-lg hover:border-navy-600 hover:bg-navy-900 transition-colors group"
           >
-            <span className="text-xs font-bold text-navy-500 shrink-0 w-8">{m.edition_year}</span>
-            <span className="text-xs text-navy-500 shrink-0 w-16">{STAGE_LABELS[m.stage_code] ?? m.stage_code}</span>
+            <span className="text-xs font-bold text-navy-400 shrink-0 w-8">{m.edition_year}</span>
+            <span className="text-xs text-navy-400 shrink-0 w-16">{STAGE_LABELS[m.stage_code] ?? m.stage_code}</span>
             <span className={`flex-1 text-xs text-right truncate ${winner === m.home_team_name ? 'text-white font-semibold' : 'text-navy-400'}`}>{m.home_team_name}</span>
             <div className="shrink-0 flex flex-col items-center min-w-[48px]">
               <span className="text-xs font-bold text-white tabular-nums">{homeScore ?? '?'}–{awayScore ?? '?'}</span>
@@ -276,7 +276,7 @@ function TeamHistory({ teamId, teamName, excludeId }: {
     <div className="space-y-2">{[0,1,2,3].map(i => <div key={i} className="h-10 bg-navy-800/30 rounded-lg animate-pulse"/>)}</div>
   );
   if (matches.length === 0) return (
-    <p className="text-sm text-navy-500 py-4 text-center">Başka maç kaydı yok.</p>
+    <p className="text-sm text-navy-400 py-4 text-center">Başka maç kaydı yok.</p>
   );
 
   const byEdition = new Map<number, WcMatch[]>();
@@ -289,7 +289,7 @@ function TeamHistory({ teamId, teamName, excludeId }: {
     <div className="space-y-4">
       {[...byEdition.entries()].sort((a, b) => b[0] - a[0]).map(([year, ems]) => (
         <div key={year}>
-          <p className="text-xs font-bold text-navy-500 uppercase tracking-wider mb-1.5 px-0.5">{year} Dünya Kupası</p>
+          <p className="text-xs font-bold text-navy-400 uppercase tracking-wider mb-1.5 px-0.5">{year} Dünya Kupası</p>
           <div className="space-y-1">
             {ems.sort((a, b) => stageOrder(a.stage_code) - stageOrder(b.stage_code)).map((m) => {
               const isHome = m.home_team_name === teamName;
@@ -310,7 +310,7 @@ function TeamHistory({ teamId, teamName, excludeId }: {
                   <span className={`shrink-0 w-5 h-5 rounded text-xs font-bold flex items-center justify-center border ${outcomeClass}`}>
                     {!winner ? 'B' : winner === teamName ? 'G' : 'M'}
                   </span>
-                  <span className="text-xs text-navy-500 shrink-0 w-14">{STAGE_LABELS[m.stage_code] ?? m.stage_code}</span>
+                  <span className="text-xs text-navy-400 shrink-0 w-14">{STAGE_LABELS[m.stage_code] ?? m.stage_code}</span>
                   <span className="flex-1 text-xs text-navy-200 truncate">{isHome ? '(Ev) ' : '(Dep) '}{opponent}</span>
                   <div className="shrink-0 flex items-center gap-1">
                     <span className="text-xs font-bold text-white tabular-nums">{teamScore ?? '?'}–{oppScore ?? '?'}</span>
@@ -388,7 +388,7 @@ export default function WcMatchDetailPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 rounded-full border-2 border-champagne/30 border-t-champagne animate-spin" />
-          <p className="text-sm text-navy-500">Yükleniyor…</p>
+          <p className="text-sm text-navy-400">Yükleniyor…</p>
         </div>
       </div>
     );
@@ -410,7 +410,7 @@ export default function WcMatchDetailPage() {
         <div className="relative max-w-3xl mx-auto px-4 sm:px-6">
 
           {/* Breadcrumb */}
-          <div className="flex items-center gap-2 mb-6 text-xs text-navy-500">
+          <div className="flex items-center gap-2 mb-6 text-xs text-navy-400">
             <Link to="/world-cup/tarihce" className="flex items-center gap-1 hover:text-champagne transition-colors">
               <ArrowLeft className="w-3.5 h-3.5" />Tarihçe
             </Link>
@@ -439,7 +439,7 @@ export default function WcMatchDetailPage() {
                 {homeTeam?.name_tr ?? match.home_team_name}
               </span>
               {homeTeam?.name_en && homeTeam.name_en !== match.home_team_name && (
-                <span className="text-xs text-navy-600">{match.home_team_name}</span>
+                <span className="text-xs text-navy-400">{match.home_team_name}</span>
               )}
             </div>
 
@@ -447,7 +447,7 @@ export default function WcMatchDetailPage() {
             <div className="flex flex-col items-center shrink-0">
               {/* HT score shown above the main score */}
               {match.home_score_ht != null && (
-                <div className="text-xs text-navy-500 mb-1 tabular-nums font-mono">
+                <div className="text-xs text-navy-400 mb-1 tabular-nums font-mono">
                   İY {match.home_score_ht}–{match.away_score_ht}
                 </div>
               )}
@@ -456,7 +456,7 @@ export default function WcMatchDetailPage() {
                 <span className={`text-5xl sm:text-6xl font-black tabular-nums ${winner === match.home_team_name ? 'text-white' : 'text-navy-300'}`}>
                   {match.home_score_aet ?? homeScore90 ?? '?'}
                 </span>
-                <span className="text-2xl text-navy-600 font-light">–</span>
+                <span className="text-2xl text-navy-400 font-light">–</span>
                 <span className={`text-5xl sm:text-6xl font-black tabular-nums ${winner === match.away_team_name ? 'text-white' : 'text-navy-300'}`}>
                   {match.away_score_aet ?? awayScore90 ?? '?'}
                 </span>
@@ -490,7 +490,7 @@ export default function WcMatchDetailPage() {
                 {awayTeam?.name_tr ?? match.away_team_name}
               </span>
               {awayTeam?.name_en && awayTeam.name_en !== match.away_team_name && (
-                <span className="text-xs text-navy-600">{match.away_team_name}</span>
+                <span className="text-xs text-navy-400">{match.away_team_name}</span>
               )}
             </div>
           </div>
@@ -556,7 +556,7 @@ export default function WcMatchDetailPage() {
         <div className="grid sm:grid-cols-2 gap-4 mb-6">
           {/* Score breakdown */}
           <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-navy-500 mb-3">Skor Özeti</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-navy-400 mb-3">Skor Özeti</h3>
             <div className="space-y-2">
               {match.home_score_ht != null && (
                 <div className="flex items-center justify-between">
@@ -582,7 +582,7 @@ export default function WcMatchDetailPage() {
               )}
               {match.decided_by && match.decided_by !== 'regulation' && (
                 <div className="flex items-center justify-between border-t border-navy-800 pt-2">
-                  <span className="text-sm text-navy-500">Sonuç</span>
+                  <span className="text-sm text-navy-400">Sonuç</span>
                   <span className="text-xs font-semibold px-2.5 py-1 bg-champagne/10 border border-champagne/20 text-champagne rounded-full">
                     {match.decided_by === 'extra_time' ? 'Uzatmada bitti' : 'Penaltıda bitti'}
                   </span>
@@ -598,7 +598,7 @@ export default function WcMatchDetailPage() {
               { team: awayTeam, name: match.away_team_name, side: 'Deplasman' },
             ] as { team: WcTeam | null; name: string; side: string }[]).map(({ team, name, side }) => (
               <div key={side} className="bg-navy-900/50 border border-navy-800 rounded-xl p-3">
-                <p className="text-xs text-navy-500 mb-2">{side}</p>
+                <p className="text-xs text-navy-400 mb-2">{side}</p>
                 <div className="flex items-center gap-2.5">
                   <Flag iso2={team?.iso2 ?? null} size="md" />
                   <div className="flex-1 min-w-0">
@@ -609,7 +609,7 @@ export default function WcMatchDetailPage() {
                   </div>
                   <div className="text-right shrink-0">
                     {team?.fifa_code && <p className="text-xs font-mono text-navy-400">{team.fifa_code}</p>}
-                    {team?.confederation && <p className="text-xs text-navy-600">{team.confederation}</p>}
+                    {team?.confederation && <p className="text-xs text-navy-400">{team.confederation}</p>}
                   </div>
                 </div>
               </div>
@@ -627,7 +627,7 @@ export default function WcMatchDetailPage() {
           ] as { key: 'events' | 'h2h' | 'home' | 'away'; label: string }[]).map(({ key, label }) => (
             <button key={key} onClick={() => setActiveTab(key)}
               className={`flex-1 py-2 px-1.5 text-xs font-semibold rounded-lg transition-all truncate ${
-                activeTab === key ? 'bg-navy-800 text-white shadow-sm' : 'text-navy-500 hover:text-navy-300'
+                activeTab === key ? 'bg-navy-800 text-white shadow-sm' : 'text-navy-400 hover:text-navy-300'
               }`}
             >
               {label}
@@ -639,25 +639,25 @@ export default function WcMatchDetailPage() {
         <div className="bg-navy-900/40 border border-navy-800 rounded-xl p-4">
           {activeTab === 'events' && (
             <>
-              <p className="text-xs font-bold uppercase tracking-wider text-navy-500 mb-3">Maç Kronolojisi</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-navy-400 mb-3">Maç Kronolojisi</p>
               <EventsTimeline events={events} homeTeamName={match.home_team_name} awayTeamName={match.away_team_name}/>
             </>
           )}
           {activeTab === 'h2h' && (
             <>
-              <p className="text-xs font-bold uppercase tracking-wider text-navy-500 mb-3">Dünya Kupası'nda Önceki Karşılaşmalar</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-navy-400 mb-3">Dünya Kupası'nda Önceki Karşılaşmalar</p>
               <PreviousMeetings homeTeamId={match.home_team_id} awayTeamId={match.away_team_id} excludeId={match.id}/>
             </>
           )}
           {activeTab === 'home' && (
             <>
-              <p className="text-xs font-bold uppercase tracking-wider text-navy-500 mb-3">{homeTeam?.name_tr ?? match.home_team_name} — Dünya Kupası Geçmişi</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-navy-400 mb-3">{homeTeam?.name_tr ?? match.home_team_name} — Dünya Kupası Geçmişi</p>
               <TeamHistory teamId={match.home_team_id} teamName={match.home_team_name} excludeId={match.id}/>
             </>
           )}
           {activeTab === 'away' && (
             <>
-              <p className="text-xs font-bold uppercase tracking-wider text-navy-500 mb-3">{awayTeam?.name_tr ?? match.away_team_name} — Dünya Kupası Geçmişi</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-navy-400 mb-3">{awayTeam?.name_tr ?? match.away_team_name} — Dünya Kupası Geçmişi</p>
               <TeamHistory teamId={match.away_team_id} teamName={match.away_team_name} excludeId={match.id}/>
             </>
           )}

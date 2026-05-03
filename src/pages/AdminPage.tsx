@@ -22,7 +22,7 @@ export default function AdminPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <ShieldCheck className="w-6 h-6 text-navy-600" />
+          <ShieldCheck className="w-6 h-6 text-navy-700" />
           Yönetim Paneli
         </h1>
         <p className="text-gray-500 mt-1">Platform yönetimi ve istatistikler</p>
@@ -38,7 +38,7 @@ export default function AdminPage() {
         </div>
         <div>
           <p className="text-sm font-semibold text-white group-hover:text-champagne transition-colors">Model Lab</p>
-          <p className="text-xs text-navy-500">B3 Historical Backbone — backtest, kalibrasyon ve hata analizi</p>
+          <p className="text-xs text-readable-muted">B3 Historical Backbone — backtest, kalibrasyon ve hata analizi</p>
         </div>
       </Link>
 

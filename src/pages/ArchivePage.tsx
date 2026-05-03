@@ -141,7 +141,7 @@ function StatChip({
     <span className="inline-flex items-center gap-1 text-[10px] font-medium bg-navy-800/80 border border-navy-700/60 text-navy-300 px-2 py-0.5 rounded-full">
       <span className="text-navy-400">{label}:</span>
       <span>{home ?? '–'}</span>
-      <span className="text-navy-600">–</span>
+      <span className="text-navy-400">–</span>
       <span>{away ?? '–'}</span>
     </span>
   );
@@ -155,7 +155,7 @@ function MatchRow({ match }: { match: ArchiveMatch }) {
   return (
     <div className="group bg-navy-900/50 hover:bg-navy-900/80 border border-navy-800/60 hover:border-navy-700 rounded-xl p-4 transition-all duration-200">
       {/* Top row: meta */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-navy-500 mb-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-navy-400 mb-3">
         <span className="flex items-center gap-1">
           <Calendar className="w-3 h-3" />
           {formatDate(match.match_date)}
@@ -193,19 +193,19 @@ function MatchRow({ match }: { match: ArchiveMatch }) {
                 <span className="text-lg font-bold text-white tabular-nums w-6 text-center">
                   {match.home_score_ft}
                 </span>
-                <span className="text-navy-500 font-bold">–</span>
+                <span className="text-navy-400 font-bold">–</span>
                 <span className="text-lg font-bold text-white tabular-nums w-6 text-center">
                   {match.away_score_ft}
                 </span>
               </div>
               {hasHT && (
-                <div className="text-[10px] text-navy-500 tabular-nums">
+                <div className="text-[10px] text-navy-400 tabular-nums">
                   İY {match.home_score_ht}–{match.away_score_ht}
                 </div>
               )}
             </>
           ) : (
-            <span className="text-navy-600 text-sm">– : –</span>
+            <span className="text-navy-400 text-sm">– : –</span>
           )}
         </div>
 
@@ -257,7 +257,7 @@ function FilterSelect({
   return (
     <div className="relative">
       {icon && (
-        <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-navy-500 pointer-events-none">
+        <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-navy-400 pointer-events-none">
           {icon}
         </div>
       )}
@@ -273,7 +273,7 @@ function FilterSelect({
           </option>
         ))}
       </select>
-      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-navy-500 pointer-events-none" />
+      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-navy-400 pointer-events-none" />
     </div>
   );
 }
@@ -510,10 +510,10 @@ export default function ArchivePage() {
               <h1 className="text-2xl sm:text-3xl font-bold text-white font-display">
                 Maç Arşivi
               </h1>
-              <p className="mt-1 text-sm text-navy-400 max-w-xl">
+              <p className="mt-1 text-sm text-readable-muted max-w-xl">
                 2000'den 2025'e kadar oynanmış maçların skor, sezon, lig ve temel istatistik arşivi.
               </p>
-              <p className="mt-1.5 text-xs text-navy-600">
+              <p className="mt-1.5 text-xs text-readable-muted">
                 Bu arşiv canlı maç verisi kullanmaz; yalnızca geçmiş maç kayıtlarından oluşturulmuştur.
               </p>
             </div>
@@ -532,7 +532,7 @@ export default function ArchivePage() {
                 className="bg-navy-900/60 border border-navy-800 rounded-xl px-4 py-3"
               >
                 <div className="text-xl font-bold text-white tabular-nums">{s.value}</div>
-                <div className="text-[11px] text-navy-500 mt-0.5">{s.label}</div>
+                <div className="text-[11px] text-readable-muted mt-0.5">{s.label}</div>
               </div>
             ))}
           </div>
@@ -544,19 +544,19 @@ export default function ArchivePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           {/* Primary filters */}
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-navy-500 uppercase tracking-wider shrink-0">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-navy-400 uppercase tracking-wider shrink-0">
               <Filter className="w-3.5 h-3.5" />
             </div>
 
             {/* Team search */}
             <div className="relative min-w-[160px] flex-1 max-w-[220px]">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-navy-500" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-navy-400" />
               <input
                 type="text"
                 placeholder="Takım ara..."
                 value={teamSearchInput}
                 onChange={(e) => setTeamSearchInput(e.target.value)}
-                className="w-full bg-navy-900 border border-navy-700 text-white text-xs rounded-lg pl-8 pr-3 py-2 placeholder-navy-600 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all"
+                className="w-full bg-navy-900 border border-navy-700 text-white text-xs rounded-lg pl-8 pr-3 py-2 placeholder-navy-500 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all"
               />
             </div>
 
@@ -597,7 +597,7 @@ export default function ArchivePage() {
                 onChange={(e) => { setStartDate(e.target.value); resetPage(); }}
                 className="bg-navy-900 border border-navy-700 text-white text-xs rounded-lg px-2.5 py-2 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all"
               />
-              <span className="text-navy-600 text-xs">–</span>
+              <span className="text-navy-400 text-xs">–</span>
               <input
                 type="date"
                 value={endDate}
@@ -623,7 +623,7 @@ export default function ArchivePage() {
             {hasActiveFilters && (
               <button
                 onClick={clearAllFilters}
-                className="flex items-center gap-1 text-xs text-navy-500 hover:text-red-400 transition-colors px-2 py-2"
+                className="flex items-center gap-1 text-xs text-navy-400 hover:text-red-400 transition-colors px-2 py-2"
               >
                 <X className="w-3.5 h-3.5" />
                 Temizle
@@ -641,13 +641,13 @@ export default function ArchivePage() {
                   placeholder="Hakem ara..."
                   value={refereeInput}
                   onChange={(e) => setRefereeInput(e.target.value)}
-                  className="bg-navy-900 border border-navy-700 text-white text-xs rounded-lg px-3 py-2 w-40 placeholder-navy-600 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all"
+                  className="bg-navy-900 border border-navy-700 text-white text-xs rounded-lg px-3 py-2 w-40 placeholder-navy-500 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all"
                 />
               </div>
 
               {/* Min/Max goals */}
               <div className="flex items-center gap-1.5">
-                <span className="text-[11px] text-navy-500">Gol:</span>
+                <span className="text-[11px] text-navy-400">Gol:</span>
                 <input
                   type="number"
                   min="0"
@@ -655,9 +655,9 @@ export default function ArchivePage() {
                   placeholder="Min"
                   value={minGoals}
                   onChange={(e) => { setMinGoals(e.target.value); resetPage(); }}
-                  className="bg-navy-900 border border-navy-700 text-white text-xs rounded-lg px-2.5 py-2 w-16 placeholder-navy-600 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all"
+                  className="bg-navy-900 border border-navy-700 text-white text-xs rounded-lg px-2.5 py-2 w-16 placeholder-navy-500 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all"
                 />
-                <span className="text-navy-600 text-xs">–</span>
+                <span className="text-navy-400 text-xs">–</span>
                 <input
                   type="number"
                   min="0"
@@ -665,7 +665,7 @@ export default function ArchivePage() {
                   placeholder="Max"
                   value={maxGoals}
                   onChange={(e) => { setMaxGoals(e.target.value); resetPage(); }}
-                  className="bg-navy-900 border border-navy-700 text-white text-xs rounded-lg px-2.5 py-2 w-16 placeholder-navy-600 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all"
+                  className="bg-navy-900 border border-navy-700 text-white text-xs rounded-lg px-2.5 py-2 w-16 placeholder-navy-500 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all"
                 />
               </div>
 
@@ -699,7 +699,7 @@ export default function ArchivePage() {
         {/* Result count */}
         {!loading && totalCount !== null && (
           <div className="flex items-center justify-between mb-4">
-            <p className="text-xs text-navy-500">
+            <p className="text-xs text-readable-muted">
               <span className="text-white font-medium">{totalCount.toLocaleString('tr-TR')}</span>{' '}
               maç bulundu
               {totalPages !== null && (
@@ -730,7 +730,7 @@ export default function ArchivePage() {
         ) : matches.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 gap-3">
             <Archive className="w-10 h-10 text-navy-700" />
-            <p className="text-sm text-navy-500">Bu filtrelerle eşleşen maç bulunamadı.</p>
+            <p className="text-sm text-readable-muted">Bu filtrelerle eşleşen maç bulunamadı.</p>
             {hasActiveFilters && (
               <button
                 onClick={clearAllFilters}
@@ -777,7 +777,7 @@ export default function ArchivePage() {
 
                 if (pageNum === -1) {
                   return (
-                    <span key={`ellipsis-${i}`} className="text-navy-600 px-1 text-sm">
+                    <span key={`ellipsis-${i}`} className="text-navy-400 px-1 text-sm">
                       …
                     </span>
                   );

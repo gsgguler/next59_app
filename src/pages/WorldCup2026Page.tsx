@@ -92,7 +92,7 @@ function FilterSelect({
 }) {
   return (
     <div className="relative">
-      <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-navy-500 pointer-events-none">
+      <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-navy-400 pointer-events-none">
         {icon}
       </div>
       <select
@@ -104,7 +104,7 @@ function FilterSelect({
           <option key={o.value} value={o.value}>{o.label}</option>
         ))}
       </select>
-      <svg className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-navy-500 pointer-events-none" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4l4 4 4-4" /></svg>
+      <svg className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-navy-400 pointer-events-none" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4l4 4 4-4" /></svg>
     </div>
   );
 }
@@ -120,7 +120,7 @@ function LocationFilterSelect({
 }) {
   return (
     <div className="relative">
-      <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-navy-500 pointer-events-none">
+      <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-navy-400 pointer-events-none">
         {icon}
       </div>
       <select
@@ -137,7 +137,7 @@ function LocationFilterSelect({
           </optgroup>
         ))}
       </select>
-      <svg className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-navy-500 pointer-events-none" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4l4 4 4-4" /></svg>
+      <svg className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-navy-400 pointer-events-none" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4l4 4 4-4" /></svg>
     </div>
   );
 }
@@ -423,7 +423,7 @@ export default function WorldCup2026Page() {
               />
 
               <div className="relative flex-1 min-w-[160px] max-w-xs">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-navy-500" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-navy-400" />
                 <input
                   type="text"
                   placeholder="Takım Ara..."

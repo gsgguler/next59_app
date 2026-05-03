@@ -25,7 +25,7 @@ export default function VeriKaynaklariPage() {
     <div className="min-h-screen bg-navy-950">
       <div className="border-b border-navy-800/60">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-8">
-          <div className="flex items-center gap-2 text-xs text-navy-500 mb-4">
+          <div className="flex items-center gap-2 text-xs text-readable-muted mb-4">
             <Link to="/futbol-analitigi" className="hover:text-champagne transition-colors">Futbol Analitiği</Link>
             <ChevronRight className="w-3 h-3" /><span className="text-navy-400">Veri Kaynakları</span>
           </div>
@@ -60,7 +60,7 @@ export default function VeriKaynaklariPage() {
         </div>
 
         <div className="mt-8 bg-navy-900/40 border border-navy-800/50 rounded-xl p-4">
-          <p className="text-xs text-navy-600 leading-relaxed">
+          <p className="text-xs text-readable-muted leading-relaxed">
             İstatistik alanları (şut, korner, kart vb.) tüm maçlar için mevcut değildir. Veri yoksa ilgili alan gösterilmez.
           </p>
         </div>

@@ -8,7 +8,7 @@ export default function MetodolojiPage() {
     <div className="min-h-screen bg-navy-950">
       <div className="border-b border-navy-800/60">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-8">
-          <div className="flex items-center gap-2 text-xs text-navy-500 mb-4">
+          <div className="flex items-center gap-2 text-xs text-readable-muted mb-4">
             <Link to="/futbol-analitigi" className="hover:text-champagne transition-colors">Futbol Analitiği</Link>
             <ChevronRight className="w-3 h-3" /><span className="text-navy-400">Metodoloji</span>
           </div>

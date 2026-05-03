@@ -37,7 +37,7 @@ export default function SssPage() {
     <div className="min-h-screen bg-navy-950">
       <div className="border-b border-navy-800/60">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-8">
-          <div className="flex items-center gap-2 text-xs text-navy-500 mb-4">
+          <div className="flex items-center gap-2 text-xs text-readable-muted mb-4">
             <Link to="/next59" className="hover:text-champagne transition-colors">Next59</Link>
             <ChevronRight className="w-3 h-3" /><span className="text-navy-400">Sıkça Sorulan Sorular</span>
           </div>
@@ -60,10 +60,10 @@ export default function SssPage() {
                 className="w-full flex items-start justify-between gap-4 text-left"
               >
                 <span className="text-sm font-medium text-white">{faq.q}</span>
-                <ChevronDown className={`w-4 h-4 text-navy-500 shrink-0 mt-0.5 transition-transform ${open === i ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-4 h-4 text-navy-400 shrink-0 mt-0.5 transition-transform ${open === i ? 'rotate-180' : ''}`} />
               </button>
               {open === i && (
-                <p className="mt-3 text-sm text-navy-400 leading-relaxed">{faq.a}</p>
+                <p className="mt-3 text-sm text-readable-muted leading-relaxed">{faq.a}</p>
               )}
             </div>
           ))}

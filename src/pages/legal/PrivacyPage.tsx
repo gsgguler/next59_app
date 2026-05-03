@@ -55,7 +55,7 @@ export default function PrivacyPage() {
       </section>
 
       <div className="mt-8 p-4 bg-navy-50 rounded-xl border border-navy-100">
-        <p className="text-xs text-navy-600 italic">
+        <p className="text-xs text-navy-700 italic">
           Bu sayfa, yasal ekibimiz tarafından tam içerik hazırlanana kadar taslak olarak
           yayınlanmaktadır. Lütfen yasal bağlamlarda referans almadan önce güncel versiyonu kontrol
           ediniz.

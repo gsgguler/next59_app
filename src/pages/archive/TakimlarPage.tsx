@@ -75,7 +75,7 @@ export default function TakimlarPage() {
     <div className="min-h-screen bg-navy-950">
       <div className="border-b border-navy-800/60 bg-navy-950">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-8">
-          <div className="flex items-center gap-2 text-xs text-navy-500 mb-4">
+          <div className="flex items-center gap-2 text-xs text-readable-muted mb-4">
             <Link to="/mac-arsivi" className="hover:text-champagne transition-colors">
               Maç Arşivi
             </Link>
@@ -88,20 +88,20 @@ export default function TakimlarPage() {
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-white font-display">Takımlar</h1>
-              <p className="mt-1 text-sm text-navy-400">
+              <p className="mt-1 text-sm text-readable-muted">
                 Arşivdeki bir takımı arayın; o takımın tüm maçlarını filtreli arşivde görün.
               </p>
             </div>
           </div>
 
           <div className="mt-6 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-navy-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-readable-muted" />
             <input
               type="text"
               placeholder="Takım adı girin (en az 2 karakter)..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full bg-navy-900 border border-navy-700 text-white text-sm rounded-xl pl-9 pr-4 py-3 placeholder-navy-600 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all"
+              className="w-full bg-navy-900 border border-navy-700 text-white text-sm rounded-xl pl-9 pr-4 py-3 placeholder-navy-500 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all"
               autoFocus
             />
           </div>
@@ -112,7 +112,7 @@ export default function TakimlarPage() {
         {query.length < 2 ? (
           <div className="flex flex-col items-center py-16 gap-3 text-center">
             <Users className="w-10 h-10 text-navy-700" />
-            <p className="text-sm text-navy-500">Takım aramak için en az 2 karakter girin.</p>
+            <p className="text-sm text-readable-muted">Takım aramak için en az 2 karakter girin.</p>
           </div>
         ) : loading ? (
           <div className="space-y-2">
@@ -121,12 +121,12 @@ export default function TakimlarPage() {
             ))}
           </div>
         ) : results.length === 0 ? (
-          <p className="text-center text-sm text-navy-500 py-16">
+          <p className="text-center text-sm text-readable-muted py-16">
             "{query}" ile eşleşen takım bulunamadı.
           </p>
         ) : (
           <div className="space-y-1.5">
-            <p className="text-xs text-navy-600 mb-3">{results.length} takım bulundu</p>
+            <p className="text-xs text-readable-muted mb-3">{results.length} takım bulundu</p>
             {results.map((t) => (
               <Link
                 key={t.team_id}
@@ -136,7 +136,7 @@ export default function TakimlarPage() {
                 <span className="text-sm font-medium text-white group-hover:text-champagne transition-colors">
                   {t.team_name}
                 </span>
-                <span className="text-xs text-navy-500 group-hover:text-navy-400 transition-colors">
+                <span className="text-xs text-readable-muted group-hover:text-navy-400 transition-colors">
                   Maçları Gör →
                 </span>
               </Link>

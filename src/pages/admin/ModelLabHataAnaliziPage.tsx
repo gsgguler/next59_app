@@ -80,9 +80,9 @@ export default function ModelLabHataAnaliziPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white font-display">Hata Analizi</h1>
-            <p className="text-sm text-navy-400 mt-1">
+            <p className="text-sm text-readable-muted mt-1">
               Yanlış tahminler — yüksek güven hataları ve örüntü analizi.
-              {total !== null && <span className="ml-2 text-readable-muted">Toplam: {total.toLocaleString('tr-TR')} yanlış tahmin</span>}
+              {total !== null && <span className="ml-2 text-readable-subtle">Toplam: {total.toLocaleString('tr-TR')} yanlış tahmin</span>}
             </p>
           </div>
         </div>
@@ -189,8 +189,8 @@ function ErrorRowItem({ row }: { row: ErrorRow }) {
 
   return (
     <tr className="hover:bg-navy-900/40 transition-colors">
-      <td className="px-3 py-2.5 text-navy-400 whitespace-nowrap tabular-nums">{row.match_date}</td>
-      <td className="px-3 py-2.5 text-navy-400 whitespace-nowrap max-w-[120px] truncate">{row.competition_name}</td>
+      <td className="px-3 py-2.5 text-readable-subtle whitespace-nowrap tabular-nums">{row.match_date}</td>
+      <td className="px-3 py-2.5 text-readable-subtle whitespace-nowrap max-w-[120px] truncate">{row.competition_name}</td>
       <td className="px-3 py-2.5 text-white">
         <span className="truncate max-w-[160px] block">{row.home_team_name} – {row.away_team_name}</span>
       </td>

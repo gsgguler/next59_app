@@ -319,7 +319,7 @@ function StatusIcon({ status }: { status: string }) {
   if (status === 'completed') return <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" />;
   if (status === 'running')   return <RefreshCw   className="w-3.5 h-3.5 text-amber-400 shrink-0 animate-spin" />;
   if (status === 'failed')    return <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />;
-  return <Clock className="w-3.5 h-3.5 text-navy-500 shrink-0" />;
+  return <Clock className="w-3.5 h-3.5 text-navy-400 shrink-0" />;
 }
 
 function StatCard({

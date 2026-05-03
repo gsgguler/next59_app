@@ -88,7 +88,7 @@ export default function LivePulse({ match }: { match: UIMatch }) {
               {isHalfTime && (
                 <div className="flex items-center gap-3 py-3">
                   <span className="h-px flex-1 bg-navy-800" />
-                  <span className="text-[10px] font-semibold text-navy-600 uppercase tracking-wider">
+                  <span className="text-[10px] font-semibold text-readable-muted uppercase tracking-wider">
                     Devre Arasi
                   </span>
                   <span className="h-px flex-1 bg-navy-800" />
@@ -96,7 +96,7 @@ export default function LivePulse({ match }: { match: UIMatch }) {
               )}
               <div className="flex items-start gap-3">
                 <div className="shrink-0 w-14 text-right">
-                  <span className="text-[11px] font-mono text-navy-600 tabular-nums">
+                  <span className="text-[11px] font-mono text-readable-muted tabular-nums">
                     {interval}'
                   </span>
                 </div>
@@ -110,7 +110,7 @@ export default function LivePulse({ match }: { match: UIMatch }) {
 
                 <div className="flex-1 pb-2">
                   <div className="bg-navy-900/40 border border-navy-800/60 rounded-lg px-3 py-2.5">
-                    <div className="flex items-center gap-1.5 text-[10px] text-navy-600">
+                    <div className="flex items-center gap-1.5 text-[10px] text-readable-muted">
                       <Clock className="w-3 h-3" />
                       Canlı veri bekleniyor...
                     </div>
