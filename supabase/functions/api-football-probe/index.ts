@@ -62,6 +62,74 @@ Deno.serve(async (req: Request) => {
       result = await callApi("/fixtures?league=39&season=2024&from=2024-08-16&to=2024-08-20");
     } else if (step === "epl-fixture-sample") {
       result = await callApi("/fixtures?league=39&season=2024&from=2024-08-17&to=2024-08-17");
+
+    // Gap-analysis probe steps
+    } else if (step === "gap-leagues") {
+      // Discover league IDs for all 7 primary leagues
+      const searches = [
+        { name: "Premier League",  query: "/leagues?country=England&season=2024&type=League" },
+        { name: "La Liga",         query: "/leagues?country=Spain&season=2024&type=League" },
+        { name: "Serie A",         query: "/leagues?country=Italy&season=2024&type=League" },
+        { name: "Bundesliga",      query: "/leagues?country=Germany&season=2024&type=League" },
+        { name: "Ligue 1",         query: "/leagues?country=France&season=2024&type=League" },
+        { name: "Eredivisie",      query: "/leagues?country=Netherlands&season=2024&type=League" },
+        { name: "Sueper Lig",      query: "/leagues?country=Turkey&season=2024&type=League" },
+      ];
+      const out: Record<string, unknown> = {};
+      for (const s of searches) {
+        const r = await callApi(s.query);
+        const leagues = (r.body as { response?: Array<{ league: { id: number; name: string } }> }).response ?? [];
+        out[s.name] = leagues.map(l => ({ id: l.league.id, name: l.league.name })).slice(0, 5);
+      }
+      result = out;
+
+    } else if (step === "gap-fixture-stats") {
+      // Fetch stats for one known PL fixture to see field richness
+      // Liverpool vs Crystal Palace 2025-05-25 — need to find fixture ID first
+      const fixtureId = url.searchParams.get("id") ?? "1208087";
+      const [fixtureRes, statsRes, eventsRes, lineupsRes] = await Promise.all([
+        callApi(`/fixtures?id=${fixtureId}`),
+        callApi(`/fixtures/statistics?fixture=${fixtureId}`),
+        callApi(`/fixtures/events?fixture=${fixtureId}`),
+        callApi(`/fixtures/lineups?fixture=${fixtureId}`),
+      ]);
+      // Return only field keys + counts, not raw payloads
+      const statsBody = statsRes.body as { response?: Array<{ statistics: Array<{ type: string; value: unknown }> }> };
+      const statsFields = (statsBody.response ?? []).flatMap(t => t.statistics.map(s => s.type));
+      const eventsBody = eventsRes.body as { response?: Array<{ type: string; detail: string }> };
+      const eventTypes = [...new Set((eventsBody.response ?? []).map(e => `${e.type}/${e.detail}`))];
+      const lineupsBody = lineupsRes.body as { response?: Array<{ formation: string; startXI: unknown[]; substitutes: unknown[] }> };
+      const lineupsAvail = (lineupsBody.response ?? []).map(l => ({
+        formation: l.formation,
+        startXI_count: l.startXI?.length ?? 0,
+        subs_count: l.substitutes?.length ?? 0,
+      }));
+      const fixtureBody = fixtureRes.body as { response?: Array<{ fixture: Record<string, unknown>; league: Record<string, unknown> }> };
+      const fixtureFields = Object.keys((fixtureBody.response?.[0]?.fixture ?? {}));
+      result = {
+        fixture_id: fixtureId,
+        fixture_top_fields: fixtureFields,
+        stats_fields_available: [...new Set(statsFields)],
+        event_types: eventTypes,
+        event_count: (eventsBody.response ?? []).length,
+        lineups: lineupsAvail,
+        api_calls: 4,
+      };
+
+    } else if (step === "gap-find-fixture") {
+      // Find API-Football fixture ID by league+season+date+teams
+      const league  = url.searchParams.get("league")  ?? "39";
+      const season  = url.searchParams.get("season")  ?? "2024";
+      const date    = url.searchParams.get("date")    ?? "2025-05-25";
+      const r = await callApi(`/fixtures?league=${league}&season=${season}&date=${date}`);
+      const body = r.body as { response?: Array<{ fixture: { id: number; date: string }; teams: { home: { name: string }; away: { name: string } } }> };
+      result = (body.response ?? []).map(f => ({
+        id: f.fixture.id,
+        date: f.fixture.date,
+        home: f.teams.home.name,
+        away: f.teams.away.name,
+      }));
+
     } else {
       result = { error: "Unknown step" };
     }
