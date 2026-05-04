@@ -61,11 +61,23 @@ function SouthAfricaFlag() {
   );
 }
 
+const LEAD_STORAGE_KEY = 'next59_lead_submitted';
+
+function getStoredLeadEmail(): string {
+  try { return localStorage.getItem(LEAD_STORAGE_KEY) ?? ''; } catch { return ''; }
+}
+
+function storeLeadEmail(email: string) {
+  try { localStorage.setItem(LEAD_STORAGE_KEY, email); } catch { /* noop */ }
+}
+
 export function Hero() {
   const { t } = useTranslation();
   const [time, setTime] = useState(() => getWorldCupCountdown());
   const [email, setEmail] = useState('');
-  const [leadStatus, setLeadStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [leadStatus, setLeadStatus] = useState<'idle' | 'loading' | 'success' | 'error'>(() =>
+    getStoredLeadEmail() ? 'success' : 'idle'
+  );
   const [leadError, setLeadError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -83,17 +95,13 @@ export function Hero() {
     const { error } = await supabase
       .from('early_access_leads')
       .insert({ email: trimmed, source: 'hero' });
-    if (error) {
-      if (error.code === '23505') {
-        // duplicate — treat as success, user is already registered
-        setLeadStatus('success');
-      } else {
-        setLeadStatus('error');
-        setLeadError('Bir hata oluştu, lütfen tekrar deneyin.');
-      }
-    } else {
-      setLeadStatus('success');
+    if (error && error.code !== '23505') {
+      setLeadStatus('error');
+      setLeadError('Bir hata oluştu, lütfen tekrar deneyin.');
+      return;
     }
+    storeLeadEmail(trimmed);
+    setLeadStatus('success');
   }
 
   const userTz      = getUserTimeZone();

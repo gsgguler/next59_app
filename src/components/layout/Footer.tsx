@@ -118,7 +118,7 @@ export default function Footer() {
           <p className="text-xs text-navy-400">
             &copy; {year} Next59. Tüm hakları saklıdır.
           </p>
-          <p className="text-xs text-navy-700 text-center sm:text-right max-w-md">
+          <p className="text-xs text-navy-400 text-center sm:text-right max-w-md">
             Bu platform bahis tavsiyesi vermez. İçerikler yalnızca bilgilendirme amaçlıdır.
           </p>
         </div>
