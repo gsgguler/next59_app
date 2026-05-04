@@ -83,6 +83,49 @@ Deno.serve(async (req: Request) => {
     const leagues = leagueFilter ? [leagueFilter] : LEAGUE_SLUGS;
     const seasons = seasonFilter ? [seasonFilter] : SEASONS;
 
+    // Inspect mode: return HTML structure analysis
+    if (body.inspect === true) {
+      const slug = leagueFilter ?? "EPL";
+      const year = seasonFilter ?? 2023;
+      const url = `https://understat.com/league/${slug}/${year}`;
+      try {
+        const resp = await fetch(url, {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+          },
+        });
+        const html = await resp.text();
+        const len = html.length;
+
+        const searchTerms = ["JSON.parse", "datesData", "teamsData", "playersData", "var "];
+        const findings: Record<string, unknown> = {};
+        for (const term of searchTerms) {
+          const idx = html.indexOf(term);
+          findings[term] = idx === -1
+            ? null
+            : { pos: idx, excerpt: html.slice(Math.max(0, idx - 50), idx + 150) };
+        }
+
+        return new Response(JSON.stringify({
+          url,
+          http_status: resp.status,
+          html_length: len,
+          slice_5000_6000: html.slice(5000, 6000),
+          slice_10000_11000: html.slice(10000, 11000),
+          slice_15000_16000: html.slice(15000, 16000),
+          findings,
+        }, null, 2), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return new Response(JSON.stringify({ error: msg, url }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // Debug mode: fetch one league/season and return raw sample without inserting
     if (debugMode) {
       const slug = leagueFilter ?? "EPL";
