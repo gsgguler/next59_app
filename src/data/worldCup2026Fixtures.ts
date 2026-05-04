@@ -874,7 +874,7 @@ const KNOCKOUT_FIXTURES: WC2026Fixture[] = [
   { id: 'wc2026-103', match_no: 103, stage: 'Third Place', group: null, match_date: '2026-08-01', kickoff_utc: '2026-08-01T22:00:00.000Z', kickoff_local_label: '18:00 EDT', kickoff_tr_label: '01:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'Hard Rock Stadium', city: 'Miami', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
 
   // Final
-  { id: 'wc2026-104', match_no: 104, stage: 'Final', group: null, match_date: '2026-08-02', kickoff_utc: '2026-08-02T22:00:00.000Z', kickoff_local_label: '18:00 EDT', kickoff_tr_label: '01:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'MetLife Stadium', city: 'East Rutherford', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
+  { id: 'wc2026-104', match_no: 104, stage: 'Final', group: null, match_date: '2026-07-19', kickoff_utc: '2026-07-19T20:00:00.000Z', kickoff_local_label: '16:00 EDT', kickoff_tr_label: '23:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'MetLife Stadium', city: 'East Rutherford', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
 ];
 
 // ---------------------------------------------------------------------------
