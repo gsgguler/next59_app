@@ -7,27 +7,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-const LEAGUE_SLUGS = ["EPL", "La_liga", "Bundesliga", "Serie_A", "Ligue_1", "Eredivisie"];
+// Understat URL slugs (Eredivisie not covered by Understat)
+const LEAGUE_SLUGS = ["EPL", "La_liga", "Bundesliga", "Serie_A", "Ligue_1"];
 const SEASONS = [2020, 2021, 2022, 2023, 2024];
 
-const LEAGUE_API_NAMES: Record<string, string> = {
+// Map URL slug → DB slug for storage
+const SLUG_TO_DB: Record<string, string> = {
   "EPL": "EPL",
-  "La_liga": "La liga",
+  "La_liga": "La_liga",
   "Bundesliga": "Bundesliga",
-  "Serie_A": "Serie A",
-  "Ligue_1": "Ligue 1",
-  "Eredivisie": "Eredivisie",
+  "Serie_A": "Serie_A",
+  "Ligue_1": "Ligue_1",
 };
-
-// Candidate endpoint paths to probe
-const CANDIDATE_ENDPOINTS = [
-  "getLeagueMatchesResults",
-  "getLeagueFixturesData",
-  "getLeagueMatches",
-  "getLeagueResults",
-  "getMatchesResults",
-  "getLeagueDates",
-];
 
 interface UnderstatMatch {
   id: string;
@@ -39,86 +30,40 @@ interface UnderstatMatch {
   isResult: boolean;
 }
 
-interface UnderstatAjaxResponse {
-  response: boolean;
-  data: UnderstatMatch[] | Record<string, UnderstatMatch>;
-}
+async function fetchLeagueMatches(slug: string, season: number): Promise<UnderstatMatch[]> {
+  const url = `https://understat.com/league/${slug}/${season}`;
 
-async function probeEndpoints(leagueName: string, season: number): Promise<{
-  working: string | null;
-  results: Record<string, { status: number; body_preview: string }>;
-}> {
-  const results: Record<string, { status: number; body_preview: string }> = {};
-  let working: string | null = null;
-
-  for (const endpointName of CANDIDATE_ENDPOINTS) {
-    const url = `https://understat.com/main/${endpointName}/`;
-    const formData = new URLSearchParams();
-    formData.append("league", leagueName);
-    formData.append("season", String(season));
-
-    try {
-      const resp = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-          "X-Requested-With": "XMLHttpRequest",
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          "Accept": "application/json, text/javascript, */*; q=0.01",
-          "Accept-Language": "en-US,en;q=0.9",
-          "Origin": "https://understat.com",
-          "Referer": "https://understat.com/league/EPL",
-        },
-        body: formData.toString(),
-      });
-
-      const text = await resp.text();
-      const preview = text.slice(0, 200);
-      results[endpointName] = { status: resp.status, body_preview: preview };
-
-      if (resp.status === 200 && text.includes('"response"') && text.includes('"data"')) {
-        working = endpointName;
-        break;
-      }
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
-      results[endpointName] = { status: 0, body_preview: `error: ${msg}` };
-    }
-
-    await new Promise((r) => setTimeout(r, 300));
-  }
-
-  return { working, results };
-}
-
-async function fetchLeagueMatches(endpointName: string, leagueName: string, season: number): Promise<UnderstatMatch[]> {
-  const url = `https://understat.com/main/${endpointName}/`;
-  const formData = new URLSearchParams();
-  formData.append("league", leagueName);
-  formData.append("season", String(season));
-
-  const resp = await fetch(url, {
-    method: "POST",
+  const html = await fetch(url, {
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      "X-Requested-With": "XMLHttpRequest",
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      "Accept": "application/json, text/javascript, */*; q=0.01",
+      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       "Accept-Language": "en-US,en;q=0.9",
-      "Origin": "https://understat.com",
-      "Referer": "https://understat.com/league/EPL",
+      "Cache-Control": "no-cache",
     },
-    body: formData.toString(),
+  }).then((r) => {
+    if (!r.ok) throw new Error(`HTTP ${r.status} fetching ${url}`);
+    return r.text();
   });
 
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  const datesMatch = html.match(/var\s+datesData\s*=\s*JSON\.parse\(['"](.+?)['"]\s*\)/s);
+  if (!datesMatch) {
+    // Return html snippet for debugging
+    const snippet = html.slice(0, 500);
+    throw new Error(`datesData not found in HTML. Snippet: ${snippet}`);
+  }
 
-  const json: UnderstatAjaxResponse = await resp.json();
-  if (!json.response) throw new Error("API returned response=false");
+  // Decode \xHH escape sequences produced by Understat's PHP json_encode
+  const raw = datesMatch[1].replace(/\\x([0-9A-Fa-f]{2})/g, (_, hex) =>
+    String.fromCharCode(parseInt(hex, 16))
+  );
 
-  const data = json.data;
-  if (Array.isArray(data)) return data;
-  return Object.values(data) as UnderstatMatch[];
+  // Also decode unicode escapes just in case
+  const decoded = raw.replace(/\\u([0-9A-Fa-f]{4})/g, (_, hex) =>
+    String.fromCharCode(parseInt(hex, 16))
+  );
+
+  const matches: UnderstatMatch[] = JSON.parse(decoded);
+  return matches;
 }
 
 Deno.serve(async (req: Request) => {
@@ -133,22 +78,31 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => ({}));
     const leagueFilter: string | null = body.league_slug ?? null;
     const seasonFilter: number | null = body.season_year ?? null;
-
-    // Probe mode: find which endpoint works
-    if (body.probe === true) {
-      const probeLeague = LEAGUE_API_NAMES[leagueFilter ?? "EPL"] ?? "EPL";
-      const probeSeason = seasonFilter ?? 2023;
-      const result = await probeEndpoints(probeLeague, probeSeason);
-      return new Response(JSON.stringify(result, null, 2), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Allow caller to override endpoint name; default to getLeagueMatchesResults
-    const endpointName: string = body.endpoint_name ?? "getLeagueMatchesResults";
+    const debugMode: boolean = body.debug === true;
 
     const leagues = leagueFilter ? [leagueFilter] : LEAGUE_SLUGS;
     const seasons = seasonFilter ? [seasonFilter] : SEASONS;
+
+    // Debug mode: fetch one league/season and return raw sample without inserting
+    if (debugMode) {
+      const slug = leagueFilter ?? "EPL";
+      const year = seasonFilter ?? 2023;
+      try {
+        const matches = await fetchLeagueMatches(slug, year);
+        return new Response(JSON.stringify({
+          slug, year,
+          total_matches: matches.length,
+          finished_with_xg: matches.filter((m) => m.isResult && m.xG?.h != null).length,
+          sample: matches.slice(0, 3),
+        }, null, 2), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return new Response(JSON.stringify({ error: msg }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     let totalInserted = 0, totalSkipped = 0, totalFailed = 0;
     const results: Record<string, unknown>[] = [];
@@ -157,10 +111,10 @@ Deno.serve(async (req: Request) => {
     for (const slug of leagues) {
       for (const year of seasons) {
         let inserted = 0, skipped = 0;
+        const dbSlug = SLUG_TO_DB[slug] ?? slug;
 
         try {
-          const leagueName = LEAGUE_API_NAMES[slug] ?? slug;
-          const matches = await fetchLeagueMatches(endpointName, leagueName, year);
+          const matches = await fetchLeagueMatches(slug, year);
 
           if (matches.length === 0) {
             errors.push(`${slug}/${year}: 0 matches returned`);
@@ -184,7 +138,7 @@ Deno.serve(async (req: Request) => {
               .upsert(
                 {
                   understat_match_id: parseInt(m.id, 10),
-                  league_slug: slug,
+                  league_slug: dbSlug,
                   season_year: year,
                   match_date: matchDate,
                   home_team: m.h.title,
@@ -215,16 +169,16 @@ Deno.serve(async (req: Request) => {
           totalFailed++;
         }
 
-        await new Promise((r) => setTimeout(r, 1200));
+        await new Promise((r) => setTimeout(r, 1500));
       }
     }
 
+    // Run canonical mapping after ingest
     const { data: mapResult, error: mapErr } = await supabase
       .rpc("map_understat_to_matches");
 
     return new Response(
       JSON.stringify({
-        endpoint_used: endpointName,
         leagues_processed: leagues.length,
         seasons_processed: seasons.length,
         total_inserted: totalInserted,
