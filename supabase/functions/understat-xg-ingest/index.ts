@@ -77,6 +77,30 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json().catch(() => ({}));
 
+    // ScraperAPI proof-of-concept inspection mode
+    if (body.scraperapi_test === true) {
+      const SCRAPERAPI_KEY = "2e5518a866a8c698eb98c699cc600a3d";
+      const targetUrl = "https://understat.com/league/EPL/2023";
+      const proxyUrl = `https://api.scraperapi.com/?api_key=${SCRAPERAPI_KEY}&render=true&url=${encodeURIComponent(targetUrl)}`;
+      const response = await fetch(proxyUrl);
+      const html = await response.text();
+      const jsonParseCount = (html.match(/JSON\.parse/g) ?? []).length;
+      const firstPos = html.indexOf("JSON.parse");
+      return new Response(JSON.stringify({
+        http_status: response.status,
+        html_length: html.length,
+        has_cloudflare_challenge: html.includes("challenge-platform") || html.includes("cf-mitigated"),
+        has_datesdata: html.includes("datesData"),
+        has_teamsdata: html.includes("teamsData"),
+        has_playersdata: html.includes("playersData"),
+        has_jsonparse: jsonParseCount,
+        first_jsonparse_pos: firstPos,
+        sample_around_jsonparse: firstPos >= 0
+          ? html.substring(Math.max(0, firstPos - 50), firstPos + 200)
+          : null,
+      }, null, 2), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     // FBref HTML inspection mode
     if (body.fbref_inspect === true) {
       const url = "https://fbref.com/en/comps/9/2023-2024/schedule/2023-2024-Premier-League-Scores-and-Fixtures";
