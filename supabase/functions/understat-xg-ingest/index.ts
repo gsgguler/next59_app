@@ -76,6 +76,37 @@ Deno.serve(async (req: Request) => {
     );
 
     const body = await req.json().catch(() => ({}));
+
+    // FBref HTML inspection mode
+    if (body.fbref_inspect === true) {
+      const url = "https://fbref.com/en/comps/9/2023-2024/schedule/2023-2024-Premier-League-Scores-and-Fixtures";
+      const resp = await fetch(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Accept-Language": "en-US,en;q=0.9",
+        },
+      });
+      const html = await resp.text();
+      const tableIdMatch = html.match(/id="(sched_[^"]+)"/);
+      // Extract first 3 data rows text
+      const rowMatches = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)];
+      const dataRows: string[] = [];
+      for (const rm of rowMatches) {
+        const txt = rm[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+        if (txt.length > 20 && !txt.includes("thead") && dataRows.length < 3) dataRows.push(txt.slice(0, 200));
+      }
+      return new Response(JSON.stringify({
+        http_status: resp.status,
+        html_length: html.length,
+        has_cloudflare_challenge: html.includes("challenge-platform") || html.includes("cf-mitigated"),
+        has_score_table: html.includes('id="sched_'),
+        has_xg_columns: /<th[^>]*>[^<]*xG[^<]*<\/th>/i.test(html) || html.includes('data-stat="xg"'),
+        table_id_found: tableIdMatch?.[1] ?? null,
+        first_3_rows_text: dataRows,
+      }, null, 2), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const leagueFilter: string | null = body.league_slug ?? null;
     const seasonFilter: number | null = body.season_year ?? null;
     const debugMode: boolean = body.debug === true;
