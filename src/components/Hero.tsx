@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from '../locales/hero';
-import { MapPin } from 'lucide-react';
+import { MapPin, Mail, ArrowRight, Check, Loader2 } from 'lucide-react';
 import {
   getWorldCupCountdown,
   getUserTimeZone,
   formatOpeningKickoffForUser,
 } from '../lib/worldCupCountdown';
+import { supabase } from '../lib/supabase';
 
 function MexicoFlag() {
   return (
@@ -62,11 +64,37 @@ function SouthAfricaFlag() {
 export function Hero() {
   const { t } = useTranslation();
   const [time, setTime] = useState(() => getWorldCupCountdown());
+  const [email, setEmail] = useState('');
+  const [leadStatus, setLeadStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [leadError, setLeadError] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const id = setInterval(() => setTime(getWorldCupCountdown()), 1000);
     return () => clearInterval(id);
   }, []);
+
+  async function handleLeadSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = email.trim();
+    if (!trimmed) return;
+    setLeadStatus('loading');
+    setLeadError('');
+    const { error } = await supabase
+      .from('early_access_leads')
+      .insert({ email: trimmed, source: 'hero' });
+    if (error) {
+      if (error.code === '23505') {
+        // duplicate — treat as success, user is already registered
+        setLeadStatus('success');
+      } else {
+        setLeadStatus('error');
+        setLeadError('Bir hata oluştu, lütfen tekrar deneyin.');
+      }
+    } else {
+      setLeadStatus('success');
+    }
+  }
 
   const userTz      = getUserTimeZone();
   const localKickoff = formatOpeningKickoffForUser('tr-TR');
@@ -220,20 +248,71 @@ export function Hero() {
           </div>
         </div>
 
-        {/* 5 ── CTAs */}
-        <div className="mt-8 flex gap-4 justify-center flex-wrap">
-          <a
-            href="/maclar"
-            className="px-8 py-3.5 bg-gold-500 text-navy-950 font-semibold rounded-lg hover:bg-gold-400 transition-all hover:shadow-lg hover:shadow-gold-500/20"
+        {/* 5 ── Lead capture + CTA */}
+        <div className="mt-10 flex flex-col items-center gap-4">
+
+          {/* Early-access email block */}
+          <div className="w-full max-w-lg rounded-2xl bg-navy-900/60 border border-navy-700/50 backdrop-blur-sm px-5 py-5 text-left">
+            <p className="text-sm font-semibold text-white mb-0.5">
+              Dünya Kupası analizlerimiz hazır olduğunda haberdar olun
+            </p>
+            <p className="text-xs text-navy-400 mb-4 leading-relaxed">
+              2026 Dünya Kupası maç incelemelerimiz ve 90 dakika analizlerimiz yayına girdiğinde
+              sizi bilgilendireceğiz. Ücretsiz üye olursanız zaten otomatik olarak alırsınız —
+              ya da sadece e-posta bırakın yeterli.
+            </p>
+
+            {leadStatus === 'success' ? (
+              <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
+                <div className="w-6 h-6 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                  <Check className="w-3.5 h-3.5" />
+                </div>
+                Kaydedildi! Analizler hazır olduğunda bildireceğiz.
+              </div>
+            ) : (
+              <form onSubmit={handleLeadSubmit} className="flex gap-2">
+                <div className="relative flex-1">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-navy-400 pointer-events-none" />
+                  <input
+                    ref={inputRef}
+                    type="email"
+                    required
+                    placeholder="e-posta adresiniz"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full bg-navy-800 border border-navy-700 text-white text-sm rounded-lg pl-9 pr-3 py-2.5 placeholder-navy-500 focus:outline-none focus:ring-1 focus:ring-gold-500/40 focus:border-gold-500/40 transition-all"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={leadStatus === 'loading'}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gold-500 hover:bg-gold-400 disabled:opacity-60 text-navy-950 font-semibold text-sm rounded-lg transition-all hover:shadow-lg hover:shadow-gold-500/20 shrink-0"
+                >
+                  {leadStatus === 'loading' ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      Bildir
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+
+            {leadError && (
+              <p className="mt-2 text-xs text-red-400">{leadError}</p>
+            )}
+          </div>
+
+          {/* Secondary CTA */}
+          <Link
+            to="/world-cup-2026"
+            className="inline-flex items-center gap-2 px-7 py-3 border border-white/15 text-white/80 font-medium rounded-lg hover:bg-white/5 hover:border-white/25 transition-all text-sm"
           >
-            Bekleme listesine katıl
-          </a>
-          <a
-            href="/maclar"
-            className="px-8 py-3.5 border border-white/15 text-white/80 font-medium rounded-lg hover:bg-white/5 hover:border-white/25 transition-all"
-          >
-            Maçları Keşfet
-          </a>
+            Fikstürü İncele
+            <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
 
       </div>
