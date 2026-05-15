@@ -77,6 +77,7 @@ import ModelLabBacktestPage from './pages/admin/ModelLabBacktestPage';
 import ModelLabMacIncelemePage from './pages/admin/ModelLabMacIncelemePage';
 import ModelLabKalibrasyonPage from './pages/admin/ModelLabKalibrasyonPage';
 import ModelLabHataAnaliziPage from './pages/admin/ModelLabHataAnaliziPage';
+import OperationsPage from './pages/admin/OperationsPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import PlaceholderPage from './pages/PlaceholderPage';
@@ -179,6 +180,8 @@ export default function App() {
                 <Route path="icerik-yonetimi" element={<PlaceholderPage title="İçerik Yönetimi" />} />
                 <Route path="kullanicilar" element={<PlaceholderPage title="Kullanıcılar" />} />
                 <Route path="sistem-sagligi" element={<PlaceholderPage title="Sistem Sağlığı" />} />
+                {/* Operations */}
+                <Route path="operasyonlar" element={<OperationsPage />} />
                 {/* Model Lab */}
                 <Route path="model-lab" element={<ModelLabPage />} />
                 <Route path="model-lab/backtest" element={<ModelLabBacktestPage />} />

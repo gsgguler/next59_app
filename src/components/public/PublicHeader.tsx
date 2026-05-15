@@ -45,26 +45,6 @@ const NAV: NavItem[] = [
     ],
   },
   {
-    label: 'Senaryolar',
-    to: '/senaryolar',
-    children: [
-      { label: 'Örnek Maç Senaryoları', to: '/senaryolar' },
-      { label: 'Geçmiş Maç Okumaları', to: '/senaryolar/gecmis-mac-okumalari' },
-      { label: 'Favori Neden Kaybeder?', to: '/senaryolar/favori-neden-kaybeder' },
-      { label: 'Maç Hikâyeleri', to: '/senaryolar/mac-hikayeleri' },
-    ],
-  },
-  {
-    label: 'Yazılar',
-    to: '/yazilar',
-    children: [
-      { label: 'Tüm Yazılar', to: '/yazilar' },
-      { label: 'Analiz Yazıları', to: '/yazilar/analizler' },
-      { label: 'Dünya Kupası 2026', to: '/yazilar/dunya-kupasi-2026' },
-      { label: 'Editör Notları', to: '/yazilar/editor-notlari' },
-    ],
-  },
-  {
     label: 'Next59',
     to: '/next59',
     children: [
@@ -72,7 +52,6 @@ const NAV: NavItem[] = [
       { label: 'Yayın İlkeleri', to: '/next59/yayin-ilkeleri' },
       { label: 'Bahis Karşıtı Duruş', to: '/next59/bahis-karsiti-durus' },
       { label: 'Sıkça Sorulan Sorular', to: '/next59/sss' },
-      { label: 'Basın', to: '/next59/basin' },
       { label: 'İletişim', to: '/next59/iletisim' },
     ],
   },

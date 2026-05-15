@@ -9,6 +9,7 @@ import {
   Settings,
   ShieldCheck,
   FlaskConical,
+  Activity,
   CircleUser as UserCircle,
   ChevronLeft,
   ChevronRight,
@@ -83,6 +84,13 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
                   to="/admin"
                   icon={ShieldCheck}
                   label="Yönetim"
+                  collapsed={collapsed}
+                  onClick={onMobileClose}
+                />
+                <NavItem
+                  to="/admin/operasyonlar"
+                  icon={Activity}
+                  label="Operasyonlar"
                   collapsed={collapsed}
                   onClick={onMobileClose}
                 />
