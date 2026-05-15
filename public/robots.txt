@@ -1,15 +1,4 @@
 User-agent: *
 Allow: /
 
-Disallow: /admin
-Disallow: /dashboard
-Disallow: /profile
-Disallow: /settings
-Disallow: /giris
-Disallow: /kayit
-Disallow: /login
-Disallow: /register
-Disallow: /auth-debug
-Disallow: /api/
-
 Sitemap: https://www.next59.com/sitemap.xml
