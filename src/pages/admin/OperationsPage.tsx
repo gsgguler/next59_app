@@ -1231,4 +1231,3 @@ function ProviderHealthCenter() {
 }
 
 
-export default OperationsPage
