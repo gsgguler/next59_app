@@ -61,9 +61,9 @@ export default function PredictionDetailPage() {
         .maybeSingle();
 
       if (err) {
-        setError('Analiz yuklenirken hata olustu');
+        setError('Analiz yüklenirken hata oluştu');
       } else if (!data) {
-        setError('Analiz bulunamadi');
+        setError('Analiz bulunamadı');
       } else {
         setPrediction(data as unknown as PredictionData);
       }
@@ -85,7 +85,7 @@ export default function PredictionDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-gray-400">
         <BarChart3 className="w-12 h-12 mb-3" />
-        <p className="text-lg font-medium text-gray-600">{error || 'Analiz bulunamadi'}</p>
+        <p className="text-lg font-medium text-gray-600">{error || 'Analiz bulunamadı'}</p>
         <Link to="/predictions" className="mt-4 text-sm text-navy-600 hover:text-navy-700 font-medium">
           Analizlere Dön
         </Link>
@@ -103,7 +103,7 @@ export default function PredictionDetailPage() {
       <nav className="flex items-center gap-1.5 text-sm text-gray-400 flex-wrap">
         <Link to="/" className="hover:text-gray-600 transition-colors">Dashboard</Link>
         <ChevronRight className="w-3.5 h-3.5" />
-        <Link to="/matches" className="hover:text-gray-600 transition-colors">Maclar</Link>
+        <Link to="/matches" className="hover:text-gray-600 transition-colors">Maçlar</Link>
         <ChevronRight className="w-3.5 h-3.5" />
         <span className="text-gray-600">{homeName} vs {awayName}</span>
         <ChevronRight className="w-3.5 h-3.5" />
@@ -147,19 +147,6 @@ export default function PredictionDetailPage() {
         <div className="lg:col-span-2 space-y-6">
           <AccessLevelCard isEliteOnly={prediction.is_elite_only} />
 
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Gecmis Dogruluk</h3>
-            <div className="flex items-center gap-3">
-              <div className="w-16 h-16 rounded-full border-4 border-emerald-200 flex items-center justify-center">
-                <span className="text-lg font-bold text-emerald-600">68%</span>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Bu model için ortalama model başarısı</p>
-                <p className="text-xs text-gray-400 mt-1">Son 100 analize dayanmaktadır</p>
-              </div>
-            </div>
-          </div>
-
           <Link
             to={`/debates/${prediction.id}`}
             className="flex items-center gap-3 bg-white rounded-xl border border-gray-200 p-5 hover:border-navy-300 hover:shadow-sm transition-all group"
@@ -168,8 +155,8 @@ export default function PredictionDetailPage() {
               <MessageSquare className="w-5 h-5 text-navy-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900">AI Debate'i Gor</p>
-              <p className="text-xs text-gray-500">Panel degerlendirmesini incele</p>
+              <p className="text-sm font-semibold text-gray-900">AI Debate'i Gör</p>
+              <p className="text-xs text-gray-500">Panel değerlendirmesini incele</p>
             </div>
             <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-navy-600 transition-colors" />
           </Link>
@@ -200,7 +187,9 @@ function MatchSummaryCard({
   homeGoals: number | null;
   awayGoals: number | null;
 }) {
-  const kickoffStr = matchTime ? `${matchDate}T${matchTime}` : matchDate;
+  const kickoffStr = matchTime
+    ? `${matchDate}T${matchTime}:00+03:00`
+    : `${matchDate}T00:00:00+03:00`;
   const dateStr = new Date(kickoffStr).toLocaleDateString('tr-TR', {
     weekday: 'long',
     day: 'numeric',
@@ -211,11 +200,11 @@ function MatchSummaryCard({
   });
 
   const statusLabels: Record<string, { label: string; color: string }> = {
-    ns: { label: 'Planli', color: 'text-blue-600 bg-blue-50' },
+    ns: { label: 'Planlı', color: 'text-blue-600 bg-blue-50' },
     ft: { label: 'Bitti', color: 'text-gray-600 bg-gray-100' },
-    '1h': { label: 'Canli', color: 'text-red-600 bg-red-50' },
-    '2h': { label: 'Canli', color: 'text-red-600 bg-red-50' },
-    ht: { label: 'Devre Arasi', color: 'text-orange-600 bg-orange-50' },
+    '1h': { label: 'Canlı', color: 'text-red-600 bg-red-50' },
+    '2h': { label: 'Canlı', color: 'text-red-600 bg-red-50' },
+    ht: { label: 'Devre Arası', color: 'text-orange-600 bg-orange-50' },
     pst: { label: 'Ertelendi', color: 'text-orange-600 bg-orange-50' },
   };
   const st = statusLabels[statusShort.toLowerCase()] ?? statusLabels.ns;
@@ -266,13 +255,13 @@ function MatchSummaryCard({
 function AccessLevelCard({ isEliteOnly }: { isEliteOnly: boolean }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <h3 className="text-sm font-semibold text-gray-900 mb-4">Erisim Seviyesi</h3>
+      <h3 className="text-sm font-semibold text-gray-900 mb-4">Erişim Seviyesi</h3>
       <div className="space-y-2">
         <div className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${
           !isEliteOnly ? 'bg-gold-50 border border-gold-200 text-gold-700 font-semibold' : 'text-gray-500'
         }`}>
           <div className={`w-2 h-2 rounded-full ${!isEliteOnly ? 'bg-gold-500' : 'bg-gray-200'}`} />
-          Ucretsiz
+          Ücretsiz
           {!isEliteOnly && (
             <span className="ml-auto text-xs bg-gold-100 text-gold-700 px-2 py-0.5 rounded">Bu analiz</span>
           )}

@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Trophy, TrendingUp, Target, MessageSquare, ArrowUpRight, ArrowDownRight, Lock } from 'lucide-react';
+import { Trophy, TrendingUp, MessageSquare, ArrowUpRight, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface StatCard {
   title: string;
   value: string;
-  change: string;
-  trend: 'up' | 'down';
   icon: typeof Trophy;
   color: string;
   bgColor: string;
@@ -17,7 +15,6 @@ export default function DashboardHome() {
   const [stats, setStats] = useState({
     activeMatches: 0,
     predictions: 0,
-    accuracy: 0,
     debates: 0,
   });
   const [loading, setLoading] = useState(true);
@@ -41,7 +38,6 @@ export default function DashboardHome() {
       setStats({
         activeMatches: matchesRes.count ?? 0,
         predictions: predictionsRes.count ?? 0,
-        accuracy: 73,
         debates: debatesRes.count ?? 0,
       });
       setLoading(false);
@@ -54,8 +50,6 @@ export default function DashboardHome() {
     {
       title: 'Aktif Maçlar',
       value: loading ? '-' : String(stats.activeMatches),
-      change: '+3 bu hafta',
-      trend: 'up',
       icon: Trophy,
       color: 'text-emerald-600',
       bgColor: 'bg-emerald-50',
@@ -63,26 +57,13 @@ export default function DashboardHome() {
     {
       title: 'Yayınlanan Analizler',
       value: loading ? '-' : String(stats.predictions),
-      change: '+12 bu ay',
-      trend: 'up',
       icon: TrendingUp,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
     },
     {
-      title: 'Model Başarısı',
-      value: loading ? '-' : `%${stats.accuracy}`,
-      change: '+2.1% geçen aya göre',
-      trend: 'up',
-      icon: Target,
-      color: 'text-gold-600',
-      bgColor: 'bg-gold-50',
-    },
-    {
       title: 'AI Debate',
       value: loading ? '-' : String(stats.debates),
-      change: '5 aktif tartışma',
-      trend: 'up',
       icon: MessageSquare,
       color: 'text-rose-600',
       bgColor: 'bg-rose-50',
@@ -112,16 +93,6 @@ export default function DashboardHome() {
               <div className={`${card.bgColor} p-2.5 rounded-lg`}>
                 <card.icon className={`w-5 h-5 ${card.color}`} />
               </div>
-            </div>
-            <div className="flex items-center gap-1 mt-3">
-              {card.trend === 'up' ? (
-                <ArrowUpRight className="w-4 h-4 text-emerald-500" />
-              ) : (
-                <ArrowDownRight className="w-4 h-4 text-red-500" />
-              )}
-              <span className={`text-xs font-medium ${card.trend === 'up' ? 'text-emerald-600' : 'text-red-600'}`}>
-                {card.change}
-              </span>
             </div>
           </div>
         ))}
@@ -204,7 +175,13 @@ function UpcomingMatchesList() {
                 {m.home_team?.short_name || m.home_team?.name || 'Ev Sahibi'} - {m.away_team?.short_name || m.away_team?.name || 'Konuk'}
               </p>
               <p className="text-xs text-gray-400">
-                {m.match_date ? new Date(m.match_time ? `${m.match_date}T${m.match_time}` : m.match_date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'TBD'}
+                {m.match_date
+                  ? new Date(
+                      m.match_time
+                        ? `${m.match_date}T${m.match_time}:00+03:00`
+                        : `${m.match_date}T00:00:00+03:00`
+                    ).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: m.match_time ? '2-digit' : undefined, minute: m.match_time ? '2-digit' : undefined })
+                  : 'TBD'}
               </p>
             </div>
           </div>

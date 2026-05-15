@@ -64,10 +64,12 @@ function transformPredictions(predictions: DbPrediction[]): UIPrediction | null 
 }
 
 function buildKickoffAt(raw: DbMatch): string {
+  // Always append +03:00 (Istanbul/TRT) so Date parsing is unambiguous everywhere.
+  // The source data is from football-data.co.uk which uses Turkish league local times.
   if (raw.match_time) {
-    return `${raw.match_date}T${raw.match_time}`;
+    return `${raw.match_date}T${raw.match_time}:00+03:00`;
   }
-  return raw.match_date;
+  return `${raw.match_date}T00:00:00+03:00`;
 }
 
 export function transformMatch(
