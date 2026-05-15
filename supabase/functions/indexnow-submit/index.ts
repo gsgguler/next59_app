@@ -32,10 +32,24 @@ Deno.serve(async (req: Request) => {
     if (!payload.urls || !Array.isArray(payload.urls) || payload.urls.length === 0) {
       return new Response(
         JSON.stringify({ error: "urls array is required and must not be empty" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    if (payload.urls.length > 100) {
+      return new Response(
+        JSON.stringify({ error: "urls array must not exceed 100 entries per request" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const validUrls = payload.urls.filter(
+      (u) => typeof u === "string" && u.startsWith("https://www.next59.com/"),
+    );
+    if (validUrls.length === 0) {
+      return new Response(
+        JSON.stringify({ error: "No valid next59.com URLs provided" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
@@ -43,20 +57,25 @@ Deno.serve(async (req: Request) => {
       host: HOST,
       key: INDEXNOW_KEY,
       keyLocation: KEY_LOCATION,
-      urlList: payload.urls,
+      urlList: validUrls,
     });
 
     const results = await Promise.allSettled(
       ENGINES.map(async (engine) => {
-        const res = await fetch(engine, {
-          method: "POST",
-          headers: { "Content-Type": "application/json; charset=utf-8" },
-          body,
-        });
-        const status = res.status;
-        const text = await res.text().catch(() => "");
-        console.log(`[IndexNow] ${engine} => ${status} ${text.slice(0, 200)}`);
-        return { engine, status, ok: status >= 200 && status < 300 };
+        const ctrl = new AbortController();
+        const timeout = setTimeout(() => ctrl.abort(), 10000);
+        try {
+          const res = await fetch(engine, {
+            method: "POST",
+            headers: { "Content-Type": "application/json; charset=utf-8" },
+            body,
+            signal: ctrl.signal,
+          });
+          const status = res.status;
+          return { engine, status, ok: status >= 200 && status < 300 };
+        } finally {
+          clearTimeout(timeout);
+        }
       }),
     );
 
@@ -71,7 +90,7 @@ Deno.serve(async (req: Request) => {
 
     return new Response(
       JSON.stringify({
-        submitted_urls: payload.urls.length,
+        submitted_urls: validUrls.length,
         engines: summary,
       }),
       {

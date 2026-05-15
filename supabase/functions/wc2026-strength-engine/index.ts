@@ -24,7 +24,10 @@ async function callApi(
   const apiKey = Deno.env.get("API_FOOTBALL_KEY");
   if (!apiKey) throw new Error("API_FOOTBALL_KEY not configured");
   const url = `${API_BASE}${endpoint}`;
-  const res = await fetch(url, { headers: { "x-apisports-key": apiKey } });
+  const ctrl = new AbortController();
+  const timeout = setTimeout(() => ctrl.abort(), 15000);
+  const res = await fetch(url, { headers: { "x-apisports-key": apiKey }, signal: ctrl.signal });
+  clearTimeout(timeout);
   const rateLimitHeaders: Record<string, string> = {};
   for (const [key, value] of res.headers.entries()) {
     if (key.startsWith("x-ratelimit") || key.startsWith("x-request")) {

@@ -33,16 +33,23 @@ function fbrefUrl(comp_id: number, season: string, url_name: string): string {
 }
 
 async function fetchHtml(url: string): Promise<{ ok: boolean; status: number; text: string }> {
-  const resp = await fetch(url, {
-    headers: {
-      "User-Agent": BROWSER_UA,
-      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "Accept-Language": "en-US,en;q=0.9",
-      "Accept-Encoding": "gzip, deflate, br",
-    },
-  });
-  const text = await resp.text();
-  return { ok: resp.ok, status: resp.status, text };
+  const ctrl = new AbortController();
+  const timeout = setTimeout(() => ctrl.abort(), 30000);
+  try {
+    const resp = await fetch(url, {
+      headers: {
+        "User-Agent": BROWSER_UA,
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+      },
+      signal: ctrl.signal,
+    });
+    const text = await resp.text();
+    return { ok: resp.ok, status: resp.status, text };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 interface ParsedMatch {

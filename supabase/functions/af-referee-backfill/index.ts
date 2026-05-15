@@ -43,7 +43,13 @@ Deno.serve(async (req: Request) => {
           apiCalls++;
           const url = `https://v3.football.api-sports.io/fixtures?league=${leagueId}&season=${season}`;
           try {
-            const resp = await fetch(url, { headers: { "x-apisports-key": AF_KEY } });
+            const ctrl = new AbortController();
+            const afTimeout = setTimeout(() => ctrl.abort(), 15000);
+            const resp = await fetch(url, {
+              headers: { "x-apisports-key": AF_KEY },
+              signal: ctrl.signal,
+            });
+            clearTimeout(afTimeout);
             if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
             const json = await resp.json();
             const fixtures: any[] = json?.response ?? [];

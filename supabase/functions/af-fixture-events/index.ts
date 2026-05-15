@@ -63,7 +63,13 @@ Deno.serve(async (req: Request) => {
 
       let httpStatus = 0;
       try {
-        const resp = await fetch(endpoint, { headers: { "x-apisports-key": AF_KEY } });
+        const ctrl = new AbortController();
+        const timeout = setTimeout(() => ctrl.abort(), 15000);
+        const resp = await fetch(endpoint, {
+          headers: { "x-apisports-key": AF_KEY },
+          signal: ctrl.signal,
+        });
+        clearTimeout(timeout);
         httpStatus = resp.status;
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const json = await resp.json();
