@@ -5,9 +5,12 @@ import {
   Shield, Clock, Swords, HelpCircle, Globe,
 } from 'lucide-react';
 import {
-  ALL_WC2026_FIXTURES, VENUE_META, STAGE_LABELS_TR, formatKickoffTR,
+  ALL_WC2026_FIXTURES, VENUE_META, STAGE_LABELS_TR,
+  getUserTimeZone, formatMatchDateTime,
   type WC2026Fixture,
 } from '../data/worldCup2026Fixtures';
+
+const userTZ = getUserTimeZone();
 import { COUNTRY_BY_FIFA } from '../data/worldCup2026Countries';
 import { supabase } from '../lib/supabase';
 import { STAGE_LABELS, stageOrder, type WcMatch } from './WorldCupHistoryPage';
@@ -343,7 +346,7 @@ function GroupContext({ fixture, allFixtures }: { fixture: WC2026Fixture; allFix
                 isCurrent ? 'bg-champagne/5 border-champagne/20' : 'bg-navy-900/40 border-navy-800/60'
               }`}
             >
-              <span className="text-xs text-navy-400 shrink-0 w-20">{formatKickoffTR(f.kickoff_utc)}</span>
+              <span className="text-xs text-navy-400 shrink-0 w-20">{formatMatchDateTime(f.kickoff_utc, userTZ)}</span>
               <span className="flex items-center gap-1.5 flex-1 justify-end">
                 {hc && <span className={`fi fi-${hc.iso2} rounded-[3px] shrink-0`} style={{width:16,height:11,display:'inline-block'}}/>}
                 <span className={`text-xs truncate ${isCurrent ? 'text-white font-semibold' : 'text-navy-300'}`}>{hc?.name_tr ?? f.home_team}</span>
@@ -406,10 +409,10 @@ export default function WcFixtureDetailPage() {
   const isGroupStage = fixture.stage === 'Group Stage';
   const stageLabel = STAGE_LABELS_TR[fixture.stage];
   const groupLabel = fixture.group ? `Grup ${fixture.group}` : null;
-  const trTime = formatKickoffTR(fixture.kickoff_utc);
+  const trTime = formatMatchDateTime(fixture.kickoff_utc, userTZ);
 
-  const matchDate = new Date(fixture.match_date).toLocaleDateString('tr-TR', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  const matchDate = new Date(fixture.kickoff_utc).toLocaleDateString('tr-TR', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: userTZ,
   });
 
   const TABS = [

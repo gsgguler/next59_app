@@ -4,7 +4,9 @@ import { Trophy, Search, Filter, Calendar, Globe, ChevronDown, Info, History } f
 import {
   ALL_WC2026_FIXTURES,
   WC2026_GROUPS,
-  formatFixtureDateTR,
+  formatFixtureDateForTZ,
+  getUserTimeZone,
+  getLocalMatchDateKey,
   type WC2026Fixture,
   type FixtureStage,
 } from '../data/worldCup2026Fixtures';
@@ -65,12 +67,15 @@ const LOCATION_GROUPS = [
   },
 ];
 
+const userTZ = getUserTimeZone();
+
 function groupByDate(fixtures: WC2026Fixture[]): Map<string, WC2026Fixture[]> {
   const map = new Map<string, WC2026Fixture[]>();
   for (const f of fixtures) {
-    const arr = map.get(f.match_date);
+    const key = getLocalMatchDateKey(f.kickoff_utc, userTZ);
+    const arr = map.get(key);
     if (arr) arr.push(f);
-    else map.set(f.match_date, [f]);
+    else map.set(key, [f]);
   }
   return map;
 }
@@ -469,7 +474,7 @@ export default function WorldCup2026Page() {
                 <div key={dateKey} className="animate-fade-in">
                   <h3 className="text-sm font-semibold text-champagne/80 uppercase tracking-wider mb-4 flex items-center gap-3">
                     <span className="h-px flex-1 bg-navy-800" />
-                    <span className="shrink-0">{formatFixtureDateTR(dateKey)}</span>
+                    <span className="shrink-0">{formatFixtureDateForTZ(dateKey + 'T12:00:00Z', 'UTC')}</span>
                     <span className="h-px flex-1 bg-navy-800" />
                   </h3>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

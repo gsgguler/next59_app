@@ -3,10 +3,13 @@ import { MapPin, HelpCircle, ChevronRight } from 'lucide-react';
 import { COUNTRY_BY_FIFA } from '../../data/worldCup2026Countries';
 import {
   STAGE_LABELS_TR,
-  formatKickoffTR,
+  getUserTimeZone,
+  formatMatchDateTime,
   VENUE_META,
   type WC2026Fixture,
 } from '../../data/worldCup2026Fixtures';
+
+const userTZ = getUserTimeZone();
 
 // ── Flag ──────────────────────────────────────────────────────────────────────
 
@@ -79,7 +82,7 @@ function TeamDisplay({ code, align = 'left' }: { code: string; align?: 'left' | 
 
 export function WC2026FixtureCard({ fixture }: { fixture: WC2026Fixture }) {
   const isTBD = fixture.home_team_code === 'TBD' || fixture.home_team === 'TBD';
-  const trTime = formatKickoffTR(fixture.kickoff_utc);
+  const trTime = formatMatchDateTime(fixture.kickoff_utc, userTZ);
   const stageLabel = STAGE_LABELS_TR[fixture.stage];
   const groupLabel = fixture.group ? `Grup ${fixture.group}` : null;
   const venue = VENUE_META[fixture.venue];

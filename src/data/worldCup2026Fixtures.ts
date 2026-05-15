@@ -68,7 +68,7 @@ const GROUP_FIXTURES: WC2026Fixture[] = [
   },
   {
     id: 'wc2026-002', match_no: 2, stage: 'Group Stage', group: 'A',
-    match_date: '2026-06-11', kickoff_utc: '2026-06-12T02:00:00.000Z',
+    match_date: '2026-06-12', kickoff_utc: '2026-06-12T02:00:00.000Z',
     kickoff_local_label: '22:00 CDT', kickoff_tr_label: '05:00 TRT',
     home_team: 'South Korea', away_team: 'Czechia',
     home_team_code: 'KOR', away_team_code: 'CZE',
@@ -88,7 +88,7 @@ const GROUP_FIXTURES: WC2026Fixture[] = [
   },
   {
     id: 'wc2026-004', match_no: 4, stage: 'Group Stage', group: 'A',
-    match_date: '2026-06-18', kickoff_utc: '2026-06-19T01:00:00.000Z',
+    match_date: '2026-06-19', kickoff_utc: '2026-06-19T01:00:00.000Z',
     kickoff_local_label: '21:00 CDT', kickoff_tr_label: '04:00 TRT',
     home_team: 'Mexico', away_team: 'South Korea',
     home_team_code: 'MEX', away_team_code: 'KOR',
@@ -98,7 +98,7 @@ const GROUP_FIXTURES: WC2026Fixture[] = [
   },
   {
     id: 'wc2026-005', match_no: 5, stage: 'Group Stage', group: 'A',
-    match_date: '2026-06-24', kickoff_utc: '2026-06-25T01:00:00.000Z',
+    match_date: '2026-06-25', kickoff_utc: '2026-06-25T01:00:00.000Z',
     kickoff_local_label: '21:00 CDT', kickoff_tr_label: '04:00 TRT',
     home_team: 'Mexico', away_team: 'Czechia',
     home_team_code: 'MEX', away_team_code: 'CZE',
@@ -108,7 +108,7 @@ const GROUP_FIXTURES: WC2026Fixture[] = [
   },
   {
     id: 'wc2026-006', match_no: 6, stage: 'Group Stage', group: 'A',
-    match_date: '2026-06-24', kickoff_utc: '2026-06-25T01:00:00.000Z',
+    match_date: '2026-06-25', kickoff_utc: '2026-06-25T01:00:00.000Z',
     kickoff_local_label: '21:00 CDT', kickoff_tr_label: '04:00 TRT',
     home_team: 'South Korea', away_team: 'South Africa',
     home_team_code: 'KOR', away_team_code: 'RSA',
@@ -198,7 +198,7 @@ const GROUP_FIXTURES: WC2026Fixture[] = [
   },
   {
     id: 'wc2026-014', match_no: 14, stage: 'Group Stage', group: 'C',
-    match_date: '2026-06-13', kickoff_utc: '2026-06-14T01:00:00.000Z',
+    match_date: '2026-06-14', kickoff_utc: '2026-06-14T01:00:00.000Z',
     kickoff_local_label: '21:00 EDT', kickoff_tr_label: '04:00 TRT',
     home_team: 'Haiti', away_team: 'Scotland',
     home_team_code: 'HAI', away_team_code: 'SCO',
@@ -218,7 +218,7 @@ const GROUP_FIXTURES: WC2026Fixture[] = [
   },
   {
     id: 'wc2026-016', match_no: 16, stage: 'Group Stage', group: 'C',
-    match_date: '2026-06-19', kickoff_utc: '2026-06-20T01:00:00.000Z',
+    match_date: '2026-06-20', kickoff_utc: '2026-06-20T01:00:00.000Z',
     kickoff_local_label: '21:00 EDT', kickoff_tr_label: '04:00 TRT',
     home_team: 'Brazil', away_team: 'Haiti',
     home_team_code: 'BRA', away_team_code: 'HAI',
@@ -253,7 +253,7 @@ const GROUP_FIXTURES: WC2026Fixture[] = [
   // =========================================================================
   {
     id: 'wc2026-019', match_no: 19, stage: 'Group Stage', group: 'D',
-    match_date: '2026-06-12', kickoff_utc: '2026-06-13T01:00:00.000Z',
+    match_date: '2026-06-13', kickoff_utc: '2026-06-13T01:00:00.000Z',
     kickoff_local_label: '21:00 EDT', kickoff_tr_label: '04:00 TRT',
     home_team: 'USA', away_team: 'Paraguay',
     home_team_code: 'USA', away_team_code: 'PAR',
@@ -263,7 +263,7 @@ const GROUP_FIXTURES: WC2026Fixture[] = [
   },
   {
     id: 'wc2026-020', match_no: 20, stage: 'Group Stage', group: 'D',
-    match_date: '2026-06-13', kickoff_utc: '2026-06-14T04:00:00.000Z',
+    match_date: '2026-06-14', kickoff_utc: '2026-06-14T04:00:00.000Z',
     kickoff_local_label: '00:00 EDT', kickoff_tr_label: '07:00 TRT',
     home_team: 'Australia', away_team: 'Türkiye',
     home_team_code: 'AUS', away_team_code: 'TUR',
@@ -283,7 +283,7 @@ const GROUP_FIXTURES: WC2026Fixture[] = [
   },
   {
     id: 'wc2026-022', match_no: 22, stage: 'Group Stage', group: 'D',
-    match_date: '2026-06-19', kickoff_utc: '2026-06-20T04:00:00.000Z',
+    match_date: '2026-06-20', kickoff_utc: '2026-06-20T04:00:00.000Z',
     kickoff_local_label: '00:00 EDT', kickoff_tr_label: '07:00 TRT',
     home_team: 'Türkiye', away_team: 'Paraguay',
     home_team_code: 'TUR', away_team_code: 'PAR',
@@ -293,7 +293,7 @@ const GROUP_FIXTURES: WC2026Fixture[] = [
   },
   {
     id: 'wc2026-023', match_no: 23, stage: 'Group Stage', group: 'D',
-    match_date: '2026-06-25', kickoff_utc: '2026-06-26T02:00:00.000Z',
+    match_date: '2026-06-26', kickoff_utc: '2026-06-26T02:00:00.000Z',
     kickoff_local_label: '22:00 EDT', kickoff_tr_label: '05:00 TRT',
     home_team: 'USA', away_team: 'Türkiye',
     home_team_code: 'USA', away_team_code: 'TUR',
@@ -303,7 +303,7 @@ const GROUP_FIXTURES: WC2026Fixture[] = [
   },
   {
     id: 'wc2026-024', match_no: 24, stage: 'Group Stage', group: 'D',
-    match_date: '2026-06-25', kickoff_utc: '2026-06-26T02:00:00.000Z',
+    match_date: '2026-06-26', kickoff_utc: '2026-06-26T02:00:00.000Z',
     kickoff_local_label: '22:00 EDT', kickoff_tr_label: '05:00 TRT',
     home_team: 'Paraguay', away_team: 'Australia',
     home_team_code: 'PAR', away_team_code: 'AUS',
@@ -348,7 +348,7 @@ const GROUP_FIXTURES: WC2026Fixture[] = [
   },
   {
     id: 'wc2026-028', match_no: 28, stage: 'Group Stage', group: 'E',
-    match_date: '2026-06-20', kickoff_utc: '2026-06-21T00:00:00.000Z',
+    match_date: '2026-06-21', kickoff_utc: '2026-06-21T00:00:00.000Z',
     kickoff_local_label: '20:00 EDT', kickoff_tr_label: '03:00 TRT',
     home_team: 'Ecuador', away_team: 'Curaçao',
     home_team_code: 'ECU', away_team_code: 'CUW',
@@ -393,7 +393,7 @@ const GROUP_FIXTURES: WC2026Fixture[] = [
   },
   {
     id: 'wc2026-032', match_no: 32, stage: 'Group Stage', group: 'F',
-    match_date: '2026-06-14', kickoff_utc: '2026-06-15T02:00:00.000Z',
+    match_date: '2026-06-15', kickoff_utc: '2026-06-15T02:00:00.000Z',
     kickoff_local_label: '22:00 CDT', kickoff_tr_label: '05:00 TRT',
     home_team: 'Sweden', away_team: 'Tunisia',
     home_team_code: 'SWE', away_team_code: 'TUN',
@@ -413,7 +413,7 @@ const GROUP_FIXTURES: WC2026Fixture[] = [
   },
   {
     id: 'wc2026-034', match_no: 34, stage: 'Group Stage', group: 'F',
-    match_date: '2026-06-20', kickoff_utc: '2026-06-21T04:00:00.000Z',
+    match_date: '2026-06-21', kickoff_utc: '2026-06-21T04:00:00.000Z',
     kickoff_local_label: '00:00 EDT', kickoff_tr_label: '07:00 TRT',
     home_team: 'Tunisia', away_team: 'Japan',
     home_team_code: 'TUN', away_team_code: 'JPN',
@@ -458,7 +458,7 @@ const GROUP_FIXTURES: WC2026Fixture[] = [
   },
   {
     id: 'wc2026-038', match_no: 38, stage: 'Group Stage', group: 'G',
-    match_date: '2026-06-15', kickoff_utc: '2026-06-16T01:00:00.000Z',
+    match_date: '2026-06-16', kickoff_utc: '2026-06-16T01:00:00.000Z',
     kickoff_local_label: '21:00 EDT', kickoff_tr_label: '04:00 TRT',
     home_team: 'Iran', away_team: 'New Zealand',
     home_team_code: 'IRN', away_team_code: 'NZL',
@@ -478,7 +478,7 @@ const GROUP_FIXTURES: WC2026Fixture[] = [
   },
   {
     id: 'wc2026-040', match_no: 40, stage: 'Group Stage', group: 'G',
-    match_date: '2026-06-21', kickoff_utc: '2026-06-22T01:00:00.000Z',
+    match_date: '2026-06-22', kickoff_utc: '2026-06-22T01:00:00.000Z',
     kickoff_local_label: '21:00 EDT', kickoff_tr_label: '04:00 TRT',
     home_team: 'New Zealand', away_team: 'Egypt',
     home_team_code: 'NZL', away_team_code: 'EGY',
@@ -488,7 +488,7 @@ const GROUP_FIXTURES: WC2026Fixture[] = [
   },
   {
     id: 'wc2026-041', match_no: 41, stage: 'Group Stage', group: 'G',
-    match_date: '2026-06-26', kickoff_utc: '2026-06-27T03:00:00.000Z',
+    match_date: '2026-06-27', kickoff_utc: '2026-06-27T03:00:00.000Z',
     kickoff_local_label: '23:00 EDT', kickoff_tr_label: '06:00 TRT',
     home_team: 'New Zealand', away_team: 'Belgium',
     home_team_code: 'NZL', away_team_code: 'BEL',
@@ -498,7 +498,7 @@ const GROUP_FIXTURES: WC2026Fixture[] = [
   },
   {
     id: 'wc2026-042', match_no: 42, stage: 'Group Stage', group: 'G',
-    match_date: '2026-06-26', kickoff_utc: '2026-06-27T03:00:00.000Z',
+    match_date: '2026-06-27', kickoff_utc: '2026-06-27T03:00:00.000Z',
     kickoff_local_label: '23:00 EDT', kickoff_tr_label: '06:00 TRT',
     home_team: 'Egypt', away_team: 'Iran',
     home_team_code: 'EGY', away_team_code: 'IRN',
@@ -553,7 +553,7 @@ const GROUP_FIXTURES: WC2026Fixture[] = [
   },
   {
     id: 'wc2026-047', match_no: 47, stage: 'Group Stage', group: 'H',
-    match_date: '2026-06-26', kickoff_utc: '2026-06-27T00:00:00.000Z',
+    match_date: '2026-06-27', kickoff_utc: '2026-06-27T00:00:00.000Z',
     kickoff_local_label: '20:00 EDT', kickoff_tr_label: '03:00 TRT',
     home_team: 'Uruguay', away_team: 'Spain',
     home_team_code: 'URU', away_team_code: 'ESP',
@@ -563,7 +563,7 @@ const GROUP_FIXTURES: WC2026Fixture[] = [
   },
   {
     id: 'wc2026-048', match_no: 48, stage: 'Group Stage', group: 'H',
-    match_date: '2026-06-26', kickoff_utc: '2026-06-27T00:00:00.000Z',
+    match_date: '2026-06-27', kickoff_utc: '2026-06-27T00:00:00.000Z',
     kickoff_local_label: '20:00 EDT', kickoff_tr_label: '03:00 TRT',
     home_team: 'Cape Verde', away_team: 'Saudi Arabia',
     home_team_code: 'CPV', away_team_code: 'KSA',
@@ -643,7 +643,7 @@ const GROUP_FIXTURES: WC2026Fixture[] = [
   // =========================================================================
   {
     id: 'wc2026-055', match_no: 55, stage: 'Group Stage', group: 'J',
-    match_date: '2026-06-16', kickoff_utc: '2026-06-17T01:00:00.000Z',
+    match_date: '2026-06-17', kickoff_utc: '2026-06-17T01:00:00.000Z',
     kickoff_local_label: '21:00 EDT', kickoff_tr_label: '04:00 TRT',
     home_team: 'Argentina', away_team: 'Algeria',
     home_team_code: 'ARG', away_team_code: 'ALG',
@@ -683,7 +683,7 @@ const GROUP_FIXTURES: WC2026Fixture[] = [
   },
   {
     id: 'wc2026-059', match_no: 59, stage: 'Group Stage', group: 'J',
-    match_date: '2026-06-27', kickoff_utc: '2026-06-28T02:00:00.000Z',
+    match_date: '2026-06-28', kickoff_utc: '2026-06-28T02:00:00.000Z',
     kickoff_local_label: '22:00 EDT', kickoff_tr_label: '05:00 TRT',
     home_team: 'Argentina', away_team: 'Jordan',
     home_team_code: 'ARG', away_team_code: 'JOR',
@@ -693,7 +693,7 @@ const GROUP_FIXTURES: WC2026Fixture[] = [
   },
   {
     id: 'wc2026-060', match_no: 60, stage: 'Group Stage', group: 'J',
-    match_date: '2026-06-27', kickoff_utc: '2026-06-28T02:00:00.000Z',
+    match_date: '2026-06-28', kickoff_utc: '2026-06-28T02:00:00.000Z',
     kickoff_local_label: '22:00 EDT', kickoff_tr_label: '05:00 TRT',
     home_team: 'Algeria', away_team: 'Austria',
     home_team_code: 'ALG', away_team_code: 'AUT',
@@ -718,7 +718,7 @@ const GROUP_FIXTURES: WC2026Fixture[] = [
   },
   {
     id: 'wc2026-062', match_no: 62, stage: 'Group Stage', group: 'K',
-    match_date: '2026-06-17', kickoff_utc: '2026-06-18T02:00:00.000Z',
+    match_date: '2026-06-18', kickoff_utc: '2026-06-18T02:00:00.000Z',
     kickoff_local_label: '22:00 EDT', kickoff_tr_label: '05:00 TRT',
     home_team: 'Uzbekistan', away_team: 'Colombia',
     home_team_code: 'UZB', away_team_code: 'COL',
@@ -738,7 +738,7 @@ const GROUP_FIXTURES: WC2026Fixture[] = [
   },
   {
     id: 'wc2026-064', match_no: 64, stage: 'Group Stage', group: 'K',
-    match_date: '2026-06-23', kickoff_utc: '2026-06-24T02:00:00.000Z',
+    match_date: '2026-06-24', kickoff_utc: '2026-06-24T02:00:00.000Z',
     kickoff_local_label: '22:00 EDT', kickoff_tr_label: '05:00 TRT',
     home_team: 'Colombia', away_team: 'Congo DR',
     home_team_code: 'COL', away_team_code: 'COD',
@@ -847,30 +847,30 @@ const KNOCKOUT_FIXTURES: WC2026Fixture[] = [
   // Round of 32 (16 matches) — venues per FIFA official schedule
   { id: 'wc2026-073', match_no: 73, stage: 'Round of 32', group: null, match_date: '2026-06-28', kickoff_utc: '2026-06-28T21:00:00.000Z', kickoff_local_label: '14:00 PDT', kickoff_tr_label: '00:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'SoFi Stadium', city: 'Inglewood', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
   { id: 'wc2026-074', match_no: 74, stage: 'Round of 32', group: null, match_date: '2026-06-29', kickoff_utc: '2026-06-29T17:00:00.000Z', kickoff_local_label: '13:00 EDT', kickoff_tr_label: '20:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'Gillette Stadium', city: 'Foxborough', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
-  { id: 'wc2026-075', match_no: 75, stage: 'Round of 32', group: null, match_date: '2026-06-29', kickoff_utc: '2026-06-30T02:00:00.000Z', kickoff_local_label: '22:00 CDT', kickoff_tr_label: '05:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'Estadio BBVA', city: 'Monterrey', country: 'Mexico', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
+  { id: 'wc2026-075', match_no: 75, stage: 'Round of 32', group: null, match_date: '2026-06-30', kickoff_utc: '2026-06-30T02:00:00.000Z', kickoff_local_label: '22:00 CDT', kickoff_tr_label: '05:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'Estadio BBVA', city: 'Monterrey', country: 'Mexico', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
   { id: 'wc2026-076', match_no: 76, stage: 'Round of 32', group: null, match_date: '2026-06-29', kickoff_utc: '2026-06-29T21:00:00.000Z', kickoff_local_label: '16:00 CDT', kickoff_tr_label: '00:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'NRG Stadium', city: 'Houston', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
   { id: 'wc2026-077', match_no: 77, stage: 'Round of 32', group: null, match_date: '2026-06-30', kickoff_utc: '2026-06-30T17:00:00.000Z', kickoff_local_label: '13:00 EDT', kickoff_tr_label: '20:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'MetLife Stadium', city: 'East Rutherford', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
   { id: 'wc2026-078', match_no: 78, stage: 'Round of 32', group: null, match_date: '2026-06-30', kickoff_utc: '2026-06-30T21:00:00.000Z', kickoff_local_label: '16:00 CDT', kickoff_tr_label: '00:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'AT&T Stadium', city: 'Arlington', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
-  { id: 'wc2026-079', match_no: 79, stage: 'Round of 32', group: null, match_date: '2026-06-30', kickoff_utc: '2026-07-01T02:00:00.000Z', kickoff_local_label: '22:00 CDT', kickoff_tr_label: '05:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'Estadio Azteca', city: 'Mexico City', country: 'Mexico', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
+  { id: 'wc2026-079', match_no: 79, stage: 'Round of 32', group: null, match_date: '2026-07-01', kickoff_utc: '2026-07-01T02:00:00.000Z', kickoff_local_label: '22:00 CDT', kickoff_tr_label: '05:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'Estadio Azteca', city: 'Mexico City', country: 'Mexico', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
   { id: 'wc2026-080', match_no: 80, stage: 'Round of 32', group: null, match_date: '2026-07-01', kickoff_utc: '2026-07-01T17:00:00.000Z', kickoff_local_label: '13:00 EDT', kickoff_tr_label: '20:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'Mercedes-Benz Stadium', city: 'Atlanta', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
   { id: 'wc2026-081', match_no: 81, stage: 'Round of 32', group: null, match_date: '2026-07-01', kickoff_utc: '2026-07-01T21:00:00.000Z', kickoff_local_label: '14:00 PDT', kickoff_tr_label: '00:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: "Levi's Stadium", city: 'Santa Clara', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
-  { id: 'wc2026-082', match_no: 82, stage: 'Round of 32', group: null, match_date: '2026-07-01', kickoff_utc: '2026-07-02T00:00:00.000Z', kickoff_local_label: '20:00 EDT', kickoff_tr_label: '03:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'Lumen Field', city: 'Seattle', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
+  { id: 'wc2026-082', match_no: 82, stage: 'Round of 32', group: null, match_date: '2026-07-02', kickoff_utc: '2026-07-02T00:00:00.000Z', kickoff_local_label: '20:00 EDT', kickoff_tr_label: '03:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'Lumen Field', city: 'Seattle', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
   { id: 'wc2026-083', match_no: 83, stage: 'Round of 32', group: null, match_date: '2026-07-02', kickoff_utc: '2026-07-02T17:00:00.000Z', kickoff_local_label: '13:00 EDT', kickoff_tr_label: '20:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'BMO Field', city: 'Toronto', country: 'Canada', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
   { id: 'wc2026-084', match_no: 84, stage: 'Round of 32', group: null, match_date: '2026-07-02', kickoff_utc: '2026-07-02T21:00:00.000Z', kickoff_local_label: '14:00 PDT', kickoff_tr_label: '00:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'SoFi Stadium', city: 'Inglewood', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
-  { id: 'wc2026-085', match_no: 85, stage: 'Round of 32', group: null, match_date: '2026-07-02', kickoff_utc: '2026-07-03T00:00:00.000Z', kickoff_local_label: '20:00 EDT', kickoff_tr_label: '03:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'BC Place', city: 'Vancouver', country: 'Canada', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
+  { id: 'wc2026-085', match_no: 85, stage: 'Round of 32', group: null, match_date: '2026-07-03', kickoff_utc: '2026-07-03T00:00:00.000Z', kickoff_local_label: '20:00 EDT', kickoff_tr_label: '03:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'BC Place', city: 'Vancouver', country: 'Canada', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
   { id: 'wc2026-086', match_no: 86, stage: 'Round of 32', group: null, match_date: '2026-07-03', kickoff_utc: '2026-07-03T21:00:00.000Z', kickoff_local_label: '17:00 EDT', kickoff_tr_label: '00:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'Hard Rock Stadium', city: 'Miami', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
-  { id: 'wc2026-087', match_no: 87, stage: 'Round of 32', group: null, match_date: '2026-07-03', kickoff_utc: '2026-07-04T00:00:00.000Z', kickoff_local_label: '19:00 CDT', kickoff_tr_label: '03:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'Arrowhead Stadium', city: 'Kansas City', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
-  { id: 'wc2026-088', match_no: 88, stage: 'Round of 32', group: null, match_date: '2026-07-03', kickoff_utc: '2026-07-04T00:00:00.000Z', kickoff_local_label: '19:00 CDT', kickoff_tr_label: '03:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'AT&T Stadium', city: 'Arlington', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
+  { id: 'wc2026-087', match_no: 87, stage: 'Round of 32', group: null, match_date: '2026-07-04', kickoff_utc: '2026-07-04T00:00:00.000Z', kickoff_local_label: '19:00 CDT', kickoff_tr_label: '03:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'Arrowhead Stadium', city: 'Kansas City', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
+  { id: 'wc2026-088', match_no: 88, stage: 'Round of 32', group: null, match_date: '2026-07-04', kickoff_utc: '2026-07-04T00:00:00.000Z', kickoff_local_label: '19:00 CDT', kickoff_tr_label: '03:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'AT&T Stadium', city: 'Arlington', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
 
   // Round of 16 (8 matches) — venues per FIFA official schedule
   { id: 'wc2026-089', match_no: 89, stage: 'Round of 16', group: null, match_date: '2026-07-04', kickoff_utc: '2026-07-04T17:00:00.000Z', kickoff_local_label: '13:00 EDT', kickoff_tr_label: '20:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'Lincoln Financial Field', city: 'Philadelphia', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
   { id: 'wc2026-090', match_no: 90, stage: 'Round of 16', group: null, match_date: '2026-07-04', kickoff_utc: '2026-07-04T21:00:00.000Z', kickoff_local_label: '16:00 CDT', kickoff_tr_label: '00:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'NRG Stadium', city: 'Houston', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
   { id: 'wc2026-091', match_no: 91, stage: 'Round of 16', group: null, match_date: '2026-07-05', kickoff_utc: '2026-07-05T17:00:00.000Z', kickoff_local_label: '13:00 EDT', kickoff_tr_label: '20:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'MetLife Stadium', city: 'East Rutherford', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
-  { id: 'wc2026-092', match_no: 92, stage: 'Round of 16', group: null, match_date: '2026-07-05', kickoff_utc: '2026-07-06T02:00:00.000Z', kickoff_local_label: '22:00 CDT', kickoff_tr_label: '05:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'Estadio Azteca', city: 'Mexico City', country: 'Mexico', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
+  { id: 'wc2026-092', match_no: 92, stage: 'Round of 16', group: null, match_date: '2026-07-06', kickoff_utc: '2026-07-06T02:00:00.000Z', kickoff_local_label: '22:00 CDT', kickoff_tr_label: '05:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'Estadio Azteca', city: 'Mexico City', country: 'Mexico', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
   { id: 'wc2026-093', match_no: 93, stage: 'Round of 16', group: null, match_date: '2026-07-06', kickoff_utc: '2026-07-06T21:00:00.000Z', kickoff_local_label: '16:00 CDT', kickoff_tr_label: '00:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'AT&T Stadium', city: 'Arlington', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
-  { id: 'wc2026-094', match_no: 94, stage: 'Round of 16', group: null, match_date: '2026-07-06', kickoff_utc: '2026-07-07T01:00:00.000Z', kickoff_local_label: '21:00 EDT', kickoff_tr_label: '04:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'Lumen Field', city: 'Seattle', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
+  { id: 'wc2026-094', match_no: 94, stage: 'Round of 16', group: null, match_date: '2026-07-07', kickoff_utc: '2026-07-07T01:00:00.000Z', kickoff_local_label: '21:00 EDT', kickoff_tr_label: '04:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'Lumen Field', city: 'Seattle', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
   { id: 'wc2026-095', match_no: 95, stage: 'Round of 16', group: null, match_date: '2026-07-07', kickoff_utc: '2026-07-07T17:00:00.000Z', kickoff_local_label: '13:00 EDT', kickoff_tr_label: '20:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'Mercedes-Benz Stadium', city: 'Atlanta', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
-  { id: 'wc2026-096', match_no: 96, stage: 'Round of 16', group: null, match_date: '2026-07-07', kickoff_utc: '2026-07-08T00:00:00.000Z', kickoff_local_label: '20:00 EDT', kickoff_tr_label: '03:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'BC Place', city: 'Vancouver', country: 'Canada', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
+  { id: 'wc2026-096', match_no: 96, stage: 'Round of 16', group: null, match_date: '2026-07-08', kickoff_utc: '2026-07-08T00:00:00.000Z', kickoff_local_label: '20:00 EDT', kickoff_tr_label: '03:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'BC Place', city: 'Vancouver', country: 'Canada', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
 
   // Quarter-finals (4 matches) — venues per FIFA official schedule
   { id: 'wc2026-097', match_no: 97, stage: 'Quarter-final', group: null, match_date: '2026-07-09', kickoff_utc: '2026-07-09T21:00:00.000Z', kickoff_local_label: '17:00 EDT', kickoff_tr_label: '00:00 TRT', home_team: 'TBD', away_team: 'TBD', home_team_code: 'TBD', away_team_code: 'TBD', venue: 'Gillette Stadium', city: 'Foxborough', country: 'USA', status: 'scheduled', fixture_status: 'needs_review', source_url: SOURCE_URL, source_checked_at: SOURCE_DATE },
@@ -971,6 +971,30 @@ export function getGroupFixtures(group: WC2026Group): WC2026Fixture[] {
   return GROUP_FIXTURES.filter((f) => f.group === group);
 }
 
+export function getUserTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
+}
+
+export function formatMatchDateTime(kickoffUtc: string, timeZone: string): string {
+  const d = new Date(kickoffUtc);
+  const time = d.toLocaleTimeString('tr-TR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone,
+  });
+  const tzLabel = timeZone === 'Europe/Istanbul' ? 'TRT' : timeZone;
+  return `${time} (${tzLabel})`;
+}
+
+export function getLocalMatchDateKey(kickoffUtc: string, timeZone: string): string {
+  const d = new Date(kickoffUtc);
+  return d.toLocaleDateString('en-CA', { timeZone }); // YYYY-MM-DD via en-CA locale
+}
+
 export function formatFixtureDateTR(dateStr: string): string {
   const d = new Date(dateStr + 'T12:00:00Z');
   return d.toLocaleDateString('tr-TR', {
@@ -978,6 +1002,16 @@ export function formatFixtureDateTR(dateStr: string): string {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
+  });
+}
+
+export function formatFixtureDateForTZ(kickoffUtc: string, timeZone: string): string {
+  return new Date(kickoffUtc).toLocaleDateString('tr-TR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone,
   });
 }
 
