@@ -32,7 +32,25 @@ Deno.serve(async (req: Request) => {
   try {
     const supabase = getSupabase();
 
-    const { match_id } = (await req.json()) as { match_id: string };
+    // Require authenticated user — reject anonymous access
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+    if (!token) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    const { data: { user } } = await supabase.auth.getUser(token);
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const body = await req.json().catch(() => ({})) as { match_id?: unknown };
+    const match_id = typeof body.match_id === "string" ? body.match_id.trim() : "";
     if (!match_id) {
       return new Response(
         JSON.stringify({ error: "match_id is required" }),
@@ -40,6 +58,15 @@ Deno.serve(async (req: Request) => {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         },
+      );
+    }
+
+    // Validate match_id is a UUID to prevent enumeration via arbitrary strings
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_RE.test(match_id)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid match_id" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
@@ -58,12 +85,6 @@ Deno.serve(async (req: Request) => {
         },
       );
     }
-
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const token = authHeader.replace("Bearer ", "");
-    const {
-      data: { user },
-    } = await supabase.auth.getUser(token);
 
     // Analytics-only logging (no quota enforcement)
     if (user) {

@@ -563,11 +563,31 @@ async function modeFinalizeRun(
   }, { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 }
 
+// ─── Admin auth guard ─────────────────────────────────────────────────────────
+async function requireAdmin(req: Request): Promise<Response | null> {
+  const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  if (!token) {
+    return Response.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
+  }
+  const verifier = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
+  const { data: { user }, error } = await verifier.auth.getUser(token);
+  if (error || !user) {
+    return Response.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
+  }
+  if (user.app_metadata?.role !== "admin") {
+    return Response.json({ error: "Forbidden" }, { status: 403, headers: corsHeaders });
+  }
+  return null;
+}
+
 // ─── Main handler ─────────────────────────────────────────────────────────────
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 200, headers: corsHeaders });
 
   try {
+    const authError = await requireAdmin(req);
+    if (authError) return authError;
+
     const url       = new URL(req.url);
     const mode      = url.searchParams.get("mode") ?? "legacy";
     const modelKey  = url.searchParams.get("model_key") ?? MODEL_KEY_DEFAULT;

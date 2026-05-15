@@ -40,6 +40,32 @@ function getSupabase() {
   );
 }
 
+async function requireAdmin(req: Request, corsHdrs: Record<string, string>): Promise<Response | null> {
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (!token) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHdrs, "Content-Type": "application/json" },
+    });
+  }
+  const verifier = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
+  const { data: { user }, error } = await verifier.auth.getUser(token);
+  if (error || !user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHdrs, "Content-Type": "application/json" },
+    });
+  }
+  if (user.app_metadata?.role !== "admin") {
+    return new Response(JSON.stringify({ error: "Forbidden" }), {
+      status: 403,
+      headers: { ...corsHdrs, "Content-Type": "application/json" },
+    });
+  }
+  return null;
+}
+
 function derive1x2(hg: number, ag: number): "1" | "X" | "2" {
   if (hg > ag) return "1";
   if (hg === ag) return "X";
@@ -150,6 +176,9 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    const authError = await requireAdmin(req, corsHeaders);
+    if (authError) return authError;
+
     const supabase = getSupabase();
     const url = new URL(req.url);
     const dryRun = url.searchParams.get("dry_run") === "true";

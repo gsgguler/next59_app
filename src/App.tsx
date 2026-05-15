@@ -168,7 +168,6 @@ export default function App() {
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="news" element={<PlaceholderPage title="Haberler" />} />
-                <Route path="auth-debug" element={<AuthDebugPage />} />
               </Route>
 
               {/* ── Admin (protected + admin role) ── */}
@@ -186,6 +185,7 @@ export default function App() {
                 <Route path="model-lab/mac-inceleme" element={<ModelLabMacIncelemePage />} />
                 <Route path="model-lab/kalibrasyon" element={<ModelLabKalibrasyonPage />} />
                 <Route path="model-lab/hata-analizi" element={<ModelLabHataAnaliziPage />} />
+                <Route path="auth-debug" element={<AuthDebugPage />} />
               </Route>
 
               <Route path="*" element={<NotFoundPage />} />

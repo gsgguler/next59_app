@@ -16,11 +16,40 @@ const VAPID_SUBJECT = "mailto:info@next59.com";
 
 webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
+const MAX_TITLE_LEN = 100;
+const MAX_BODY_LEN = 300;
+const MAX_URL_LEN = 500;
+
 interface PushPayload {
   title: string;
   body: string;
   url?: string;
   user_id?: string;
+}
+
+async function requireAdmin(req: Request): Promise<Response | null> {
+  const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  if (!token) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const verifier = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
+  const { data: { user }, error } = await verifier.auth.getUser(token);
+  if (error || !user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  if (user.app_metadata?.role !== "admin") {
+    return new Response(JSON.stringify({ error: "Forbidden" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  return null;
 }
 
 Deno.serve(async (req: Request) => {
@@ -29,6 +58,9 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    const authError = await requireAdmin(req);
+    if (authError) return authError;
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -42,6 +74,20 @@ Deno.serve(async (req: Request) => {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
+      );
+    }
+
+    if (
+      typeof payload.title !== "string" ||
+      typeof payload.body !== "string" ||
+      payload.title.length > MAX_TITLE_LEN ||
+      payload.body.length > MAX_BODY_LEN ||
+      (payload.url && (typeof payload.url !== "string" || payload.url.length > MAX_URL_LEN)) ||
+      (payload.user_id && typeof payload.user_id !== "string")
+    ) {
+      return new Response(
+        JSON.stringify({ error: "Invalid payload: field type or length violation" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
