@@ -21,22 +21,22 @@ export default function DashboardHome() {
 
   useEffect(() => {
     async function fetchStats() {
-      const [matchesRes, predictionsRes, debatesRes] = await Promise.all([
+      const [wcRes, predictionsRes, debatesRes] = await Promise.all([
         supabase
-          .from('matches')
+          .from('wc2026_fixtures')
           .select('id', { count: 'exact', head: true })
-          .eq('status', 'scheduled'),
+          .eq('stage_code', 'Group Stage'),
         supabase
           .from('predictions')
           .select('id', { count: 'exact', head: true })
-          .eq('is_current', true),
+          .is('superseded_by', null),
         supabase
           .from('debate_rounds')
           .select('id', { count: 'exact', head: true }),
       ]);
 
       setStats({
-        activeMatches: matchesRes.count ?? 0,
+        activeMatches: wcRes.count ?? 0,
         predictions: predictionsRes.count ?? 0,
         debates: debatesRes.count ?? 0,
       });
@@ -48,14 +48,14 @@ export default function DashboardHome() {
 
   const cards: StatCard[] = [
     {
-      title: 'Aktif Maçlar',
+      title: 'WC2026 Grup Fikstürü',
       value: loading ? '-' : String(stats.activeMatches),
       icon: Trophy,
       color: 'text-emerald-600',
       bgColor: 'bg-emerald-50',
     },
     {
-      title: 'Yayınlanan Analizler',
+      title: 'Aktif Tahmin',
       value: loading ? '-' : String(stats.predictions),
       icon: TrendingUp,
       color: 'text-blue-600',
@@ -129,136 +129,121 @@ export default function DashboardHome() {
   );
 }
 
-interface UpcomingMatch {
+interface UpcomingWcFixture {
   id: string;
   match_date: string | null;
-  match_time: string | null;
-  status_short: string;
-  round: string | null;
-  home_team: { name: string; short_name: string; code: string } | null;
-  away_team: { name: string; short_name: string; code: string } | null;
+  home_team_name: string | null;
+  away_team_name: string | null;
+  group_label: string | null;
+  round_label: string | null;
+  stage_code: string;
 }
 
 function UpcomingMatchesList() {
-  const [matches, setMatches] = useState<UpcomingMatch[]>([]);
+  const [fixtures, setFixtures] = useState<UpcomingWcFixture[]>([]);
 
   useEffect(() => {
-    async function fetch() {
+    async function fetchFixtures() {
+      const today = new Date().toISOString().slice(0, 10);
       const { data } = await supabase
-        .from('matches')
-        .select(`
-          id, match_date, match_time, status_short, round,
-          home_team:teams!matches_home_team_id_fkey(name, short_name, code),
-          away_team:teams!matches_away_team_id_fkey(name, short_name, code)
-        `)
-        .eq('status_short', 'NS')
+        .from('wc2026_fixtures')
+        .select('id, match_date, home_team_name, away_team_name, group_label, round_label, stage_code')
+        .gte('match_date', today)
         .order('match_date', { ascending: true })
         .limit(5);
-
-      setMatches((data as unknown as UpcomingMatch[]) ?? []);
+      setFixtures((data as UpcomingWcFixture[]) ?? []);
     }
-    fetch();
+    fetchFixtures();
   }, []);
 
-  if (matches.length === 0) {
-    return <p className="text-sm text-gray-400 py-4 text-center">Yaklaşan maç bulunamadı</p>;
+  if (fixtures.length === 0) {
+    return <p className="text-sm text-gray-400 py-4 text-center">Yaklaşan WC2026 fikstürü bulunamadı</p>;
   }
 
   return (
     <>
-      {matches.map((m) => (
-        <div key={m.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
-          <div className="flex items-center gap-3">
-            <TeamBadge name={m.home_team?.code || m.home_team?.name?.slice(0, 3).toUpperCase() || '?'} />
-            <div>
-              <p className="text-sm font-medium text-gray-900">
-                {m.home_team?.short_name || m.home_team?.name || 'Ev Sahibi'} - {m.away_team?.short_name || m.away_team?.name || 'Konuk'}
-              </p>
-              <p className="text-xs text-gray-400">
-                {m.match_date
-                  ? new Date(
-                      m.match_time
-                        ? `${m.match_date}T${m.match_time}:00+03:00`
-                        : `${m.match_date}T00:00:00+03:00`
-                    ).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: m.match_time ? '2-digit' : undefined, minute: m.match_time ? '2-digit' : undefined })
-                  : 'TBD'}
-              </p>
+      {fixtures.map((f) => {
+        const homeName = f.home_team_name ?? 'TBD';
+        const awayName = f.away_team_name ?? 'TBD';
+        const label = f.group_label ? `Grup ${f.group_label}` : (f.round_label ?? f.stage_code);
+        return (
+          <div key={f.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
+            <div className="flex items-center gap-3">
+              <TeamBadge name={homeName.slice(0, 3).toUpperCase()} />
+              <div>
+                <p className="text-sm font-medium text-gray-900">
+                  {homeName} - {awayName}
+                </p>
+                <p className="text-xs text-gray-400">
+                  {f.match_date
+                    ? new Date(f.match_date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })
+                    : 'TBD'}
+                </p>
+              </div>
             </div>
+            <span className="text-xs font-medium text-navy-700 bg-navy-100 px-2 py-1 rounded shrink-0">
+              {label}
+            </span>
           </div>
-          <span className="text-xs font-medium text-navy-700 bg-navy-100 px-2 py-1 rounded">
-            {m.round || ''}
-          </span>
-        </div>
-      ))}
+        );
+      })}
     </>
   );
 }
 
 interface RecentPrediction {
   id: string;
-  statement: string;
-  probability: number;
-  confidence_label: string;
-  access_level: string;
-  generated_at: string;
+  match_id: string;
+  prediction_type: string;
+  predicted_outcome: string | null;
+  confidence: number;
+  created_at: string;
 }
 
 function RecentPredictionsList() {
   const [predictions, setPredictions] = useState<RecentPrediction[]>([]);
 
   useEffect(() => {
-    async function fetch() {
+    async function fetchPredictions() {
       const { data } = await supabase
         .from('predictions')
-        .select('id, statement, probability, confidence_label, access_level, generated_at')
-        .eq('is_current', true)
-        .order('generated_at', { ascending: false })
+        .select('id, match_id, prediction_type, predicted_outcome, confidence, created_at')
+        .is('superseded_by', null)
+        .order('created_at', { ascending: false })
         .limit(5);
-
-      setPredictions(data ?? []);
+      setPredictions((data as RecentPrediction[]) ?? []);
     }
-    fetch();
+    fetchPredictions();
   }, []);
 
   if (predictions.length === 0) {
     return (
       <div className="py-6 text-center">
-        <div className="mx-auto w-10 h-10 rounded-xl bg-gold-50 border border-gold-200 flex items-center justify-center mb-3">
-          <Lock className="w-5 h-5 text-gold-500" />
+        <div className="mx-auto w-10 h-10 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center mb-3">
+          <Lock className="w-5 h-5 text-gray-400" />
         </div>
-        <p className="text-sm font-medium text-gray-600 mb-1">Analiz bulunamadı</p>
-        <p className="text-xs text-gray-400 mb-3">
-          Daha fazla analize erişmek için planını yükseltebilirsin.
+        <p className="text-sm font-medium text-gray-600 mb-1">Tahmin bulunamadı</p>
+        <p className="text-xs text-gray-400">
+          Model kalibrasyon süreci tamamlandıktan sonra tahminler burada görünecek.
         </p>
-        <Link
-          to="/settings"
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-gold-600 hover:text-gold-700 transition-colors"
-        >
-          Planları Gör
-          <ArrowUpRight className="w-3 h-3" />
-        </Link>
       </div>
     );
   }
-
-  const confidenceColor: Record<string, string> = {
-    high: 'text-emerald-600 bg-emerald-50',
-    medium: 'text-yellow-600 bg-yellow-50',
-    low: 'text-red-600 bg-red-50',
-  };
 
   return (
     <>
       {predictions.map((p) => (
         <div key={p.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
           <div className="flex-1 min-w-0 mr-3">
-            <p className="text-sm font-medium text-gray-900 truncate">{p.statement}</p>
+            <p className="text-sm font-medium text-gray-900 truncate font-mono">
+              {p.prediction_type}
+            </p>
             <p className="text-xs text-gray-400 mt-0.5">
-              %{Math.round(p.probability * 100)} olasılık
+              {p.predicted_outcome ?? '—'} · %{Math.round(p.confidence * 100)} güven
             </p>
           </div>
-          <span className={`text-xs font-medium px-2 py-1 rounded capitalize ${confidenceColor[p.confidence_label] || 'text-gray-600 bg-gray-50'}`}>
-            {p.confidence_label}
+          <span className="text-xs font-medium px-2 py-1 rounded bg-gray-50 text-gray-500">
+            {new Date(p.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
           </span>
         </div>
       ))}

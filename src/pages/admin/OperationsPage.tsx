@@ -84,9 +84,10 @@ type CoverageGapRow = {
 type ReadinessLevel = 'ready' | 'partial' | 'blocked';
 
 function getReadiness(row: MatchReadinessRow): ReadinessLevel {
-  const score = [row.has_prediction, row.has_narrative, row.has_events, row.has_lineup, row.has_stats, row.has_elo]
+  // has_elo is always false (ELO columns don't exist on matches); exclude from score
+  const score = [row.has_prediction, row.has_narrative, row.has_events, row.has_lineup, row.has_stats]
     .filter(Boolean).length;
-  if (score === 6) return 'ready';
+  if (score === 5) return 'ready';
   if (score >= 2) return 'partial';
   return 'blocked';
 }
@@ -363,7 +364,6 @@ function MatchPublishingQueue() {
                   <th className="px-4 py-2.5 text-center text-xs font-medium text-navy-400">Olaylar</th>
                   <th className="px-4 py-2.5 text-center text-xs font-medium text-navy-400">Kadro</th>
                   <th className="px-4 py-2.5 text-center text-xs font-medium text-navy-400">İstat</th>
-                  <th className="px-4 py-2.5 text-center text-xs font-medium text-navy-400">ELO</th>
                   <th className="px-4 py-2.5 text-center text-xs font-medium text-navy-400">Durum</th>
                 </tr>
               </thead>
@@ -394,7 +394,6 @@ function MatchPublishingQueue() {
                     <td className="px-4 py-2.5 text-center"><StatusDot ok={row.has_events} /></td>
                     <td className="px-4 py-2.5 text-center"><StatusDot ok={row.has_lineup} /></td>
                     <td className="px-4 py-2.5 text-center"><StatusDot ok={row.has_stats} /></td>
-                    <td className="px-4 py-2.5 text-center"><StatusDot ok={row.has_elo} /></td>
                     <td className="px-4 py-2.5 text-center">
                       <ReadinessBadge level={getReadiness(row)} />
                     </td>
@@ -1230,3 +1229,6 @@ function ProviderHealthCenter() {
     </Section>
   );
 }
+
+
+export default OperationsPage

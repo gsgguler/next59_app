@@ -65,7 +65,7 @@ export default function MatchDetailPage() {
       setMetaTag('name', 'twitter:description', description);
       setMetaTag('name', 'twitter:image', ogImageUrl);
     } else if (!loading) {
-      document.title = 'Mac Bulunamadi | Next59';
+      document.title = 'Maç Bulunamadı | Next59';
     }
 
     return () => {

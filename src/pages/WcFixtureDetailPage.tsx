@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import {
   Trophy, MapPin, Calendar, Users, ArrowLeft, ChevronRight,
-  Shield, Clock, Swords, HelpCircle, Globe,
+  Shield, Clock, Swords, HelpCircle, Globe, BarChart3,
 } from 'lucide-react';
 import {
   ALL_WC2026_FIXTURES, VENUE_META, STAGE_LABELS_TR,
@@ -382,6 +382,129 @@ function GroupContext({ fixture, allFixtures }: { fixture: WC2026Fixture; allFix
   );
 }
 
+// ── Prediction Panel ──────────────────────────────────────────────────────────
+
+interface WcPredictionRow {
+  id: string;
+  prediction_type: string;
+  predicted_outcome: string | null;
+  confidence: number;
+  explanation_json: Record<string, number> | null;
+}
+
+function WcPredictionPanel({ matchNo, isTBD }: { matchNo: number; isTBD: boolean }) {
+  const [predictions, setPredictions] = useState<WcPredictionRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (isTBD) { setLoading(false); return; }
+    async function fetchPredictions() {
+      const { data: fixture } = await supabase
+        .from('wc2026_fixtures')
+        .select('id')
+        .eq('match_number', matchNo)
+        .maybeSingle();
+
+      if (!fixture) { setLoading(false); return; }
+
+      const { data } = await supabase
+        .from('predictions')
+        .select('id, prediction_type, predicted_outcome, confidence, explanation_json')
+        .eq('match_id', fixture.id)
+        .is('superseded_by', null);
+
+      setPredictions((data as WcPredictionRow[]) ?? []);
+      setLoading(false);
+    }
+    fetchPredictions();
+  }, [matchNo, isTBD]);
+
+  if (isTBD) {
+    return (
+      <div className="bg-navy-900/40 border border-navy-800/60 rounded-xl p-5 mt-6">
+        <div className="flex items-center gap-2.5 mb-1">
+          <BarChart3 className="w-4 h-4 text-navy-400 shrink-0" />
+          <h3 className="text-sm font-bold text-white">Maç Analizi</h3>
+        </div>
+        <p className="text-xs text-navy-400 mt-1">
+          Rakip takımlar belli olduktan sonra analiz burada yayınlanacak.
+        </p>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="bg-navy-900/40 border border-navy-800/60 rounded-xl p-5 mt-6">
+        <div className="h-4 bg-navy-800 rounded w-32 animate-pulse mb-3" />
+        <div className="h-3 bg-navy-800 rounded w-full animate-pulse" />
+      </div>
+    );
+  }
+
+  const resultPred = predictions.find(p => p.prediction_type === 'match_result');
+  const expl = resultPred?.explanation_json ?? null;
+  const homeProb = expl && 'home_prob' in expl ? expl.home_prob as number : resultPred?.confidence ?? null;
+  const drawProb = expl && 'draw_prob' in expl ? expl.draw_prob as number : null;
+  const awayProb = expl && 'away_prob' in expl ? expl.away_prob as number : null;
+
+  if (!resultPred || homeProb === null) {
+    return (
+      <div className="bg-navy-900/40 border border-navy-800/60 rounded-xl p-5 mt-6">
+        <div className="flex items-center gap-2.5 mb-3">
+          <div className="w-8 h-8 rounded-lg bg-navy-800 border border-navy-700/60 flex items-center justify-center shrink-0">
+            <Clock className="w-4 h-4 text-navy-400" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white">Analiz Henüz Hazır Değil</h3>
+            <p className="text-xs text-navy-400 mt-0.5">
+              Bu maç için model tahmini hazırlanıyor. Turnuva başlamadan önce yayınlanacak.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const dp = drawProb ?? 0.33;
+  const ap = awayProb ?? Math.max(0, 1 - homeProb - dp);
+
+  return (
+    <div className="bg-navy-900/40 border border-navy-800/60 rounded-xl p-5 mt-6">
+      <div className="flex items-center gap-2 mb-4">
+        <BarChart3 className="w-4 h-4 text-champagne shrink-0" />
+        <h3 className="text-sm font-bold text-white">Maç Analizi</h3>
+        <span className="ml-auto text-[10px] text-navy-500 font-mono">
+          Güven: %{Math.round(resultPred.confidence * 100)}
+        </span>
+      </div>
+
+      {/* Probability bar */}
+      <div className="mb-3">
+        <div className="flex items-center justify-between text-xs text-navy-400 mb-1.5">
+          <span>Ev Sahibi</span>
+          <span>Beraberlik</span>
+          <span>Deplasman</span>
+        </div>
+        <div className="h-2.5 rounded-full overflow-hidden flex">
+          <div className="bg-champagne/70" style={{ width: `${homeProb * 100}%` }} />
+          <div className="bg-navy-600" style={{ width: `${dp * 100}%` }} />
+          <div className="bg-navy-400" style={{ width: `${ap * 100}%` }} />
+        </div>
+        <div className="flex items-center justify-between text-xs font-mono font-semibold mt-1 tabular-nums">
+          <span className="text-champagne">{(homeProb * 100).toFixed(0)}%</span>
+          <span className="text-navy-400">{(dp * 100).toFixed(0)}%</span>
+          <span className="text-navy-300">{(ap * 100).toFixed(0)}%</span>
+        </div>
+      </div>
+
+      <p className="text-[10px] text-navy-500 leading-relaxed">
+        Bu olasılıklar istatistiksel modelden üretilmiştir. Kesin sonuç iddiası taşımaz.
+      </p>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function WcFixtureDetailPage() {
@@ -606,8 +729,11 @@ export default function WcFixtureDetailPage() {
           </div>
         </div>
 
+        {/* Prediction panel */}
+        <WcPredictionPanel matchNo={fixture.match_no} isTBD={isTBD} />
+
         {/* Tabs */}
-        <div className="flex gap-1 bg-navy-900/60 border border-navy-800 rounded-xl p-1 mb-4 overflow-x-auto">
+        <div className="flex gap-1 bg-navy-900/60 border border-navy-800 rounded-xl p-1 mt-6 mb-4 overflow-x-auto">
           {TABS.map(({ key, label }) => (
             <button key={key} onClick={() => setActiveTab(key)}
               className={`flex-1 min-w-[80px] py-2 px-2 text-xs font-semibold rounded-lg transition-all truncate ${

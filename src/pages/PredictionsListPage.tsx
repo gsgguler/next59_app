@@ -177,13 +177,13 @@ export default function PredictionsListPage() {
                 <Sparkles className="w-7 h-7 text-navy-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Analizler Hazırlanıyor
+                Analizler Henüz Hazır Değil
               </h3>
               <p className="text-sm text-gray-500 leading-relaxed mb-2">
-                Henüz görüntüleyeceğiniz analiz bulunmuyor. Bu durum, analizlerin henüz oluşturulmamış olmasından veya mevcut erişim seviyenizin dışında kalmasından kaynaklanabilir.
+                Model kalibrasyon süreci devam ediyor. 2026 Dünya Kupası analizleri turnuva başlamadan önce yayınlanacak.
               </p>
               <p className="text-xs text-gray-400 mb-6">
-                Pro ve Elite planlarda daha fazla analize erişebilirsiniz.
+                Şimdilik dünya kupası fikstürlerini ve tarihsel maç arşivini inceleyebilirsiniz.
               </p>
               <div className="flex items-center justify-center gap-3">
                 <Link
