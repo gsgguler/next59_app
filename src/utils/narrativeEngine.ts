@@ -10,7 +10,7 @@ export function generateNarrativePreview(
   homeName: string,
   awayName: string,
 ): string {
-  if (!prediction) return 'Analiz yakında eklenecektir.';
+  if (!prediction) return 'Bu maç için analiz henüz hazırlanmadı.';
 
   const { home_prob, draw_prob, away_prob, confidence } = prediction;
   const parts: string[] = [];
@@ -31,9 +31,9 @@ export function generateNarrativePreview(
 
   if (parts.length < 2) {
     if (confidence > 0.8) {
-      parts.push('Yüksek güvenilirlik.');
+      parts.push('Geniş veri setine dayanıyor.');
     } else if (confidence < 0.5) {
-      parts.push('Sınırlı veri seti ile hazırlanmıştır.');
+      parts.push('Sınırlı veri ile oluşturuldu.');
     }
   }
 

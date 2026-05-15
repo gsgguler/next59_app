@@ -16,12 +16,26 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const STATIC_PAGES = [
   { loc: '/', changefreq: 'daily', priority: '1.0' },
-  { loc: '/login', changefreq: 'monthly', priority: '0.3' },
-  { loc: '/register', changefreq: 'monthly', priority: '0.3' },
+  { loc: '/world-cup-2026', changefreq: 'daily', priority: '0.9' },
+  { loc: '/mac-arsivi', changefreq: 'weekly', priority: '0.7' },
+  { loc: '/mac-arsivi/ligler', changefreq: 'weekly', priority: '0.6' },
+  { loc: '/futbol-analitigi', changefreq: 'monthly', priority: '0.6' },
+  { loc: '/futbol-analitigi/nasil-calisir', changefreq: 'monthly', priority: '0.5' },
+  { loc: '/futbol-analitigi/metodoloji', changefreq: 'monthly', priority: '0.5' },
+  { loc: '/futbol-analitigi/veri-kaynaklari', changefreq: 'monthly', priority: '0.5' },
+  { loc: '/next59', changefreq: 'monthly', priority: '0.5' },
+  { loc: '/next59/hakkimizda', changefreq: 'yearly', priority: '0.4' },
+  { loc: '/next59/bahis-karsiti-durus', changefreq: 'yearly', priority: '0.4' },
+  { loc: '/next59/yayin-ilkeleri', changefreq: 'yearly', priority: '0.4' },
+  { loc: '/next59/sss', changefreq: 'monthly', priority: '0.4' },
+  // Canonical auth routes (not /login or /register which are redirects)
+  { loc: '/giris', changefreq: 'monthly', priority: '0.3' },
+  { loc: '/kayit', changefreq: 'monthly', priority: '0.3' },
   { loc: '/privacy', changefreq: 'yearly', priority: '0.2' },
   { loc: '/terms', changefreq: 'yearly', priority: '0.2' },
   { loc: '/kvkk', changefreq: 'yearly', priority: '0.2' },
   { loc: '/cookies', changefreq: 'yearly', priority: '0.2' },
+  { loc: '/yasal-uyari', changefreq: 'yearly', priority: '0.2' },
 ];
 
 async function generateSitemap() {

@@ -20,9 +20,9 @@ function setMetaTag(attr: 'property' | 'name', key: string, value: string) {
 }
 
 const tabs = [
-  { id: 'oracle' as const, label: 'Mac Oncesi Kehanet', icon: Eye },
-  { id: 'power' as const, label: 'Guc Dengesi', icon: BarChart3 },
-  { id: 'live' as const, label: 'Canli Nabiz', icon: Radio },
+  { id: 'oracle' as const, label: 'Maç Öncesi Kehanet', icon: Eye },
+  { id: 'power' as const, label: 'Güç Dengesi', icon: BarChart3 },
+  { id: 'live' as const, label: 'Canlı Nabız', icon: Radio },
 ];
 
 type TabId = (typeof tabs)[number]['id'];
@@ -101,17 +101,17 @@ export default function MatchDetailPage() {
     return (
       <div className="max-w-3xl mx-auto px-4 py-20 text-center">
         <h1 className="font-display text-2xl font-bold text-white mb-3">
-          Mac Bulunamadi
+          Maç Bulunamadı
         </h1>
         <p className="text-sm text-navy-400 mb-6">
-          Aradiginiz mac mevcut degil veya kaldirilmis olabilir.
+          Aradığınız maç mevcut değil veya kaldırılmış olabilir.
         </p>
         <Link
           to="/"
           className="inline-flex items-center gap-2 text-sm text-champagne hover:text-champagne-light transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Tum Maclara Don
+          Tüm Maçlara Dön
         </Link>
       </div>
     );

@@ -1,3 +1,4 @@
+import { Clock } from 'lucide-react';
 import type { UIMatch } from '../../types/ui-models';
 import { predictionToNarrative } from '../../utils/predictionToNarrative';
 import type { FullPrediction } from '../../utils/predictionToNarrative';
@@ -29,6 +30,22 @@ export default function PreMatchOracle({ match }: { match: UIMatch }) {
     match.home_elo && match.away_elo ? match.home_elo - match.away_elo : undefined;
 
   const isLocked = match.status !== 'scheduled';
+
+  if (!p) {
+    return (
+      <div className="py-12 flex flex-col items-center justify-center text-center gap-4">
+        <div className="w-12 h-12 rounded-full bg-navy-800 border border-navy-700/60 flex items-center justify-center">
+          <Clock className="w-6 h-6 text-navy-400" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-white mb-1">Analiz henüz hazır değil</p>
+          <p className="text-xs text-navy-400 max-w-xs leading-relaxed">
+            Bu maç için veri analizi hazırlanıyor. Maç tarihine yakın tekrar kontrol edin.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
