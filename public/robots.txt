@@ -1,12 +1,4 @@
 User-agent: *
 Allow: /
 
-Disallow: /dashboard
-Disallow: /admin
-Disallow: /profile
-Disallow: /settings
-Disallow: /predictions
-Disallow: /matches
-Disallow: /debates
-
 Sitemap: https://www.next59.com/sitemap.xml
