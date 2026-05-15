@@ -2,9 +2,6 @@ import { NavLink, Link } from 'react-router-dom';
 import {
   LayoutDashboard,
   Archive,
-  Zap,
-  Bookmark,
-  Heart,
   MessageSquare,
   Settings,
   ShieldCheck,
@@ -26,9 +23,6 @@ interface SidebarProps {
 const mainNav = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Genel Bakış' },
   { to: '/dashboard/mac-arsivi', icon: Archive, label: 'Maç Arşivi' },
-  { to: '/dashboard/senaryolar', icon: Zap, label: 'Senaryolarım' },
-  { to: '/dashboard/izleme-listem', icon: Bookmark, label: 'İzleme Listem' },
-  { to: '/dashboard/favori-takimlar', icon: Heart, label: 'Favori Takımlar' },
   { to: '/debates', icon: MessageSquare, label: 'AI Tartışmaları' },
 ];
 

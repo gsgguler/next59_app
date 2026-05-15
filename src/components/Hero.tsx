@@ -152,7 +152,7 @@ export function Hero() {
           {[
             { value: '65.000+', label: 'analiz edilmiş maç',  detail: '21 lig, 10+ sezon' },
             { value: '21',      label: 'lig kapsanıyor',       detail: 'İngiltere\'den Türkiye\'ye' },
-            { value: '4',       label: 'yapay zeka persona',   detail: '3 turda tartışıp uzlaşıya varıyor' },
+            { value: '4',       label: 'yapay zeka persona',   detail: '3 turda tartışıp senaryo üretiyor' },
           ].map((s, i, arr) => (
             <div key={s.label} className="flex items-center gap-2">
               <div className="flex flex-col items-center px-5">
