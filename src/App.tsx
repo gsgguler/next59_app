@@ -82,6 +82,7 @@ import PreMatchTestLabPage from './pages/admin/PreMatchTestLabPage';
 import StoryGeneratorPage from './pages/admin/StoryGeneratorPage';
 import MatchPublishingQueuePage from './pages/admin/MatchPublishingQueuePage';
 import OperationsPage from './pages/admin/OperationsPage';
+import PreMatchOpsPage from './pages/admin/PreMatchOpsPage';
 import KalibrasyonMerkeziPage from './pages/admin/KalibrasyonMerkeziPage';
 import KalibrasyonDurumuPage from './pages/admin/KalibrasyonDurumuPage';
 import ProfilePage from './pages/ProfilePage';
@@ -201,6 +202,7 @@ export default function App() {
                 <Route path="model-lab/pre-match-lab" element={<PreMatchTestLabPage />} />
                 <Route path="model-lab/story-generator" element={<StoryGeneratorPage />} />
                 <Route path="model-lab/publishing-queue" element={<MatchPublishingQueuePage />} />
+                <Route path="model-lab/prematch-ops" element={<PreMatchOpsPage />} />
                 <Route path="auth-debug" element={<AuthDebugPage />} />
               </Route>
 
