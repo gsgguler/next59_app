@@ -28,6 +28,7 @@ interface BestRunIndex {
   season_label: string;
   run_key: string;
   prediction_formula: string;
+  is_production_candidate: boolean;
   brier: number;
   hit_rate: number;
   draw_gap: number;
@@ -76,7 +77,7 @@ export default function KalibrasyonMerkeziPage() {
         .order('season_label'),
       supabase
         .from('v_best_replay_run_per_season' as 'profiles')
-        .select('competition_name,season_label,run_key,prediction_formula,brier,hit_rate,draw_gap'),
+        .select('competition_name,season_label,run_key,prediction_formula,is_production_candidate,brier,hit_rate,draw_gap'),
     ]);
 
     if (!kRes.error && kRes.data) setKuyruk(kRes.data as unknown as KuyruKSatir[]);
@@ -464,11 +465,16 @@ function SezonSatiri({
       calisuyor ? 'bg-amber-500/5' : 'hover:bg-navy-800/20'
     }`}>
       <td className="px-5 py-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="font-medium text-white">{satir.season_label}</span>
           {fRozet && (
             <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-medium ${fRozet.cls}`}>
               {fRozet.label}
+            </span>
+          )}
+          {satir.durum === 'tamamlandı' && bestRun?.is_production_candidate && (
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
+              ★ üretim
             </span>
           )}
         </div>

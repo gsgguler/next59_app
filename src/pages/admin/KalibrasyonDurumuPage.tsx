@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   BarChart3, RefreshCw, TrendingUp, TrendingDown,
   Minus, Shield, AlertCircle, ChevronDown, Info,
+  CheckCircle2, XCircle, Star,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -16,6 +17,10 @@ interface BestRun {
   prediction_formula: string;
   started_at: string;
   completed_at: string | null;
+  is_valid: boolean;
+  is_production_candidate: boolean;
+  invalidated_at: string | null;
+  invalidation_reason: string | null;
   n_matches: number;
   brier: number;
   log_loss: number;
@@ -41,6 +46,8 @@ interface AllRun {
   run_key: string;
   prediction_formula: string;
   started_at: string;
+  is_valid: boolean;
+  is_production_candidate: boolean;
   brier: number;
   hit_rate: number;
   draw_gap: number;
@@ -58,10 +65,10 @@ const LIG_TURKISH: Record<string, string> = {
 };
 
 function formulaLabel(formula: string): { label: string; cls: string } {
-  if (formula.includes('v2') || formula.includes('draw_recalibrated')) {
+  if (formula.includes('v2') || formula.includes('draw_recalibrated') || formula.match(/formula_v[2-9]/)) {
     return { label: 'Draw V2', cls: 'bg-blue-500/15 text-blue-300 border border-blue-500/25' };
   }
-  return { label: 'V1', cls: 'bg-navy-700 text-navy-400 border border-navy-600' };
+  return { label: 'V1', cls: 'bg-navy-800 text-navy-500 border border-navy-700' };
 }
 
 function formatDate(iso: string): string {
@@ -302,6 +309,7 @@ export default function KalibrasyonDurumuPage() {
               const drawV2Count = sezonlar.filter(s =>
                 s.prediction_formula.includes('v2') || s.prediction_formula.includes('recalibrated')
               ).length;
+              const prodCandidateCount = sezonlar.filter(s => s.is_production_candidate).length;
 
               return (
                 <div key={lig} className="bg-navy-900/50 border border-navy-800 rounded-xl overflow-hidden">
@@ -316,6 +324,12 @@ export default function KalibrasyonDurumuPage() {
                         {drawV2Count > 0 && (
                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-300 border border-blue-500/25">
                             {drawV2Count} Draw V2
+                          </span>
+                        )}
+                        {prodCandidateCount > 0 && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 flex items-center gap-0.5 inline-flex">
+                            <Star className="w-2.5 h-2.5" />
+                            {prodCandidateCount} üretim adayı
                           </span>
                         )}
                       </div>
@@ -341,6 +355,7 @@ export default function KalibrasyonDurumuPage() {
                             <tr className="border-b border-navy-800/50">
                               <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider">Sezon</th>
                               <th className="text-left px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider">Formül</th>
+                              <th className="text-left px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden sm:table-cell" title="Üretim adayı ve geçerlilik durumu">Durum</th>
                               <th className="text-right px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider">Maç</th>
                               <th className="text-right px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider">Brier</th>
                               <th className="text-right px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider">İsabet</th>
@@ -370,6 +385,13 @@ export default function KalibrasyonDurumuPage() {
                                       <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${fLabel.cls}`}>
                                         {fLabel.label}
                                       </span>
+                                    </td>
+                                    <td className="px-3 py-3 hidden sm:table-cell">
+                                      <RunDurumuBadge
+                                        isValid={row.is_valid}
+                                        isProductionCandidate={row.is_production_candidate}
+                                        invalidationReason={row.invalidation_reason}
+                                      />
                                     </td>
                                     <td className="px-3 py-3 text-right text-navy-300 tabular-nums">{row.n_matches}</td>
                                     <td className="px-3 py-3 text-right tabular-nums">
@@ -496,6 +518,7 @@ export default function KalibrasyonDurumuPage() {
                     <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider">Lig / Sezon</th>
                     <th className="text-left px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider">Run Key</th>
                     <th className="text-left px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden sm:table-cell">Formül</th>
+                    <th className="text-left px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden sm:table-cell">Durum</th>
                     <th className="text-left px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden md:table-cell">Model</th>
                     <th className="text-left px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden lg:table-cell">ELO</th>
                     <th className="text-right px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden xl:table-cell">Son Çalıştırma</th>
@@ -517,6 +540,13 @@ export default function KalibrasyonDurumuPage() {
                           <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${fLabel.cls}`}>
                             {fLabel.label}
                           </span>
+                        </td>
+                        <td className="px-3 py-2.5 hidden sm:table-cell">
+                          <RunDurumuBadge
+                            isValid={row.is_valid}
+                            isProductionCandidate={row.is_production_candidate}
+                            invalidationReason={row.invalidation_reason}
+                          />
                         </td>
                         <td className="px-3 py-2.5 font-mono text-[10px] text-navy-500 hidden md:table-cell">{row.model_version}</td>
                         <td className="px-3 py-2.5 font-mono text-[10px] text-navy-500 hidden lg:table-cell">{row.elo_version}</td>
@@ -578,6 +608,42 @@ function SapmaRenk({ deger }: { deger: number | null }) {
   const renk = abs < 0.04 ? 'text-emerald-400' : abs < 0.08 ? 'text-amber-400' : 'text-red-400';
   const isaret = deger > 0 ? '+' : '';
   return <span className={`font-mono ${renk}`}>{isaret}{(deger * 100).toFixed(1)}pp</span>;
+}
+
+function RunDurumuBadge({
+  isValid,
+  isProductionCandidate,
+  invalidationReason,
+}: {
+  isValid: boolean;
+  isProductionCandidate: boolean;
+  invalidationReason: string | null;
+}) {
+  if (!isValid) {
+    return (
+      <span
+        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-500/15 text-red-400 border border-red-500/25"
+        title={invalidationReason ?? 'Geçersiz run'}
+      >
+        <XCircle className="w-2.5 h-2.5" />
+        Geçersiz
+      </span>
+    );
+  }
+  if (isProductionCandidate) {
+    return (
+      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
+        <Star className="w-2.5 h-2.5" />
+        Üretim
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-navy-800 text-navy-500 border border-navy-700">
+      <CheckCircle2 className="w-2.5 h-2.5" />
+      Geçerli
+    </span>
+  );
 }
 
 function MetrikKart({
