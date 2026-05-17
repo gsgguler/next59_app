@@ -1,19 +1,24 @@
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link, useLocation } from 'react-router-dom';
+import { useState } from 'react';
 import {
   LayoutDashboard,
   Archive,
   MessageSquare,
   Settings,
   ShieldCheck,
-  FlaskConical,
   Activity,
   CircleUser as UserCircle,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   TrendingUp,
   TestTube,
   FileText,
   Send,
+  Sliders,
+  BarChart3,
+  Layers,
+  Cpu,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -35,8 +40,65 @@ const bottomNav = [
   { to: '/settings', icon: Settings, label: 'Ayarlar' },
 ];
 
+// Admin grupları — her grup genişleyip daralabilir
+const adminGroups = [
+  {
+    key: 'sistem',
+    label: 'Sistem',
+    icon: ShieldCheck,
+    items: [
+      { to: '/admin', label: 'Yönetim Paneli', icon: ShieldCheck },
+      { to: '/admin/operasyonlar', label: 'Operasyonlar', icon: Activity },
+    ],
+  },
+  {
+    key: 'kalibrasyon',
+    label: 'Kalibrasyon',
+    icon: Sliders,
+    items: [
+      { to: '/admin/kalibrasyon', label: 'Kalibrasyon Merkezi', icon: Sliders },
+      { to: '/admin/kalibrasyon/durum', label: 'Kalibrasyon Durumu', icon: BarChart3 },
+    ],
+  },
+  {
+    key: 'model',
+    label: 'Model & Tahmin',
+    icon: Cpu,
+    items: [
+      { to: '/admin/model-lab', label: 'Model Lab', icon: Layers },
+      { to: '/admin/model-lab/model-status', label: 'Model Karşılaştırma', icon: TrendingUp },
+      { to: '/admin/model-lab/pre-match-lab', label: 'Tahmin Test Lab', icon: TestTube },
+    ],
+  },
+  {
+    key: 'icerik',
+    label: 'İçerik & Yayın',
+    icon: FileText,
+    items: [
+      { to: '/admin/model-lab/story-generator', label: 'Hikaye Üretici', icon: FileText },
+      { to: '/admin/model-lab/publishing-queue', label: 'Yayın Kuyruğu', icon: Send },
+    ],
+  },
+];
+
 export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarProps) {
   const { isAdmin } = useAuth();
+  const location = useLocation();
+
+  // Hangi admin grubu açık — aktif path'e göre otomatik aç
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    adminGroups.forEach(g => {
+      init[g.key] = g.items.some(i => location.pathname.startsWith(i.to) && i.to !== '/admin');
+    });
+    // Sistem grubunu her zaman açık başlat
+    init['sistem'] = true;
+    return init;
+  });
+
+  function toggleGroup(key: string) {
+    setOpenGroups(prev => ({ ...prev, [key]: !prev[key] }));
+  }
 
   return (
     <>
@@ -50,14 +112,15 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
       <aside
         className={`
           fixed top-0 left-0 h-full z-50 bg-navy-700 transition-all duration-300 ease-in-out flex flex-col
-          ${collapsed ? 'w-[72px]' : 'w-60'}
+          ${collapsed ? 'w-[72px]' : 'w-64'}
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
           lg:translate-x-0 lg:static lg:z-auto
         `}
       >
+        {/* Logo */}
         <Link
           to="/"
-          className={`flex items-center h-16 px-4 border-b border-navy-600 hover:opacity-80 transition-opacity ${collapsed ? 'justify-center' : 'gap-2.5'}`}
+          className={`flex items-center h-16 px-4 border-b border-navy-600 hover:opacity-80 transition-opacity shrink-0 ${collapsed ? 'justify-center' : 'gap-2.5'}`}
         >
           <svg viewBox="0 0 32 32" className="h-8 w-8 shrink-0" aria-label="Next59 logo">
             <rect width="32" height="32" rx="6" fill="#0f1d2a" />
@@ -71,68 +134,41 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
           )}
         </Link>
 
-        <nav className="flex-1 py-4 overflow-y-auto">
-          <ul className="space-y-1 px-3">
+        <nav className="flex-1 py-3 overflow-y-auto scrollbar-thin">
+          {/* Ana menü */}
+          <ul className="space-y-0.5 px-2">
             {mainNav.map((item) => (
               <NavItem key={item.to} {...item} collapsed={collapsed} onClick={onMobileClose} />
             ))}
-            {isAdmin && (
-              <>
-                <NavItem
-                  to="/admin"
-                  icon={ShieldCheck}
-                  label="Yönetim"
-                  collapsed={collapsed}
-                  onClick={onMobileClose}
-                />
-                <NavItem
-                  to="/admin/operasyonlar"
-                  icon={Activity}
-                  label="Operasyonlar"
-                  collapsed={collapsed}
-                  onClick={onMobileClose}
-                />
-                <NavItem
-                  to="/admin/model-lab"
-                  icon={FlaskConical}
-                  label="Model Lab"
-                  collapsed={collapsed}
-                  onClick={onMobileClose}
-                />
-                <NavItem
-                  to="/admin/model-lab/model-status"
-                  icon={TrendingUp}
-                  label="Model Status"
-                  collapsed={collapsed}
-                  onClick={onMobileClose}
-                />
-                <NavItem
-                  to="/admin/model-lab/pre-match-lab"
-                  icon={TestTube}
-                  label="Test Lab"
-                  collapsed={collapsed}
-                  onClick={onMobileClose}
-                />
-                <NavItem
-                  to="/admin/model-lab/story-generator"
-                  icon={FileText}
-                  label="Story Gen"
-                  collapsed={collapsed}
-                  onClick={onMobileClose}
-                />
-                <NavItem
-                  to="/admin/model-lab/publishing-queue"
-                  icon={Send}
-                  label="Yayın Kuyruğu"
-                  collapsed={collapsed}
-                  onClick={onMobileClose}
-                />
-              </>
-            )}
           </ul>
 
-          <div className="mt-4 pt-4 border-t border-navy-600 px-3">
-            <ul className="space-y-1">
+          {/* Admin grupları */}
+          {isAdmin && (
+            <div className="mt-3 pt-3 border-t border-navy-600">
+              {!collapsed && (
+                <p className="px-4 mb-1.5 text-[10px] font-semibold text-navy-400 uppercase tracking-widest">
+                  Yönetici
+                </p>
+              )}
+              <div className="space-y-0.5 px-2">
+                {adminGroups.map(group => (
+                  <AdminGroup
+                    key={group.key}
+                    group={group}
+                    collapsed={collapsed}
+                    open={openGroups[group.key] ?? false}
+                    onToggle={() => toggleGroup(group.key)}
+                    onItemClick={onMobileClose}
+                    currentPath={location.pathname}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Alt menü */}
+          <div className="mt-3 pt-3 border-t border-navy-600 px-2">
+            <ul className="space-y-0.5">
               {bottomNav.map((item) => (
                 <NavItem key={item.to} {...item} collapsed={collapsed} onClick={onMobileClose} />
               ))}
@@ -140,14 +176,86 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
           </div>
         </nav>
 
+        {/* Daralt/genişlet butonu */}
         <button
           onClick={onToggle}
-          className="hidden lg:flex items-center justify-center h-12 border-t border-navy-600 text-navy-300 hover:text-white hover:bg-navy-600/50 transition-colors"
+          className="hidden lg:flex items-center justify-center h-11 border-t border-navy-600 text-navy-400 hover:text-white hover:bg-navy-600/50 transition-colors shrink-0"
         >
-          {collapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
       </aside>
     </>
+  );
+}
+
+function AdminGroup({
+  group,
+  collapsed,
+  open,
+  onToggle,
+  onItemClick,
+  currentPath,
+}: {
+  group: typeof adminGroups[number];
+  collapsed: boolean;
+  open: boolean;
+  onToggle: () => void;
+  onItemClick: () => void;
+  currentPath: string;
+}) {
+  const GroupIcon = group.icon;
+  const isGroupActive = group.items.some(i =>
+    i.to === '/admin' ? currentPath === '/admin' : currentPath.startsWith(i.to)
+  );
+
+  if (collapsed) {
+    // Daraltılmışken grup başlığı gizlenir, sadece ilk item ikonu gösterilir
+    return (
+      <div className="space-y-0.5">
+        {group.items.map(item => (
+          <NavItem
+            key={item.to}
+            to={item.to}
+            icon={item.icon}
+            label={item.label}
+            collapsed={true}
+            onClick={onItemClick}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Grup başlığı */}
+      <button
+        onClick={onToggle}
+        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors
+          ${isGroupActive ? 'text-champagne' : 'text-navy-400 hover:text-navy-200'}`}
+      >
+        <GroupIcon className="w-4 h-4 shrink-0" />
+        <span className="flex-1 text-left">{group.label}</span>
+        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {/* Grup içeriği */}
+      {open && (
+        <ul className="ml-3 mt-0.5 space-y-0.5 border-l border-navy-600 pl-2">
+          {group.items.map(item => (
+            <NavItem
+              key={item.to}
+              to={item.to}
+              icon={item.icon}
+              label={item.label}
+              collapsed={false}
+              onClick={onItemClick}
+              small
+            />
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -157,32 +265,35 @@ function NavItem({
   label,
   collapsed,
   onClick,
+  small,
 }: {
   to: string;
   icon: typeof LayoutDashboard;
   label: string;
   collapsed: boolean;
   onClick: () => void;
+  small?: boolean;
 }) {
   return (
     <li>
       <NavLink
         to={to}
-        end={to === '/dashboard'}
+        end={to === '/dashboard' || to === '/admin'}
         onClick={onClick}
         className={({ isActive }) =>
-          `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
+          `flex items-center gap-3 px-3 rounded-lg font-medium transition-all duration-150
+          ${small ? 'py-2 text-xs' : 'py-2.5 text-sm'}
           ${
             isActive
-              ? 'bg-navy-600 text-white border-l-[3px] border-gold-500 -ml-[3px]'
-              : 'text-navy-200 hover:bg-navy-600/50 hover:text-white'
+              ? 'bg-navy-600 text-white border-l-[3px] border-champagne -ml-[3px]'
+              : 'text-navy-300 hover:bg-navy-600/40 hover:text-white'
           }
           ${collapsed ? 'justify-center' : ''}
           `
         }
       >
-        <Icon className="w-5 h-5 shrink-0" />
-        {!collapsed && <span>{label}</span>}
+        <Icon className={`${small ? 'w-3.5 h-3.5' : 'w-4 h-4'} shrink-0`} />
+        {!collapsed && <span className="truncate">{label}</span>}
       </NavLink>
     </li>
   );

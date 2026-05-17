@@ -82,6 +82,8 @@ import PreMatchTestLabPage from './pages/admin/PreMatchTestLabPage';
 import StoryGeneratorPage from './pages/admin/StoryGeneratorPage';
 import MatchPublishingQueuePage from './pages/admin/MatchPublishingQueuePage';
 import OperationsPage from './pages/admin/OperationsPage';
+import KalibrasyonMerkeziPage from './pages/admin/KalibrasyonMerkeziPage';
+import KalibrasyonDurumuPage from './pages/admin/KalibrasyonDurumuPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import PlaceholderPage from './pages/PlaceholderPage';
@@ -186,6 +188,9 @@ export default function App() {
                 <Route path="sistem-sagligi" element={<PlaceholderPage title="Sistem Sağlığı" />} />
                 {/* Operations */}
                 <Route path="operasyonlar" element={<OperationsPage />} />
+                {/* Kalibrasyon */}
+                <Route path="kalibrasyon" element={<KalibrasyonMerkeziPage />} />
+                <Route path="kalibrasyon/durum" element={<KalibrasyonDurumuPage />} />
                 {/* Model Lab */}
                 <Route path="model-lab" element={<ModelLabPage />} />
                 <Route path="model-lab/backtest" element={<ModelLabBacktestPage />} />
