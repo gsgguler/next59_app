@@ -77,6 +77,10 @@ import ModelLabBacktestPage from './pages/admin/ModelLabBacktestPage';
 import ModelLabMacIncelemePage from './pages/admin/ModelLabMacIncelemePage';
 import ModelLabKalibrasyonPage from './pages/admin/ModelLabKalibrasyonPage';
 import ModelLabHataAnaliziPage from './pages/admin/ModelLabHataAnaliziPage';
+import ModelStatusPage from './pages/admin/ModelStatusPage';
+import PreMatchTestLabPage from './pages/admin/PreMatchTestLabPage';
+import StoryGeneratorPage from './pages/admin/StoryGeneratorPage';
+import MatchPublishingQueuePage from './pages/admin/MatchPublishingQueuePage';
 import OperationsPage from './pages/admin/OperationsPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
@@ -188,6 +192,10 @@ export default function App() {
                 <Route path="model-lab/mac-inceleme" element={<ModelLabMacIncelemePage />} />
                 <Route path="model-lab/kalibrasyon" element={<ModelLabKalibrasyonPage />} />
                 <Route path="model-lab/hata-analizi" element={<ModelLabHataAnaliziPage />} />
+                <Route path="model-lab/model-status" element={<ModelStatusPage />} />
+                <Route path="model-lab/pre-match-lab" element={<PreMatchTestLabPage />} />
+                <Route path="model-lab/story-generator" element={<StoryGeneratorPage />} />
+                <Route path="model-lab/publishing-queue" element={<MatchPublishingQueuePage />} />
                 <Route path="auth-debug" element={<AuthDebugPage />} />
               </Route>
 

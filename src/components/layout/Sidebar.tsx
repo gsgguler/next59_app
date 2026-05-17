@@ -10,6 +10,10 @@ import {
   CircleUser as UserCircle,
   ChevronLeft,
   ChevronRight,
+  TrendingUp,
+  TestTube,
+  FileText,
+  Send,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -92,6 +96,34 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
                   to="/admin/model-lab"
                   icon={FlaskConical}
                   label="Model Lab"
+                  collapsed={collapsed}
+                  onClick={onMobileClose}
+                />
+                <NavItem
+                  to="/admin/model-lab/model-status"
+                  icon={TrendingUp}
+                  label="Model Status"
+                  collapsed={collapsed}
+                  onClick={onMobileClose}
+                />
+                <NavItem
+                  to="/admin/model-lab/pre-match-lab"
+                  icon={TestTube}
+                  label="Test Lab"
+                  collapsed={collapsed}
+                  onClick={onMobileClose}
+                />
+                <NavItem
+                  to="/admin/model-lab/story-generator"
+                  icon={FileText}
+                  label="Story Gen"
+                  collapsed={collapsed}
+                  onClick={onMobileClose}
+                />
+                <NavItem
+                  to="/admin/model-lab/publishing-queue"
+                  icon={Send}
+                  label="Yayın Kuyruğu"
                   collapsed={collapsed}
                   onClick={onMobileClose}
                 />
