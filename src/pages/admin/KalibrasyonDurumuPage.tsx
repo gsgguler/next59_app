@@ -1,44 +1,50 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   BarChart3, RefreshCw, TrendingUp, TrendingDown,
-  Minus, Shield, AlertCircle, ChevronDown,
+  Minus, Shield, AlertCircle, ChevronDown, Info,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
-interface KuyruKSatir {
-  id: string;
+interface BestRun {
   competition_name: string;
   season_label: string;
-  durum: 'bekliyor' | 'calisıyor' | 'tamamlandı' | 'hata';
-  islenen_mac: number | null;
-  mac_sayisi: number | null;
-  ortalama_brier: number | null;
-  ortalama_logloss: number | null;
-  isabet_orani: number | null;
-  ev_sahibi_sapması: number | null;
-  beraberlik_sapması: number | null;
-  hata_mesaji: string | null;
-  baslangic_zamani: string | null;
-  bitis_zamani: string | null;
-}
-
-interface ReplayRun {
-  id: string;
-  competition_name: string;
-  season_label: string;
-  status: string;
-  total_matches: number;
-  processed_matches: number;
-  brier_score: number | null;
-  log_loss: number | null;
-  accuracy: number | null;
-  home_bias: number | null;
-  draw_bias: number | null;
-  away_bias: number | null;
+  run_id: string;
+  run_key: string;
+  model_version: string;
+  feature_version: string;
+  elo_version: string;
+  prediction_formula: string;
   started_at: string;
   completed_at: string | null;
-  elo_version: string;
-  feature_version: string;
+  n_matches: number;
+  brier: number;
+  log_loss: number;
+  rps: number;
+  hit_rate: number;
+  pred_draw_rate: number;
+  actual_draw_rate: number;
+  draw_gap: number;
+  pred_home_rate: number;
+  actual_home_rate: number;
+  home_gap: number;
+  pred_away_rate: number;
+  actual_away_rate: number;
+  away_gap: number;
+  overconfidence_count: number;
+  upset_miss_count: number;
+}
+
+interface AllRun {
+  competition_name: string;
+  season_label: string;
+  run_id: string;
+  run_key: string;
+  prediction_formula: string;
+  started_at: string;
+  brier: number;
+  hit_rate: number;
+  draw_gap: number;
+  n_matches: number;
 }
 
 const LIG_TURKISH: Record<string, string> = {
@@ -51,14 +57,11 @@ const LIG_TURKISH: Record<string, string> = {
   'Süper Lig': 'Türkiye Süper Lig',
 };
 
-function formatDuration(start: string, end: string | null): string {
-  if (!end) return '–';
-  const ms = new Date(end).getTime() - new Date(start).getTime();
-  const s = Math.floor(ms / 1000);
-  if (s < 60) return `${s}s`;
-  const m = Math.floor(s / 60);
-  const rem = s % 60;
-  return `${m}d ${rem}s`;
+function formulaLabel(formula: string): { label: string; cls: string } {
+  if (formula.includes('v2') || formula.includes('draw_recalibrated')) {
+    return { label: 'Draw V2', cls: 'bg-blue-500/15 text-blue-300 border border-blue-500/25' };
+  }
+  return { label: 'V1', cls: 'bg-navy-700 text-navy-400 border border-navy-600' };
 }
 
 function formatDate(iso: string): string {
@@ -68,24 +71,42 @@ function formatDate(iso: string): string {
   });
 }
 
+function formatDuration(start: string, end: string | null): string {
+  if (!end) return '–';
+  const ms = new Date(end).getTime() - new Date(start).getTime();
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return `${s}s`;
+  return `${Math.floor(s / 60)}d ${s % 60}s`;
+}
+
 export default function KalibrasyonDurumuPage() {
-  const [kuyruk, setKuyruk] = useState<KuyruKSatir[]>([]);
-  const [runs, setRuns] = useState<ReplayRun[]>([]);
+  const [rows, setRows] = useState<BestRun[]>([]);
+  const [allRuns, setAllRuns] = useState<AllRun[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [hata, setHata] = useState<string | null>(null);
   const [seciliLig, setSeciliLig] = useState<string>('Tümü');
   const [acikGruplar, setAcikGruplar] = useState<Record<string, boolean>>({});
+  // Per-season toggle: season key → run_id override
+  const [sezonToggle, setSezonToggle] = useState<Record<string, string>>({});
 
   const yukle = useCallback(async () => {
-    const [kRes, rRes] = await Promise.all([
-      supabase.from('kalibrasyon_kuyrugu' as 'profiles').select('*').order('competition_name').order('season_label'),
-      supabase.from('replay_prediction_runs' as 'profiles').select('*').order('started_at', { ascending: false }),
+    setYukleniyor(true);
+    const [bestRes, allRes] = await Promise.all([
+      supabase
+        .from('v_best_replay_run_per_season' as 'profiles')
+        .select('*')
+        .order('competition_name')
+        .order('season_label'),
+      supabase
+        .from('v_replay_run_season_metrics' as 'profiles')
+        .select('competition_name,season_label,run_id,run_key,prediction_formula,started_at,brier,hit_rate,draw_gap,n_matches')
+        .order('started_at', { ascending: false }),
     ]);
 
-    if (kRes.error) { setHata(kRes.error.message); }
-    else if (kRes.data) setKuyruk(kRes.data as unknown as KuyruKSatir[]);
+    if (bestRes.error) setHata(bestRes.error.message);
+    else if (bestRes.data) setRows(bestRes.data as unknown as BestRun[]);
 
-    if (!rRes.error && rRes.data) setRuns(rRes.data as unknown as ReplayRun[]);
+    if (!allRes.error && allRes.data) setAllRuns(allRes.data as unknown as AllRun[]);
 
     setYukleniyor(false);
   }, []);
@@ -95,15 +116,13 @@ export default function KalibrasyonDurumuPage() {
     yukle();
   }, [yukle]);
 
-  const tamamlananlar = kuyruk.filter(k => k.durum === 'tamamlandı');
-  const ligAdlari = ['Tümü', ...Array.from(new Set(kuyruk.map(k => k.competition_name)))];
+  const ligAdlari = ['Tümü', ...Array.from(new Set(rows.map(r => r.competition_name)))];
 
   const filtrelenmis = seciliLig === 'Tümü'
-    ? tamamlananlar
-    : tamamlananlar.filter(k => k.competition_name === seciliLig);
+    ? rows
+    : rows.filter(r => r.competition_name === seciliLig);
 
-  // Group tamamlananlar by competition
-  const gruplar: Record<string, KuyruKSatir[]> = {};
+  const gruplar: Record<string, BestRun[]> = {};
   filtrelenmis.forEach(s => {
     if (!gruplar[s.competition_name]) gruplar[s.competition_name] = [];
     gruplar[s.competition_name].push(s);
@@ -113,36 +132,59 @@ export default function KalibrasyonDurumuPage() {
     setAcikGruplar(prev => ({ ...prev, [lig]: !(prev[lig] ?? true) }));
   }
 
-  // Global stats
-  const ortBrier = tamamlananlar.length
-    ? tamamlananlar.reduce((s, k) => s + (k.ortalama_brier ?? 0), 0) / tamamlananlar.length
-    : null;
-  const ortIsabet = tamamlananlar.length
-    ? tamamlananlar.reduce((s, k) => s + (k.isabet_orani ?? 0), 0) / tamamlananlar.length
-    : null;
-  const ortEvSap = tamamlananlar.length
-    ? tamamlananlar.reduce((s, k) => s + (k.ev_sahibi_sapması ?? 0), 0) / tamamlananlar.length
-    : null;
-  const ortBerSap = tamamlananlar.length
-    ? tamamlananlar.reduce((s, k) => s + (k.beraberlik_sapması ?? 0), 0) / tamamlananlar.length
-    : null;
+  function sezonKey(row: BestRun) {
+    return `${row.competition_name}|${row.season_label}`;
+  }
 
-  // Recent runs (for audit log)
-  const sonRuns = runs.slice(0, 10);
+  // Effective row for display — may be overridden by toggle
+  function effectiveRow(defaultRow: BestRun): BestRun {
+    const key = sezonKey(defaultRow);
+    const overrideRunId = sezonToggle[key];
+    if (!overrideRunId || overrideRunId === defaultRow.run_id) return defaultRow;
+    const alt = allRuns.find(r => r.run_id === overrideRunId);
+    if (!alt) return defaultRow;
+    // Merge override run's metrics into the display row structure
+    return {
+      ...defaultRow,
+      run_id: alt.run_id,
+      run_key: alt.run_key,
+      prediction_formula: alt.prediction_formula,
+      started_at: alt.started_at,
+      n_matches: alt.n_matches,
+      brier: alt.brier,
+      hit_rate: alt.hit_rate,
+      draw_gap: alt.draw_gap,
+      // Partial — full metrics only on default row, show what we have
+      log_loss: (alt as unknown as BestRun).log_loss ?? defaultRow.log_loss,
+      rps: (alt as unknown as BestRun).rps ?? defaultRow.rps,
+      pred_draw_rate: (alt as unknown as BestRun).pred_draw_rate ?? defaultRow.pred_draw_rate,
+      actual_draw_rate: (alt as unknown as BestRun).actual_draw_rate ?? defaultRow.actual_draw_rate,
+      home_gap: (alt as unknown as BestRun).home_gap ?? defaultRow.home_gap,
+      away_gap: (alt as unknown as BestRun).away_gap ?? defaultRow.away_gap,
+    };
+  }
+
+  // Global stats from best-run rows only
+  const ortBrier = rows.length
+    ? rows.reduce((s, r) => s + (r.brier ?? 0), 0) / rows.length : null;
+  const ortIsabet = rows.length
+    ? rows.reduce((s, r) => s + (r.hit_rate ?? 0), 0) / rows.length : null;
+  const ortBerSap = rows.length
+    ? rows.reduce((s, r) => s + (r.draw_gap ?? 0), 0) / rows.length : null;
+  const ortEvSap = rows.length
+    ? rows.reduce((s, r) => s + (r.home_gap ?? 0), 0) / rows.length : null;
 
   return (
     <div className="min-h-screen bg-navy-950 p-6">
       <div className="max-w-6xl mx-auto">
 
-        {/* Uyarı */}
         <div className="bg-amber-500/10 border border-amber-500/25 rounded-xl px-5 py-3 mb-6 flex items-start gap-3">
           <Shield className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
           <p className="text-sm text-amber-300">
-            <strong>Kalibrasyon Durumu — Yalnızca Yönetici.</strong> Tamamlanan kalibrasyonların detaylı metrik görünümü.
+            <strong>Kalibrasyon Durumu — Yalnızca Yönetici.</strong> Her lig-sezon için en iyi (veya en güncel) replay run metriklerini gösterir.
           </p>
         </div>
 
-        {/* Başlık */}
         <div className="flex items-start justify-between gap-4 mb-6">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
@@ -151,7 +193,7 @@ export default function KalibrasyonDurumuPage() {
             <div>
               <h1 className="text-2xl font-bold text-white font-display">Kalibrasyon Durumu</h1>
               <p className="text-sm text-readable-muted mt-1">
-                Tamamlanan kalibrasyonların performans metrikleri, sapma analizi ve kalibrasyon geçmişi
+                Formül versiyonu farkındalıklı metrik görünümü — Draw V2 varsa V1'e tercih edilir
               </p>
             </div>
           </div>
@@ -174,11 +216,7 @@ export default function KalibrasyonDurumuPage() {
 
         {/* Global özet */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-          <MetrikKart
-            label="Tamamlanan Sezon"
-            deger={tamamlananlar.length}
-            alt={`${kuyruk.length} toplam`}
-          />
+          <MetrikKart label="Sezon Sayısı" deger={rows.length} alt={`${ligAdlari.length - 1} lig`} />
           <MetrikKart
             label="Ort. Brier Skoru"
             deger={ortBrier != null ? ortBrier.toFixed(4) : '–'}
@@ -199,25 +237,34 @@ export default function KalibrasyonDurumuPage() {
           />
         </div>
 
-        {/* Sapma özeti açıklaması */}
+        {/* Sapma açıklaması */}
         {(ortEvSap != null || ortBerSap != null) && (
           <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-4 mb-6">
-            <h2 className="text-xs font-semibold text-navy-400 uppercase tracking-wider mb-3">Genel Sapma Analizi</h2>
+            <h2 className="text-xs font-semibold text-navy-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+              <Info className="w-3.5 h-3.5" />
+              Genel Sapma Analizi
+            </h2>
+            {/* Sign convention legend */}
+            <div className="bg-navy-800/50 rounded-lg px-3 py-2 mb-3 text-[11px] text-navy-400">
+              <span className="text-white font-medium">Sapma işareti:</span>
+              {' '}
+              <span className="text-amber-400">+pp</span> = model o sonucu gerçekten <strong className="text-white">fazla</strong> tahmin ediyor &nbsp;·&nbsp;
+              <span className="text-blue-400">−pp</span> = model o sonucu <strong className="text-white">eksik</strong> tahmin ediyor
+            </div>
             <div className="flex flex-wrap gap-6">
-              <SapmaGostergesi label="Ev Sahibi Tahmini" deger={ortEvSap} />
-              <SapmaGostergesi label="Beraberlik Tahmini" deger={ortBerSap} />
+              <SapmaGostergesi label="Ev Sahibi Sapması" deger={ortEvSap} />
+              <SapmaGostergesi label="Beraberlik Sapması" deger={ortBerSap} />
             </div>
             <p className="text-xs text-navy-500 mt-3">
-              Pozitif sapma = sistem gerçekten fazla tahmin ediyor. Negatif = az tahmin ediyor.
               Beraberlik sapması {ortBerSap != null && Math.abs(ortBerSap) > 0.06
-                ? <span className="text-amber-400 font-medium"> yüksek — BASE_DRAW_RATE ayarı önerilebilir.</span>
-                : <span className="text-emerald-400 font-medium"> kabul edilebilir aralıkta.</span>
+                ? <span className="text-amber-400 font-medium">yüksek — draw prior ayarı önerilebilir.</span>
+                : <span className="text-emerald-400 font-medium">kabul edilebilir aralıkta.</span>
               }
             </p>
           </div>
         )}
 
-        {/* Lig filtre tabları */}
+        {/* Lig filtresi */}
         <div className="flex items-center gap-1.5 flex-wrap mb-4">
           {ligAdlari.map(lig => (
             <button
@@ -234,7 +281,6 @@ export default function KalibrasyonDurumuPage() {
           ))}
         </div>
 
-        {/* Lig grupları */}
         {yukleniyor ? (
           <div className="space-y-2">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -245,31 +291,33 @@ export default function KalibrasyonDurumuPage() {
           <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-10 text-center">
             <BarChart3 className="w-10 h-10 text-navy-600 mx-auto mb-3" />
             <p className="text-navy-400 text-sm">Henüz tamamlanan kalibrasyon yok.</p>
-            <p className="text-navy-600 text-xs mt-1">Kalibrasyon Merkezi'nden kalibrasyonları başlatın.</p>
           </div>
         ) : (
           <div className="space-y-4">
             {Object.entries(gruplar).map(([lig, sezonlar]) => {
               const acik = acikGruplar[lig] ?? true;
-              const ligRuns = runs.filter(r => r.competition_name === lig && r.status === 'done');
+              const ligAllRuns = allRuns.filter(r => r.competition_name === lig);
               const enIyiBrier = sezonlar.reduce((mn, s) =>
-                s.ortalama_brier != null && s.ortalama_brier < mn ? s.ortalama_brier : mn, Infinity);
-              const enKotuBrier = sezonlar.reduce((mx, s) =>
-                s.ortalama_brier != null && s.ortalama_brier > mx ? s.ortalama_brier : mx, 0);
+                s.brier != null && s.brier < mn ? s.brier : mn, Infinity);
+              const drawV2Count = sezonlar.filter(s =>
+                s.prediction_formula.includes('v2') || s.prediction_formula.includes('recalibrated')
+              ).length;
 
               return (
                 <div key={lig} className="bg-navy-900/50 border border-navy-800 rounded-xl overflow-hidden">
-                  {/* Lig başlığı */}
                   <button
                     onClick={() => toggleGrup(lig)}
                     className="w-full flex items-center gap-3 px-5 py-4 hover:bg-navy-800/30 transition-colors"
                   >
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-semibold text-white">
-                          {LIG_TURKISH[lig] ?? lig}
-                        </span>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <span className="text-sm font-semibold text-white">{LIG_TURKISH[lig] ?? lig}</span>
                         <span className="text-xs text-navy-500">{sezonlar.length} sezon</span>
+                        {drawV2Count > 0 && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-300 border border-blue-500/25">
+                            {drawV2Count} Draw V2
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-4 mt-1">
                         {enIyiBrier !== Infinity && (
@@ -277,13 +325,8 @@ export default function KalibrasyonDurumuPage() {
                             En iyi Brier: <span className="text-emerald-400 font-mono">{enIyiBrier.toFixed(4)}</span>
                           </span>
                         )}
-                        {enKotuBrier > 0 && (
-                          <span className="text-[11px] text-navy-400">
-                            En kötü: <span className="text-red-400 font-mono">{enKotuBrier.toFixed(4)}</span>
-                          </span>
-                        )}
                         <span className="text-[11px] text-navy-400">
-                          {ligRuns.length} run kaydı
+                          {ligAllRuns.length} run kaydı
                         </span>
                       </div>
                     </div>
@@ -292,83 +335,135 @@ export default function KalibrasyonDurumuPage() {
 
                   {acik && (
                     <>
-                      {/* Sezon detay tablosu */}
                       <div className="border-t border-navy-800/50 overflow-x-auto">
                         <table className="w-full text-xs">
                           <thead>
                             <tr className="border-b border-navy-800/50">
                               <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider">Sezon</th>
+                              <th className="text-left px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider">Formül</th>
                               <th className="text-right px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider">Maç</th>
                               <th className="text-right px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider">Brier</th>
-                              <th className="text-right px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider">Log Loss</th>
                               <th className="text-right px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider">İsabet</th>
-                              <th className="text-right px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider">Ev Sap.</th>
-                              <th className="text-right px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider">Ber. Sap.</th>
-                              <th className="text-right px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden lg:table-cell">Süre</th>
+                              <th className="text-right px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden lg:table-cell" title="Tahmin − Gerçek. + = fazla tahmin, − = eksik tahmin">Ev Sap. ⓘ</th>
+                              <th className="text-right px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden lg:table-cell" title="Tahmin − Gerçek. + = fazla tahmin, − = eksik tahmin">Ber. Sap. ⓘ</th>
+                              <th className="text-right px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden xl:table-cell">Run Tarihi</th>
+                              <th className="px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden md:table-cell">Run Key</th>
+                              <th className="px-3 py-2.5"></th>
                             </tr>
                           </thead>
                           <tbody>
-                            {sezonlar.sort((a, b) => a.season_label.localeCompare(b.season_label)).map(satir => {
-                              const run = ligRuns.find(r => r.season_label === satir.season_label);
-                              return (
-                                <tr key={satir.id} className="border-b border-navy-800/30 last:border-0 hover:bg-navy-800/20 transition-colors">
-                                  <td className="px-5 py-2.5 font-medium text-white">{satir.season_label}</td>
-                                  <td className="px-3 py-2.5 text-right text-navy-300 tabular-nums">{satir.islenen_mac ?? satir.mac_sayisi ?? '–'}</td>
-                                  <td className="px-3 py-2.5 text-right tabular-nums">
-                                    {satir.ortalama_brier != null
-                                      ? <BrierRenk deger={satir.ortalama_brier} />
-                                      : <span className="text-navy-600">–</span>}
-                                  </td>
-                                  <td className="px-3 py-2.5 text-right tabular-nums text-navy-300">
-                                    {satir.ortalama_logloss != null ? satir.ortalama_logloss.toFixed(4) : '–'}
-                                  </td>
-                                  <td className="px-3 py-2.5 text-right tabular-nums">
-                                    {satir.isabet_orani != null
-                                      ? <IsabetRenk deger={satir.isabet_orani} />
-                                      : <span className="text-navy-600">–</span>}
-                                  </td>
-                                  <td className="px-3 py-2.5 text-right tabular-nums">
-                                    {satir.ev_sahibi_sapması != null
-                                      ? <SapmaRenk deger={satir.ev_sahibi_sapması} />
-                                      : <span className="text-navy-600">–</span>}
-                                  </td>
-                                  <td className="px-3 py-2.5 text-right tabular-nums">
-                                    {satir.beraberlik_sapması != null
-                                      ? <SapmaRenk deger={satir.beraberlik_sapması} />
-                                      : <span className="text-navy-600">–</span>}
-                                  </td>
-                                  <td className="px-3 py-2.5 text-right text-navy-500 hidden lg:table-cell">
-                                    {run ? formatDuration(run.started_at, run.completed_at) : '–'}
-                                  </td>
-                                </tr>
-                              );
-                            })}
+                            {sezonlar
+                              .sort((a, b) => a.season_label.localeCompare(b.season_label))
+                              .map(defaultRow => {
+                                const key = sezonKey(defaultRow);
+                                const row = effectiveRow(defaultRow);
+                                const fLabel = formulaLabel(row.prediction_formula);
+                                // Alt runs for this season (excluding current)
+                                const altRuns = ligAllRuns.filter(
+                                  r => r.season_label === row.season_label && r.run_id !== row.run_id
+                                );
+
+                                return (
+                                  <tr key={defaultRow.run_id} className="border-b border-navy-800/30 last:border-0 hover:bg-navy-800/20 transition-colors">
+                                    <td className="px-5 py-3 font-medium text-white">{row.season_label}</td>
+                                    <td className="px-3 py-3">
+                                      <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${fLabel.cls}`}>
+                                        {fLabel.label}
+                                      </span>
+                                    </td>
+                                    <td className="px-3 py-3 text-right text-navy-300 tabular-nums">{row.n_matches}</td>
+                                    <td className="px-3 py-3 text-right tabular-nums">
+                                      <BrierRenk deger={row.brier} />
+                                    </td>
+                                    <td className="px-3 py-3 text-right tabular-nums">
+                                      <IsabetRenk deger={row.hit_rate} />
+                                    </td>
+                                    <td className="px-3 py-3 text-right tabular-nums hidden lg:table-cell">
+                                      <SapmaRenk deger={row.home_gap} />
+                                    </td>
+                                    <td className="px-3 py-3 text-right tabular-nums hidden lg:table-cell">
+                                      <SapmaRenk deger={row.draw_gap} />
+                                    </td>
+                                    <td className="px-3 py-3 text-right text-navy-500 text-[10px] hidden xl:table-cell whitespace-nowrap">
+                                      {formatDate(row.started_at)}
+                                    </td>
+                                    <td className="px-3 py-3 hidden md:table-cell">
+                                      <span className="font-mono text-[10px] text-navy-500 truncate max-w-[140px] block" title={row.run_key}>
+                                        {row.run_key}
+                                      </span>
+                                    </td>
+                                    {/* Version toggle */}
+                                    <td className="px-3 py-3">
+                                      {altRuns.length > 0 && (
+                                        <div className="flex items-center gap-0.5">
+                                          <button
+                                            onClick={() => setSezonToggle(prev => {
+                                              const next = { ...prev };
+                                              delete next[key];
+                                              return next;
+                                            })}
+                                            className={`px-1.5 py-0.5 rounded-l text-[10px] border transition-all ${
+                                              !sezonToggle[key] || sezonToggle[key] === defaultRow.run_id
+                                                ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                                                : 'bg-navy-800 text-navy-500 border-navy-700 hover:text-white'
+                                            }`}
+                                          >
+                                            Best
+                                          </button>
+                                          {altRuns.map(ar => (
+                                            <button
+                                              key={ar.run_id}
+                                              onClick={() => setSezonToggle(prev => ({ ...prev, [key]: ar.run_id }))}
+                                              className={`px-1.5 py-0.5 border-y border-r text-[10px] last:rounded-r transition-all ${
+                                                sezonToggle[key] === ar.run_id
+                                                  ? 'bg-navy-600 text-white border-navy-500'
+                                                  : 'bg-navy-800 text-navy-500 border-navy-700 hover:text-white'
+                                              }`}
+                                              title={ar.run_key}
+                                            >
+                                              {formulaLabel(ar.prediction_formula).label}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                           </tbody>
                         </table>
                       </div>
 
-                      {/* Sezon üzeri sapma grafiği (metin tabanlı) */}
+                      {/* Draw bias trend chart */}
                       {sezonlar.length > 1 && (
                         <div className="border-t border-navy-800/50 px-5 py-4">
-                          <p className="text-[11px] font-semibold text-navy-500 uppercase tracking-wider mb-3">Sezon Üzeri Beraberlik Sapması Trendi</p>
+                          <p className="text-[11px] font-semibold text-navy-500 uppercase tracking-wider mb-1">Beraberlik Sapması Trendi</p>
+                          <p className="text-[10px] text-navy-600 mb-3">
+                            + = model fazla tahmin ediyor &nbsp;·&nbsp; − = model eksik tahmin ediyor
+                          </p>
                           <div className="flex items-end gap-2 h-16">
                             {sezonlar
                               .sort((a, b) => a.season_label.localeCompare(b.season_label))
                               .map(s => {
-                                const sap = s.beraberlik_sapması ?? 0;
+                                const row = effectiveRow(s);
+                                const sap = row.draw_gap ?? 0;
                                 const yukseklik = Math.min(Math.abs(sap) * 400, 100);
                                 const renk = Math.abs(sap) < 0.04 ? 'bg-emerald-500' :
                                   Math.abs(sap) < 0.08 ? 'bg-amber-500' : 'bg-red-500';
+                                const fLabel = formulaLabel(row.prediction_formula);
                                 return (
                                   <div key={s.season_label} className="flex flex-col items-center gap-1 flex-1">
                                     <span className="text-[9px] text-navy-500 tabular-nums">
                                       {sap > 0 ? '+' : ''}{(sap * 100).toFixed(1)}
                                     </span>
                                     <div
-                                      className={`w-full rounded-sm ${renk} opacity-70 min-h-[2px]`}
+                                      className={`w-full rounded-sm ${renk} opacity-70 min-h-[2px] relative`}
                                       style={{ height: `${Math.max(yukseklik, 4)}%` }}
+                                      title={`${row.run_key}\n${fLabel.label}`}
                                     />
-                                    <span className="text-[9px] text-navy-600 truncate w-full text-center">
+                                    <span className={`text-[8px] truncate w-full text-center ${
+                                      fLabel.label === 'Draw V2' ? 'text-blue-400' : 'text-navy-600'
+                                    }`}>
                                       {s.season_label.slice(0, 7)}
                                     </span>
                                   </div>
@@ -385,77 +480,60 @@ export default function KalibrasyonDurumuPage() {
           </div>
         )}
 
-        {/* Son çalıştırma geçmişi */}
-        {sonRuns.length > 0 && (
+        {/* Version metadata panel */}
+        {rows.length > 0 && (
           <div className="mt-6 bg-navy-900/50 border border-navy-800 rounded-xl overflow-hidden">
             <div className="px-5 py-3.5 border-b border-navy-800/50">
-              <h2 className="text-sm font-semibold text-white">Son Kalibrasyon Çalıştırmaları</h2>
-              <p className="text-xs text-navy-500 mt-0.5">Replay motoru çalıştırma geçmişi</p>
+              <h2 className="text-sm font-semibold text-white">Aktif Formül Versiyonları</h2>
+              <p className="text-xs text-navy-500 mt-0.5">
+                Her sezon için gösterilen run'ın model/formül/elo versiyonu
+              </p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-navy-800/50">
                     <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider">Lig / Sezon</th>
-                    <th className="text-left px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider">Durum</th>
-                    <th className="text-right px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider">Maç</th>
-                    <th className="text-right px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden sm:table-cell">Brier</th>
-                    <th className="text-left px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden md:table-cell">ELO Versiyonu</th>
-                    <th className="text-right px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden lg:table-cell">Başlangıç</th>
-                    <th className="text-right px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden lg:table-cell">Süre</th>
+                    <th className="text-left px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider">Run Key</th>
+                    <th className="text-left px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden sm:table-cell">Formül</th>
+                    <th className="text-left px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden md:table-cell">Model</th>
+                    <th className="text-left px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden lg:table-cell">ELO</th>
+                    <th className="text-right px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden xl:table-cell">Son Çalıştırma</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {sonRuns.map(run => (
-                    <tr key={run.id} className="border-b border-navy-800/30 last:border-0 hover:bg-navy-800/20 transition-colors">
-                      <td className="px-5 py-2.5">
-                        <div className="font-medium text-white">{LIG_TURKISH[run.competition_name] ?? run.competition_name}</div>
-                        <div className="text-navy-500">{run.season_label}</div>
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <RunDurumRozeti status={run.status} />
-                      </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-navy-300">
-                        {run.processed_matches}/{run.total_matches}
-                      </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums hidden sm:table-cell">
-                        {run.brier_score != null
-                          ? <BrierRenk deger={run.brier_score} />
-                          : <span className="text-navy-600">–</span>}
-                      </td>
-                      <td className="px-3 py-2.5 text-navy-400 font-mono text-[10px] hidden md:table-cell">
-                        {run.elo_version}
-                      </td>
-                      <td className="px-3 py-2.5 text-right text-navy-500 hidden lg:table-cell">
-                        {formatDate(run.started_at)}
-                      </td>
-                      <td className="px-3 py-2.5 text-right text-navy-400 hidden lg:table-cell">
-                        {formatDuration(run.started_at, run.completed_at)}
-                      </td>
-                    </tr>
-                  ))}
+                  {rows.slice(0, 20).map(row => {
+                    const fLabel = formulaLabel(row.prediction_formula);
+                    return (
+                      <tr key={`${row.competition_name}|${row.season_label}`} className="border-b border-navy-800/30 last:border-0 hover:bg-navy-800/20 transition-colors">
+                        <td className="px-5 py-2.5">
+                          <div className="font-medium text-white">{LIG_TURKISH[row.competition_name] ?? row.competition_name}</div>
+                          <div className="text-navy-500">{row.season_label}</div>
+                        </td>
+                        <td className="px-3 py-2.5 font-mono text-[10px] text-navy-400 max-w-[160px] truncate" title={row.run_key}>
+                          {row.run_key}
+                        </td>
+                        <td className="px-3 py-2.5 hidden sm:table-cell">
+                          <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${fLabel.cls}`}>
+                            {fLabel.label}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2.5 font-mono text-[10px] text-navy-500 hidden md:table-cell">{row.model_version}</td>
+                        <td className="px-3 py-2.5 font-mono text-[10px] text-navy-500 hidden lg:table-cell">{row.elo_version}</td>
+                        <td className="px-3 py-2.5 text-right text-navy-500 text-[10px] hidden xl:table-cell">
+                          {formatDate(row.started_at)}{row.completed_at ? ` (${formatDuration(row.started_at, row.completed_at)})` : ''}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           </div>
         )}
+
       </div>
     </div>
-  );
-}
-
-function RunDurumRozeti({ status }: { status: string }) {
-  const cfg: Record<string, { cls: string; label: string }> = {
-    done:    { cls: 'bg-emerald-500/15 text-emerald-400', label: 'Tamamlandı' },
-    failed:  { cls: 'bg-red-500/15 text-red-400', label: 'Hata' },
-    running: { cls: 'bg-amber-500/20 text-amber-400', label: 'Çalışıyor' },
-    pending: { cls: 'bg-navy-700 text-navy-400', label: 'Bekliyor' },
-  };
-  const c = cfg[status] ?? cfg.pending;
-  return (
-    <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${c.cls}`}>
-      {c.label}
-    </span>
   );
 }
 
@@ -465,6 +543,11 @@ function SapmaGostergesi({ label, deger }: { label: string; deger: number | null
   const renk = abs < 0.04 ? 'text-emerald-400' : abs < 0.08 ? 'text-amber-400' : 'text-red-400';
   const Icon = deger > 0.01 ? TrendingUp : deger < -0.01 ? TrendingDown : Minus;
   const ikonRenk = deger > 0.01 ? 'text-amber-400' : deger < -0.01 ? 'text-blue-400' : 'text-emerald-400';
+  const yorum = deger > 0.01
+    ? '+ model fazla tahmin ediyor'
+    : deger < -0.01
+    ? '− model eksik tahmin ediyor'
+    : 'Dengeli';
   return (
     <div className="flex flex-col gap-0.5">
       <span className="text-[11px] text-navy-500">{label}</span>
@@ -474,6 +557,7 @@ function SapmaGostergesi({ label, deger }: { label: string; deger: number | null
           {deger > 0 ? '+' : ''}{(deger * 100).toFixed(1)}pp
         </span>
       </div>
+      <span className="text-[10px] text-navy-600">{yorum}</span>
     </div>
   );
 }
@@ -488,7 +572,8 @@ function IsabetRenk({ deger }: { deger: number }) {
   return <span className={`font-mono ${renk}`}>{(deger * 100).toFixed(1)}%</span>;
 }
 
-function SapmaRenk({ deger }: { deger: number }) {
+function SapmaRenk({ deger }: { deger: number | null }) {
+  if (deger == null) return <span className="text-navy-600">–</span>;
   const abs = Math.abs(deger);
   const renk = abs < 0.04 ? 'text-emerald-400' : abs < 0.08 ? 'text-amber-400' : 'text-red-400';
   const isaret = deger > 0 ? '+' : '';

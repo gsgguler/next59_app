@@ -20,6 +20,17 @@ interface KuyruKSatir {
   hata_mesaji: string | null;
   baslangic_zamani: string | null;
   bitis_zamani: string | null;
+  run_key: string | null;
+}
+
+interface BestRunIndex {
+  competition_name: string;
+  season_label: string;
+  run_key: string;
+  prediction_formula: string;
+  brier: number;
+  hit_rate: number;
+  draw_gap: number;
 }
 
 const LIG_TURKISH: Record<string, string> = {
@@ -48,6 +59,7 @@ const DURUM_TR: Record<string, string> = {
 
 export default function KalibrasyonMerkeziPage() {
   const [kuyruk, setKuyruk] = useState<KuyruKSatir[]>([]);
+  const [bestRunIndex, setBestRunIndex] = useState<Record<string, BestRunIndex>>({});
   const [yukleniyor, setYukleniyor] = useState(true);
   const [calisanSatir, setCalisanSatir] = useState<string | null>(null);
   const [hata, setHata] = useState<string | null>(null);
@@ -56,14 +68,28 @@ export default function KalibrasyonMerkeziPage() {
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const yukle = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('kalibrasyon_kuyrugu' as 'profiles')
-      .select('*')
-      .order('competition_name')
-      .order('season_label');
+    const [kRes, bRes] = await Promise.all([
+      supabase
+        .from('kalibrasyon_kuyrugu' as 'profiles')
+        .select('*')
+        .order('competition_name')
+        .order('season_label'),
+      supabase
+        .from('v_best_replay_run_per_season' as 'profiles')
+        .select('competition_name,season_label,run_key,prediction_formula,brier,hit_rate,draw_gap'),
+    ]);
 
-    if (!error && data) setKuyruk(data as unknown as KuyruKSatir[]);
-    if (error) setHata(error.message);
+    if (!kRes.error && kRes.data) setKuyruk(kRes.data as unknown as KuyruKSatir[]);
+    if (kRes.error) setHata(kRes.error.message);
+
+    if (!bRes.error && bRes.data) {
+      const idx: Record<string, BestRunIndex> = {};
+      (bRes.data as unknown as BestRunIndex[]).forEach(r => {
+        idx[`${r.competition_name}|${r.season_label}`] = r;
+      });
+      setBestRunIndex(idx);
+    }
+
     setYukleniyor(false);
   }, []);
 
@@ -214,6 +240,14 @@ export default function KalibrasyonMerkeziPage() {
                 <p className="text-champagne font-semibold mb-1">COVID Dönemi</p>
                 <p>2020-03-01 ile 2021-08-31 arasındaki maçlar işaretlenir. Bu dönemde taraftar yoktu, ev sahibi avantajı düştü — kalibrasyon bu dönemde dondurulur, karışmaması için.</p>
               </div>
+              <div>
+                <p className="text-champagne font-semibold mb-1">Sapma İşaret Kuralı</p>
+                <p>
+                  <span className="text-amber-400 font-medium">+ pp</span> = model o sonucu gerçekten <strong className="text-white">fazla</strong> tahmin ediyor.{' '}
+                  <span className="text-blue-300 font-medium">− pp</span> = model o sonucu <strong className="text-white">eksik</strong> tahmin ediyor.{' '}
+                  Sıfıra yakın = iyi kalibre.
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -281,6 +315,7 @@ export default function KalibrasyonMerkeziPage() {
           <LigGrubuListesi
             satirlar={filtrelenmis}
             calisanSatirId={calisanSatir}
+            bestRunIndex={bestRunIndex}
             onBaslat={kalibrasyonBaslat}
             onSifirla={sifirla}
           />
@@ -291,10 +326,11 @@ export default function KalibrasyonMerkeziPage() {
 }
 
 function LigGrubuListesi({
-  satirlar, calisanSatirId, onBaslat, onSifirla,
+  satirlar, calisanSatirId, bestRunIndex, onBaslat, onSifirla,
 }: {
   satirlar: KuyruKSatir[];
   calisanSatirId: string | null;
+  bestRunIndex: Record<string, BestRunIndex>;
   onBaslat: (s: KuyruKSatir) => void;
   onSifirla: (s: KuyruKSatir) => void;
 }) {
@@ -365,8 +401,8 @@ function LigGrubuListesi({
                         <th className="text-left px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden sm:table-cell">Maç</th>
                         <th className="text-left px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden md:table-cell">Brier</th>
                         <th className="text-left px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden md:table-cell">İsabet</th>
-                        <th className="text-left px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden lg:table-cell">Ev Sapması</th>
-                        <th className="text-left px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden lg:table-cell">Ber. Sapması</th>
+                        <th className="text-left px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden lg:table-cell" title="Tahmin − Gerçek. + = model fazla tahmin ediyor, − = model eksik tahmin ediyor">Ev Sap. ⓘ</th>
+                        <th className="text-left px-3 py-2.5 text-[11px] font-semibold text-navy-500 uppercase tracking-wider hidden lg:table-cell" title="Tahmin − Gerçek. + = model fazla tahmin ediyor, − = model eksik tahmin ediyor">Ber. Sap. ⓘ</th>
                         <th className="px-3 py-2.5"></th>
                       </tr>
                     </thead>
@@ -375,6 +411,7 @@ function LigGrubuListesi({
                         <SezonSatiri
                           key={satir.id}
                           satir={satir}
+                          bestRun={bestRunIndex[`${satir.competition_name}|${satir.season_label}`] ?? null}
                           calisuyor={calisanSatirId === satir.id}
                           disabled={!!calisanSatirId}
                           onBaslat={() => onBaslat(satir)}
@@ -393,10 +430,19 @@ function LigGrubuListesi({
   );
 }
 
+function formulaRozeti(formula: string | null | undefined): { label: string; cls: string } | null {
+  if (!formula) return null;
+  if (formula.includes('v2') || formula.includes('recalibrated')) {
+    return { label: 'Draw V2', cls: 'bg-blue-500/15 text-blue-300 border border-blue-500/25' };
+  }
+  return { label: 'V1', cls: 'bg-navy-700 text-navy-500 border border-navy-600' };
+}
+
 function SezonSatiri({
-  satir, calisuyor, disabled, onBaslat, onSifirla,
+  satir, bestRun, calisuyor, disabled, onBaslat, onSifirla,
 }: {
   satir: KuyruKSatir;
+  bestRun: BestRunIndex | null;
   calisuyor: boolean;
   disabled: boolean;
   onBaslat: () => void;
@@ -406,12 +452,31 @@ function SezonSatiri({
     ? Math.round(((satir.islenen_mac ?? 0) / satir.mac_sayisi) * 100)
     : 0;
 
+  // When completed, prefer live best-run metrics over stale kalibrasyon_kuyrugu snapshot
+  const displayBrier = satir.durum === 'tamamlandı' && bestRun ? bestRun.brier : satir.ortalama_brier;
+  const displayIsabet = satir.durum === 'tamamlandı' && bestRun ? bestRun.hit_rate : satir.isabet_orani;
+  const displayEvSap = satir.durum === 'tamamlandı' && bestRun ? null : satir.ev_sahibi_sapması;
+  const displayBerSap = satir.durum === 'tamamlandı' && bestRun ? bestRun.draw_gap : satir.beraberlik_sapması;
+  const fRozet = satir.durum === 'tamamlandı' ? formulaRozeti(bestRun?.prediction_formula) : null;
+
   return (
     <tr className={`border-b border-navy-800/30 last:border-0 transition-colors ${
       calisuyor ? 'bg-amber-500/5' : 'hover:bg-navy-800/20'
     }`}>
       <td className="px-5 py-3">
-        <span className="font-medium text-white">{satir.season_label}</span>
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-white">{satir.season_label}</span>
+          {fRozet && (
+            <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-medium ${fRozet.cls}`}>
+              {fRozet.label}
+            </span>
+          )}
+        </div>
+        {satir.durum === 'tamamlandı' && bestRun && (
+          <span className="text-[9px] text-navy-600 font-mono truncate max-w-[120px] block" title={bestRun.run_key}>
+            {bestRun.run_key}
+          </span>
+        )}
       </td>
 
       <td className="px-3 py-3">
@@ -428,7 +493,7 @@ function SezonSatiri({
               <div className="w-20 h-1 bg-navy-800 rounded-full overflow-hidden">
                 <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${ilerleme}%` }} />
               </div>
-              <span className="text-[10px] text-navy-400">{satir.islened_mac ?? 0}/{satir.mac_sayisi}</span>
+              <span className="text-[10px] text-navy-400">{satir.islenen_mac ?? 0}/{satir.mac_sayisi}</span>
             </div>
           )}
           {satir.durum === 'hata' && satir.hata_mesaji && (
@@ -447,29 +512,29 @@ function SezonSatiri({
       </td>
 
       <td className="px-3 py-3 hidden md:table-cell tabular-nums">
-        {satir.ortalama_brier != null
-          ? <BrierRenk deger={satir.ortalama_brier} />
+        {displayBrier != null
+          ? <BrierRenk deger={displayBrier} />
           : <span className="text-navy-600">–</span>
         }
       </td>
 
       <td className="px-3 py-3 hidden md:table-cell tabular-nums">
-        {satir.isabet_orani != null
-          ? <span className="text-white">{(satir.isabet_orani * 100).toFixed(1)}%</span>
+        {displayIsabet != null
+          ? <span className="text-white">{(displayIsabet * 100).toFixed(1)}%</span>
           : <span className="text-navy-600">–</span>
         }
       </td>
 
       <td className="px-3 py-3 hidden lg:table-cell tabular-nums">
-        {satir.ev_sahibi_sapması != null
-          ? <SapmaRenk deger={satir.ev_sahibi_sapması} />
+        {displayEvSap != null
+          ? <SapmaRenk deger={displayEvSap} />
           : <span className="text-navy-600">–</span>
         }
       </td>
 
       <td className="px-3 py-3 hidden lg:table-cell tabular-nums">
-        {satir.beraberlik_sapması != null
-          ? <SapmaRenk deger={satir.beraberlik_sapması} />
+        {displayBerSap != null
+          ? <SapmaRenk deger={displayBerSap} />
           : <span className="text-navy-600">–</span>
         }
       </td>
