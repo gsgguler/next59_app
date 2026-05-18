@@ -24,7 +24,7 @@ import { supabase } from '../../lib/supabase';
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type TabId = 'overview' | 'blocked' | 'confidence' | 'brains' | 'reality' | 'calibration';
-type DateFilter = 'today' | 'tomorrow' | 'week';
+type DateFilter = 'today' | 'tomorrow' | 'week' | 'all';
 
 interface ReadinessRow {
   match_id: string;
@@ -1064,7 +1064,7 @@ function LayoutDashboardIcon(props: React.SVGProps<SVGSVGElement>) {
 
 export default function DailyMonitorPage() {
   const [tab, setTab] = useState<TabId>('overview');
-  const [dateFilter, setDateFilter] = useState<DateFilter>('today');
+  const [dateFilter, setDateFilter] = useState<DateFilter>('week');
 
   const [readiness, setReadiness] = useState<ReadinessRow[]>([]);
   const [predictions, setPredictions] = useState<PredictionDraft[]>([]);
@@ -1078,29 +1078,41 @@ export default function DailyMonitorPage() {
   const [actionLoading, setActionLoading] = useState<Record<string, string>>({});
   const [actionMsg, setActionMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
-  // Date window
-  const dateRange = useCallback((): { start: string; end: string } => {
+  // Date window — null means no date filter (show all)
+  const dateRange = useCallback((): { start: string | null; end: string | null } => {
     const today = todayStr();
     if (dateFilter === 'today') return { start: today, end: today };
     if (dateFilter === 'tomorrow') {
       const t = addDays(today, 1);
       return { start: t, end: t };
     }
-    return { start: today, end: addDays(today, 6) };
+    if (dateFilter === 'all') return { start: null, end: null };
+    // 'week': ±30 days so existing test/historical rows are always visible
+    return { start: addDays(today, -30), end: addDays(today, 30) };
   }, [dateFilter]);
+
+  const [queryErrors, setQueryErrors] = useState<string[]>([]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setQueryErrors([]);
+    const errors: string[] = [];
     const { start, end } = dateRange();
 
-    // 1. Readiness
-    const { data: rdData } = await supabase
+    // 1. Readiness — apply date filter only when not 'all'
+    let rdQuery = supabase
       .schema('model_lab')
       .from('upcoming_match_readiness')
       .select('*')
-      .gte('match_date', start)
-      .lte('match_date', end)
       .order('match_date', { ascending: true });
+    if (start) rdQuery = rdQuery.gte('match_date', start);
+    if (end) rdQuery = rdQuery.lte('match_date', end);
+
+    const { data: rdData, error: rdErr } = await rdQuery;
+    if (rdErr) {
+      console.error('[DailyMonitor] upcoming_match_readiness:', rdErr);
+      errors.push(`readiness: ${rdErr.message}`);
+    }
     const rdRows = (rdData as ReadinessRow[]) ?? [];
     setReadiness(rdRows);
 
@@ -1109,7 +1121,7 @@ export default function DailyMonitorPage() {
     // 2. Predictions (latest per match)
     let predRows: PredictionDraft[] = [];
     if (matchIds.length > 0) {
-      const { data: pData } = await supabase
+      const { data: pData, error: pErr } = await supabase
         .schema('model_lab')
         .from('prematch_prediction_drafts')
         .select(
@@ -1117,6 +1129,10 @@ export default function DailyMonitorPage() {
         )
         .in('match_id', matchIds)
         .order('generated_at', { ascending: false });
+      if (pErr) {
+        console.error('[DailyMonitor] prematch_prediction_drafts:', pErr);
+        errors.push(`predictions: ${pErr.message}`);
+      }
       // Dedup by match_id — keep latest
       const seen = new Set<string>();
       for (const p of (pData as PredictionDraft[]) ?? []) {
@@ -1128,13 +1144,17 @@ export default function DailyMonitorPage() {
     // 3. Brain runs (latest completed per match)
     const runMap = new Map<string, BrainRun>();
     if (matchIds.length > 0) {
-      const { data: runData } = await supabase
+      const { data: runData, error: runErr } = await supabase
         .schema('model_lab')
         .from('prematch_brain_runs')
         .select('id, match_id, status, generated_at')
         .in('match_id', matchIds)
         .eq('status', 'completed')
         .order('generated_at', { ascending: false });
+      if (runErr) {
+        console.error('[DailyMonitor] prematch_brain_runs:', runErr);
+        errors.push(`brain_runs: ${runErr.message}`);
+      }
       for (const r of (runData as BrainRun[]) ?? []) {
         if (!runMap.has(r.match_id)) runMap.set(r.match_id, r);
       }
@@ -1145,17 +1165,21 @@ export default function DailyMonitorPage() {
     const runIds = Array.from(runMap.values()).map(r => r.id);
     let mbRows: MasterBrainRow[] = [];
     if (runIds.length > 0) {
-      const { data: mbData } = await supabase
+      const { data: mbData, error: mbErr } = await supabase
         .schema('model_lab')
         .from('prematch_master_brain_outputs')
         .select('*')
         .in('brain_run_id', runIds);
+      if (mbErr) {
+        console.error('[DailyMonitor] prematch_master_brain_outputs:', mbErr);
+        errors.push(`master_brains: ${mbErr.message}`);
+      }
       mbRows = (mbData as MasterBrainRow[]) ?? [];
     }
     setMasterBrains(mbRows);
 
     // 5. Evaluations (last 50)
-    const { data: evalData } = await supabase
+    const { data: evalData, error: evalErr } = await supabase
       .schema('model_lab')
       .from('replay_match_evaluations')
       .select(
@@ -1163,18 +1187,27 @@ export default function DailyMonitorPage() {
       )
       .order('evaluated_at', { ascending: false })
       .limit(50);
+    if (evalErr) {
+      console.error('[DailyMonitor] replay_match_evaluations:', evalErr);
+      errors.push(`evaluations: ${evalErr.message}`);
+    }
     setEvals((evalData as EvalRow[]) ?? []);
 
     // 6. Calibration state
-    const { data: calData } = await supabase
+    const { data: calData, error: calErr } = await supabase
       .schema('model_lab')
       .from('league_calibration_state')
       .select(
         'id, competition_name, rolling_brier_l50, home_bias_l50, draw_bias_l50, away_bias_l50, current_home_correction, matches_evaluated, updated_at'
       )
       .order('competition_name');
+    if (calErr) {
+      console.error('[DailyMonitor] league_calibration_state:', calErr);
+      errors.push(`calibration: ${calErr.message}`);
+    }
     setCalibration((calData as CalibrationRow[]) ?? []);
 
+    setQueryErrors(errors);
     setLastRefresh(new Date());
     setLoading(false);
   }, [dateRange]);
@@ -1261,17 +1294,24 @@ export default function DailyMonitorPage() {
           <div className="flex items-center gap-3">
             {/* Date filter */}
             <div className="flex rounded-lg border border-navy-700 overflow-hidden text-xs">
-              {(['today', 'tomorrow', 'week'] as DateFilter[]).map(f => (
+              {(
+                [
+                  { id: 'today', label: 'Bugun' },
+                  { id: 'tomorrow', label: 'Yarin' },
+                  { id: 'week', label: '±30 Gun' },
+                  { id: 'all', label: 'Tum' },
+                ] as { id: DateFilter; label: string }[]
+              ).map(f => (
                 <button
-                  key={f}
-                  onClick={() => setDateFilter(f)}
+                  key={f.id}
+                  onClick={() => setDateFilter(f.id)}
                   className={`px-3 py-1.5 font-medium transition-colors ${
-                    dateFilter === f
+                    dateFilter === f.id
                       ? 'bg-sky-700 text-white'
                       : 'text-navy-400 hover:text-white hover:bg-navy-700'
                   }`}
                 >
-                  {f === 'today' ? 'Bugun' : f === 'tomorrow' ? 'Yarin' : '7 Gun'}
+                  {f.label}
                 </button>
               ))}
             </div>
@@ -1285,6 +1325,19 @@ export default function DailyMonitorPage() {
             </button>
           </div>
         </div>
+
+        {/* Query errors banner */}
+        {queryErrors.length > 0 && (
+          <div className="mb-4 px-4 py-3 rounded-lg border bg-red-950/40 border-red-700/50 text-red-300 text-sm">
+            <div className="flex items-center gap-2 font-semibold mb-1">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              Sorgu hatalari — PostgREST erisim sorunu olabilir
+            </div>
+            <ul className="list-disc list-inside space-y-0.5 text-xs">
+              {queryErrors.map((e, i) => <li key={i}>{e}</li>)}
+            </ul>
+          </div>
+        )}
 
         {/* Action message */}
         {actionMsg && (
@@ -1421,3 +1474,6 @@ export default function DailyMonitorPage() {
     </div>
   );
 }
+
+
+export default DailyMonitorPage
