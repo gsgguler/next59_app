@@ -239,6 +239,29 @@ interface LiveEngineHealth {
   engineRunCount1h: number;
 }
 
+interface LivePatternMemoryRow {
+  current_live_state: string;
+  minute_bucket: string;
+  competition_season_id: string | null;
+  sample_size: number;
+  low_sample_warning: boolean;
+  goal_follow_rate_5min: number | null;
+  goal_follow_rate_10min: number | null;
+  comeback_rate: number | null;
+  false_confidence_rate: number | null;
+  calibration_score: number | null;
+  chaos_reliability_score: number | null;
+  late_goal_rate: number | null;
+  strongest_pressure_bucket: string | null;
+  updated_at: string;
+}
+
+interface LiveMemoryHealth {
+  patternRows: LivePatternMemoryRow[];
+  outcomeCount: number;
+  lastRefreshedAt: string | null;
+}
+
 interface KPIs {
   upcoming: number;
   ready: number;
@@ -834,6 +857,159 @@ function LiveEngineCard({ health }: { health: LiveEngineHealth }) {
   );
 }
 
+function LiveMemoryCard({ health }: { health: LiveMemoryHealth }) {
+  const { patternRows, outcomeCount, lastRefreshedAt } = health;
+  if (patternRows.length === 0 && outcomeCount === 0) return null;
+
+  // Aggregate to global rows only (competition_season_id = null) for summary
+  const globalRows = patternRows.filter(r => r.competition_season_id === null);
+
+  const topReliable = [...globalRows]
+    .filter(r => !r.low_sample_warning && (r.calibration_score ?? 0) > 0.3)
+    .sort((a, b) => (b.calibration_score ?? 0) - (a.calibration_score ?? 0))
+    .slice(0, 4);
+
+  const topFalse = [...globalRows]
+    .filter(r => (r.false_confidence_rate ?? 0) > 0.2)
+    .sort((a, b) => (b.false_confidence_rate ?? 0) - (a.false_confidence_rate ?? 0))
+    .slice(0, 4);
+
+  const topComeback = [...globalRows]
+    .filter(r => (r.comeback_rate ?? 0) > 0)
+    .sort((a, b) => (b.comeback_rate ?? 0) - (a.comeback_rate ?? 0))
+    .slice(0, 3);
+
+  const topLateGoal = [...globalRows]
+    .filter(r => (r.late_goal_rate ?? 0) > 0)
+    .sort((a, b) => (b.late_goal_rate ?? 0) - (a.late_goal_rate ?? 0))
+    .slice(0, 3);
+
+  const lowSampleStates = globalRows.filter(r => r.low_sample_warning).length;
+
+  function pct(v: number | null) {
+    if (v == null) return '—';
+    return `${Math.round(v * 100)}%`;
+  }
+
+  return (
+    <div className="bg-navy-800 border border-navy-700 rounded-xl p-4 mb-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Brain className="w-4 h-4 text-sky-400" />
+        <span className="text-sm font-semibold text-white">Live Memory Kalibrasyonu</span>
+        <span className="text-[10px] text-navy-500 font-mono ml-1">v1 · pattern-based</span>
+        <span className="ml-auto text-[10px] text-navy-500">
+          {outcomeCount.toLocaleString()} sonuc · {patternRows.length} pattern
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+        <div className="bg-navy-900/50 rounded-lg p-2.5">
+          <div className="text-[10px] text-navy-500 uppercase mb-1">Replay Sonuclari</div>
+          <div className="text-lg font-bold text-sky-400">{outcomeCount.toLocaleString()}</div>
+        </div>
+        <div className="bg-navy-900/50 rounded-lg p-2.5">
+          <div className="text-[10px] text-navy-500 uppercase mb-1">Pattern Hafiza</div>
+          <div className="text-lg font-bold text-sky-300">{globalRows.length}</div>
+          <div className="text-[10px] text-navy-600">global gruplar</div>
+        </div>
+        <div className="bg-navy-900/50 rounded-lg p-2.5">
+          <div className="text-[10px] text-navy-500 uppercase mb-1">Dusuk Ornek</div>
+          <div className={`text-lg font-bold ${lowSampleStates > 5 ? 'text-amber-400' : 'text-emerald-400'}`}>
+            {lowSampleStates}
+          </div>
+          <div className="text-[10px] text-navy-600">&lt;30 ornek</div>
+        </div>
+        <div className="bg-navy-900/50 rounded-lg p-2.5">
+          <div className="text-[10px] text-navy-500 uppercase mb-1">Son Guncelleme</div>
+          <div className="text-xs font-semibold text-navy-300">
+            {lastRefreshedAt
+              ? `${Math.round((Date.now() - new Date(lastRefreshedAt).getTime()) / 60000)}dk once`
+              : '—'}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {topReliable.length > 0 && (
+          <div>
+            <div className="text-[10px] text-emerald-500 uppercase font-semibold mb-2">En Guvenilir Durumlar</div>
+            <div className="space-y-1.5">
+              {topReliable.map(r => (
+                <div key={`${r.current_live_state}-${r.minute_bucket}`}
+                  className="flex items-center gap-2 bg-navy-900/40 rounded-lg px-2.5 py-1.5">
+                  <span className="text-[10px] font-medium text-emerald-400 flex-1 truncate">
+                    {r.current_live_state.replace(/_/g, ' ')}
+                  </span>
+                  <span className="text-[9px] text-navy-500 font-mono">{r.minute_bucket}'</span>
+                  <span className="text-[10px] text-emerald-400 font-semibold">{pct(r.calibration_score)}</span>
+                  <span className="text-[9px] text-navy-600">n={r.sample_size}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {topFalse.length > 0 && (
+          <div>
+            <div className="text-[10px] text-red-500 uppercase font-semibold mb-2">Yuksek Yanlis Sinyal</div>
+            <div className="space-y-1.5">
+              {topFalse.map(r => (
+                <div key={`${r.current_live_state}-${r.minute_bucket}`}
+                  className="flex items-center gap-2 bg-navy-900/40 rounded-lg px-2.5 py-1.5">
+                  <span className="text-[10px] font-medium text-red-400 flex-1 truncate">
+                    {r.current_live_state.replace(/_/g, ' ')}
+                  </span>
+                  <span className="text-[9px] text-navy-500 font-mono">{r.minute_bucket}'</span>
+                  <span className="text-[10px] text-red-400 font-semibold">{pct(r.false_confidence_rate)}</span>
+                  <span className="text-[9px] text-navy-600">n={r.sample_size}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {topComeback.length > 0 && (
+          <div>
+            <div className="text-[10px] text-orange-500 uppercase font-semibold mb-2">Geri Donus Durumu</div>
+            <div className="space-y-1.5">
+              {topComeback.map(r => (
+                <div key={`${r.current_live_state}-${r.minute_bucket}`}
+                  className="flex items-center gap-2 bg-navy-900/40 rounded-lg px-2.5 py-1.5">
+                  <span className="text-[10px] font-medium text-orange-400 flex-1 truncate">
+                    {r.current_live_state.replace(/_/g, ' ')}
+                  </span>
+                  <span className="text-[9px] text-navy-500 font-mono">{r.minute_bucket}'</span>
+                  <span className="text-[10px] text-orange-400 font-semibold">{pct(r.comeback_rate)}</span>
+                  <span className="text-[9px] text-navy-600">n={r.sample_size}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {topLateGoal.length > 0 && (
+          <div>
+            <div className="text-[10px] text-amber-500 uppercase font-semibold mb-2">Gec Gol Baskisi</div>
+            <div className="space-y-1.5">
+              {topLateGoal.map(r => (
+                <div key={`${r.current_live_state}-${r.minute_bucket}`}
+                  className="flex items-center gap-2 bg-navy-900/40 rounded-lg px-2.5 py-1.5">
+                  <span className="text-[10px] font-medium text-amber-400 flex-1 truncate">
+                    {r.current_live_state.replace(/_/g, ' ')}
+                  </span>
+                  <span className="text-[9px] text-navy-500 font-mono">{r.minute_bucket}'</span>
+                  <span className="text-[10px] text-amber-400 font-semibold">{pct(r.late_goal_rate)}</span>
+                  <span className="text-[9px] text-navy-600">n={r.sample_size}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
 function KpiCard({
@@ -1004,6 +1180,7 @@ function OverviewTab({
   liveSyncHealth,
   enrichmentHealth,
   liveEngineHealth,
+  liveMemoryHealth,
   onAction,
   actionLoading,
 }: {
@@ -1018,6 +1195,7 @@ function OverviewTab({
   liveSyncHealth: LiveSyncHealth;
   enrichmentHealth: EnrichmentHealth;
   liveEngineHealth: LiveEngineHealth;
+  liveMemoryHealth: LiveMemoryHealth;
   onAction: (action: string, matchId: string) => void;
   actionLoading: Record<string, string>;
 }) {
@@ -1038,6 +1216,9 @@ function OverviewTab({
 
       {/* Live engine V1 */}
       <LiveEngineCard health={liveEngineHealth} />
+
+      {/* Live memory calibration */}
+      <LiveMemoryCard health={liveMemoryHealth} />
 
       {/* Result sync + eval health */}
       <ResultSyncEvalCard syncRun={syncRun} evalHealth={evalHealth} />
@@ -1782,6 +1963,12 @@ export default function DailyMonitorPage() {
     engineRunCount1h: 0,
   });
 
+  const [liveMemoryHealth, setLiveMemoryHealth] = useState<LiveMemoryHealth>({
+    patternRows: [],
+    outcomeCount: 0,
+    lastRefreshedAt: null,
+  });
+
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [actionLoading, setActionLoading] = useState<Record<string, string>>({});
@@ -2082,6 +2269,29 @@ export default function DailyMonitorPage() {
       console.warn('[DailyMonitor] live_engine_health:', liveEngineErr);
     }
 
+    // 13. Live Memory health
+    try {
+      const [patternRes, outcomeCountRes] = await Promise.allSettled([
+        supabase.rpc('admin_get_live_pattern_memory_summary'),
+        supabase.schema('model_lab').from('live_state_outcomes')
+          .select('id', { count: 'exact', head: true })
+          .not('evaluated_at', 'is', null),
+      ]);
+      const patternRows = patternRes.status === 'fulfilled' && !patternRes.value.error
+        ? ((patternRes.value.data as LivePatternMemoryRow[]) ?? [])
+        : [];
+      const lastRefreshedAt = patternRows.length > 0
+        ? patternRows.reduce((latest, r) => r.updated_at > latest ? r.updated_at : latest, patternRows[0].updated_at)
+        : null;
+      setLiveMemoryHealth({
+        patternRows,
+        outcomeCount: outcomeCountRes.status === 'fulfilled' ? (outcomeCountRes.value.count ?? 0) : 0,
+        lastRefreshedAt,
+      });
+    } catch (liveMemoryErr) {
+      console.warn('[DailyMonitor] live_memory_health:', liveMemoryErr);
+    }
+
     setQueryErrors(errors);
     setLastRefresh(new Date());
     setLoading(false);
@@ -2285,6 +2495,7 @@ export default function DailyMonitorPage() {
                 liveSyncHealth={liveSyncHealth}
                 enrichmentHealth={enrichmentHealth}
                 liveEngineHealth={liveEngineHealth}
+                liveMemoryHealth={liveMemoryHealth}
                 onAction={handleAction}
                 actionLoading={actionLoading}
               />
