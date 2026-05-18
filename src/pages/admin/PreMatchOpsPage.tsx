@@ -3,7 +3,8 @@ import {
   Zap, Shield, RefreshCw, AlertCircle, CheckCircle2, Clock,
   Play, Eye, ThumbsUp, ThumbsDown, AlertTriangle, Filter,
   ChevronDown, ChevronUp, BarChart2, FileText, Cpu, XCircle,
-  TrendingUp, Activity,
+  TrendingUp, Activity, Brain, Target, Waves, Timer,
+  Sliders, Database, Star, ChevronRight,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -67,18 +68,43 @@ interface GenJob {
   completed_at: string | null;
 }
 
-type TabId = 'queue' | 'predictions' | 'jobs';
+interface BrainOutput {
+  output: Record<string, unknown>;
+  confidence_score: number;
+  warning_level: 'none' | 'low' | 'medium' | 'high';
+}
+
+interface BrainPackage {
+  brain_run_id: string;
+  status: string;
+  generated_at: string;
+  master_brain: {
+    final_readiness: string;
+    final_confidence: string;
+    scenario_tone: string;
+    publish_recommendation: string;
+    master_summary: string;
+    warnings: Array<{ brain: string; level: string; msg: string }>;
+  };
+  sub_brains: Record<string, BrainOutput>;
+}
+
+type TabId = 'queue' | 'predictions' | 'brains' | 'jobs';
 type StatusFilter = 'all' | 'ready' | 'partial' | 'blocked';
 
 const COMPETITION_OPTIONS = [
-  'Tümü',
-  'Premier League',
-  'Bundesliga',
-  'La Liga',
-  'Ligue 1',
-  'Serie A',
-  'Süper Lig',
+  'Tümü', 'Premier League', 'Bundesliga', 'La Liga', 'Ligue 1', 'Serie A', 'Süper Lig',
 ];
+
+const BRAIN_META: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; description: string }> = {
+  probability:   { label: 'Probability Brain',   icon: BarChart2, description: 'p_home / p_draw / p_away + ELO gap + confidence' },
+  draw_risk:     { label: 'Draw Risk Brain',      icon: Target,    description: 'Draw risk level + pressure + league prior + calibration gap' },
+  upset_risk:    { label: 'Upset Risk Brain',     icon: AlertTriangle, description: 'Favorite fragility + upset probability + overconfidence' },
+  tempo:         { label: 'Tempo Brain',          icon: Waves,     description: 'Expected tempo from goals/form/stats — no event prediction' },
+  late_pressure: { label: 'Late Pressure Brain',  icon: Timer,     description: 'Late goal pressure from closeness + draw risk + attack index' },
+  calibration:   { label: 'Calibration Brain',    icon: Sliders,   description: 'League Brier score + home correction + production candidate' },
+  data_quality:  { label: 'Data Quality Brain',   icon: Database,  description: 'Feature tier + ELO/lineup/calibration readiness + severity' },
+};
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
@@ -89,12 +115,11 @@ export default function PreMatchOpsPage() {
     <div className="min-h-screen bg-navy-950 p-6">
       <div className="max-w-7xl mx-auto">
 
-        {/* Header */}
         <div className="bg-amber-500/10 border border-amber-500/25 rounded-xl px-5 py-3 mb-8 flex items-start gap-3">
           <Shield className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
           <p className="text-sm text-amber-300">
             <strong>Pre-Match Operations — Admin Only.</strong>{' '}
-            Yaklaşan maçlar için tahmin üretim ve inceleme iş akışı. Hiçbir içerik otomatik yayınlanmaz.
+            Yaklaşan maçlar için Sub-Brain → Master Brain orkestrasyon sistemi. Hiçbir içerik otomatik yayınlanmaz.
           </p>
         </div>
 
@@ -105,17 +130,17 @@ export default function PreMatchOpsPage() {
           <div>
             <h1 className="text-2xl font-bold text-white font-display">Pre-Match Operations</h1>
             <p className="text-sm text-readable-muted mt-1">
-              Maç hazırlık durumu · tahmin üretimi · inceleme kuyruğu
+              Maç hazırlık · tahmin · beyin paketi · senaryo · inceleme kuyruğu
             </p>
           </div>
         </div>
 
-        {/* Tabs */}
         <div className="flex items-center gap-1 mb-6 border-b border-navy-800">
           {([
-            { id: 'queue' as TabId, label: 'Hazırlık Kuyruğu', icon: Activity },
+            { id: 'queue' as TabId,       label: 'Hazırlık Kuyruğu', icon: Activity },
             { id: 'predictions' as TabId, label: 'Tahmin Taslakları', icon: BarChart2 },
-            { id: 'jobs' as TabId, label: 'İşlem Geçmişi', icon: Cpu },
+            { id: 'brains' as TabId,      label: 'Brain Inspector',   icon: Brain },
+            { id: 'jobs' as TabId,        label: 'İşlem Geçmişi',     icon: Cpu },
           ] as const).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -132,9 +157,10 @@ export default function PreMatchOpsPage() {
           ))}
         </div>
 
-        {tab === 'queue' && <ReadinessQueueTab />}
+        {tab === 'queue'       && <ReadinessQueueTab />}
         {tab === 'predictions' && <PredictionDraftsTab />}
-        {tab === 'jobs' && <JobsTab />}
+        {tab === 'brains'      && <BrainInspectorTab />}
+        {tab === 'jobs'        && <JobsTab />}
       </div>
     </div>
   );
@@ -152,24 +178,22 @@ function ReadinessQueueTab() {
   const [dateTo, setDateTo] = useState('');
   const [assessing, setAssessing] = useState<string | null>(null);
   const [generating, setGenerating] = useState<string | null>(null);
+  const [brainGen, setBrainGen] = useState<string | null>(null);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-
     let q = supabase
       .schema('model_lab')
       .from('upcoming_match_readiness')
       .select('*')
       .order('match_date', { ascending: true })
       .limit(300);
-
     if (statusFilter !== 'all') q = q.eq('overall_status', statusFilter);
     if (compFilter !== 'Tümü') q = q.eq('competition_name', compFilter);
     if (dateFrom) q = q.gte('match_date', dateFrom);
     if (dateTo) q = q.lte('match_date', dateTo);
-
     const { data, error: err } = await q;
     if (err) setError(err.message);
     else setRows((data as ReadinessRow[]) ?? []);
@@ -180,9 +204,7 @@ function ReadinessQueueTab() {
 
   const assessMatch = async (matchId: string) => {
     setAssessing(matchId);
-    const { error: err } = await supabase.rpc('assess_upcoming_match_readiness', {
-      p_match_id: matchId,
-    });
+    const { error: err } = await supabase.rpc('ml_assess_upcoming_match_readiness', { p_match_id: matchId });
     if (err) alert('Hata: ' + err.message);
     await load();
     setAssessing(null);
@@ -190,12 +212,21 @@ function ReadinessQueueTab() {
 
   const generatePackage = async (matchId: string) => {
     setGenerating(matchId);
-    const { error: err } = await supabase.schema('model_lab').rpc('generate_full_prematch_package', {
-      p_match_id: matchId,
-    });
+    const { error: err } = await supabase.rpc('ml_generate_full_prematch_package', { p_match_id: matchId });
     if (err) alert('Üretim hatası: ' + err.message);
     await load();
     setGenerating(null);
+  };
+
+  const generateBrain = async (matchId: string) => {
+    setBrainGen(matchId);
+    const { error: err } = await supabase.rpc('ml_generate_prematch_brain_package', {
+      p_match_id: matchId,
+      p_triggered_by: 'admin_ui',
+    });
+    if (err) alert('Brain hatası: ' + err.message);
+    await load();
+    setBrainGen(null);
   };
 
   const summary = {
@@ -208,16 +239,14 @@ function ReadinessQueueTab() {
 
   return (
     <div>
-      {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
-        <SmallStat label="Toplam" value={summary.total} />
-        <SmallStat label="Hazır" value={summary.ready} accent="green" />
-        <SmallStat label="Kısmi" value={summary.partial} accent="amber" />
-        <SmallStat label="Bloke" value={summary.blocked} accent="red" />
+        <SmallStat label="Toplam"     value={summary.total} />
+        <SmallStat label="Hazır"      value={summary.ready}         accent="green" />
+        <SmallStat label="Kısmi"      value={summary.partial}       accent="amber" />
+        <SmallStat label="Bloke"      value={summary.blocked}       accent="red" />
         <SmallStat label="Tahmin Var" value={summary.withPrediction} accent="blue" />
       </div>
 
-      {/* Filters */}
       <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-4 mb-4">
         <div className="flex items-center gap-2 mb-3">
           <Filter className="w-3.5 h-3.5 text-navy-400" />
@@ -226,9 +255,7 @@ function ReadinessQueueTab() {
         <div className="flex flex-wrap gap-3 items-center">
           <div className="flex items-center gap-1">
             {(['all', 'ready', 'partial', 'blocked'] as StatusFilter[]).map(f => (
-              <button
-                key={f}
-                onClick={() => setStatusFilter(f)}
+              <button key={f} onClick={() => setStatusFilter(f)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                   statusFilter === f
                     ? 'bg-champagne/15 text-champagne border border-champagne/30'
@@ -240,11 +267,8 @@ function ReadinessQueueTab() {
             ))}
           </div>
           <div className="flex items-center gap-2 ml-auto flex-wrap">
-            <select
-              value={compFilter}
-              onChange={e => setCompFilter(e.target.value)}
-              className="appearance-none bg-navy-800 border border-navy-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none"
-            >
+            <select value={compFilter} onChange={e => setCompFilter(e.target.value)}
+              className="appearance-none bg-navy-800 border border-navy-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none">
               {COMPETITION_OPTIONS.map(c => <option key={c}>{c}</option>)}
             </select>
             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
@@ -262,7 +286,6 @@ function ReadinessQueueTab() {
 
       {error && <ErrorBanner message={error} />}
 
-      {/* Table */}
       <div className="bg-navy-900/50 border border-navy-800 rounded-xl overflow-hidden">
         <div className="px-5 py-3 border-b border-navy-800 flex items-center justify-between">
           <span className="text-xs font-semibold text-readable-muted uppercase tracking-wider">
@@ -309,15 +332,9 @@ function ReadinessQueueTab() {
                         <div className="text-navy-400">{row.competition_name}</div>
                         <div className="text-navy-600 tabular-nums">{row.match_date}</div>
                       </td>
-                      <td className="px-3 py-3 text-center">
-                        <ReadinessDot ok={row.elo_readiness} />
-                      </td>
-                      <td className="px-3 py-3 text-center">
-                        <ReadinessDot ok={row.feature_readiness} />
-                      </td>
-                      <td className="px-3 py-3 text-center">
-                        <ReadinessDot ok={row.calibration_readiness} />
-                      </td>
+                      <td className="px-3 py-3 text-center"><ReadinessDot ok={row.elo_readiness} /></td>
+                      <td className="px-3 py-3 text-center"><ReadinessDot ok={row.feature_readiness} /></td>
+                      <td className="px-3 py-3 text-center"><ReadinessDot ok={row.calibration_readiness} /></td>
                       <td className="px-3 py-3 text-center">
                         {row.prediction_readiness
                           ? <PredStatusBadge status={row.prediction_status} />
@@ -328,12 +345,19 @@ function ReadinessQueueTab() {
                         <OverallStatusBadge status={row.overall_status} />
                       </td>
                       <td className="px-5 py-3 text-right">
-                        <div className="flex items-center gap-2 justify-end">
+                        <div className="flex items-center gap-1.5 justify-end flex-wrap">
                           <ActionButton
                             label="Değerlendir"
                             icon={<Eye className="w-3 h-3" />}
                             loading={assessing === row.match_id}
                             onClick={e => { e.stopPropagation(); assessMatch(row.match_id); }}
+                            variant="ghost"
+                          />
+                          <ActionButton
+                            label="Brain"
+                            icon={<Brain className="w-3 h-3" />}
+                            loading={brainGen === row.match_id}
+                            onClick={e => { e.stopPropagation(); generateBrain(row.match_id); }}
                             variant="ghost"
                           />
                           {(row.overall_status === 'ready' || row.overall_status === 'partial') && !row.prediction_readiness && (
@@ -421,9 +445,7 @@ function PredictionDraftsTab() {
       <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-4 mb-4">
         <div className="flex items-center gap-2 flex-wrap">
           {STATUS_OPTIONS.map(s => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
+            <button key={s} onClick={() => setStatusFilter(s)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                 statusFilter === s
                   ? 'bg-champagne/15 text-champagne border border-champagne/30'
@@ -485,37 +507,26 @@ function PredictionDraftsTab() {
                     <td className="px-3 py-3 text-center hidden lg:table-cell">
                       <FeatureTierBadge tier={d.feature_quality_tier} />
                     </td>
-                    <td className="px-3 py-3 text-center">
-                      <PredStatusBadge status={d.status} />
-                    </td>
+                    <td className="px-3 py-3 text-center"><PredStatusBadge status={d.status} /></td>
                     <td className="px-5 py-3 text-right">
                       <div className="flex items-center gap-1.5 justify-end">
                         {d.status === 'pending_review' && (
                           <>
-                            <ActionButton
-                              label="Onayla"
-                              icon={<ThumbsUp className="w-3 h-3" />}
+                            <ActionButton label="Onayla" icon={<ThumbsUp className="w-3 h-3" />}
                               loading={actioning === d.id}
                               onClick={() => updateStatus(d.id, 'approved_internal')}
-                              variant="success"
-                            />
-                            <ActionButton
-                              label="Reddet"
-                              icon={<ThumbsDown className="w-3 h-3" />}
+                              variant="success" />
+                            <ActionButton label="Reddet" icon={<ThumbsDown className="w-3 h-3" />}
                               loading={actioning === d.id}
                               onClick={() => updateStatus(d.id, 'rejected')}
-                              variant="danger"
-                            />
+                              variant="danger" />
                           </>
                         )}
                         {d.status === 'approved_internal' && (
-                          <ActionButton
-                            label="Yayınla"
-                            icon={<TrendingUp className="w-3 h-3" />}
+                          <ActionButton label="Yayınla" icon={<TrendingUp className="w-3 h-3" />}
                             loading={actioning === d.id}
                             onClick={() => updateStatus(d.id, 'published')}
-                            variant="primary"
-                          />
+                            variant="primary" />
                         )}
                         {d.warnings?.length > 0 && (
                           <span title={d.warnings.join('\n')} className="text-amber-400">
@@ -531,6 +542,345 @@ function PredictionDraftsTab() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ─── Brain Inspector Tab ──────────────────────────────────────────────────────
+
+function BrainInspectorTab() {
+  const [matchId, setMatchId] = useState('');
+  const [inputValue, setInputValue] = useState('');
+  const [brainPkg, setBrainPkg] = useState<BrainPackage | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [activeBrain, setActiveBrain] = useState<string | null>(null);
+
+  // Recent brain runs for quick selection
+  const [recentRuns, setRecentRuns] = useState<Array<{ match_id: string; generated_at: string; home: string; away: string; competition: string; tone: string; confidence: string }>>([]);
+  const [runsLoading, setRunsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadRecent = async () => {
+      setRunsLoading(true);
+      const { data } = await supabase
+        .schema('model_lab')
+        .from('prematch_brain_runs')
+        .select('match_id, generated_at')
+        .eq('status', 'completed')
+        .order('generated_at', { ascending: false })
+        .limit(20);
+
+      if (!data) { setRunsLoading(false); return; }
+
+      // Enrich with master brain verdict
+      const enriched = await Promise.all(data.map(async (run) => {
+        const { data: pkg } = await supabase.rpc('ml_get_latest_brain_package', { p_match_id: run.match_id });
+        const master = pkg?.master_brain ?? {};
+        // Get match names from readiness table
+        const { data: rd } = await supabase.schema('model_lab').from('upcoming_match_readiness')
+          .select('home_team_name, away_team_name, competition_name')
+          .eq('match_id', run.match_id).maybeSingle();
+        return {
+          match_id: run.match_id,
+          generated_at: run.generated_at,
+          home: rd?.home_team_name ?? '?',
+          away: rd?.away_team_name ?? '?',
+          competition: rd?.competition_name ?? '?',
+          tone: master.scenario_tone ?? '?',
+          confidence: master.final_confidence ?? '?',
+        };
+      }));
+
+      setRecentRuns(enriched);
+      setRunsLoading(false);
+    };
+    loadRecent();
+  }, []);
+
+  const fetchBrainPackage = async (id: string) => {
+    if (!id) return;
+    setLoading(true);
+    setError(null);
+    const { data, error: err } = await supabase.rpc('ml_get_latest_brain_package', { p_match_id: id });
+    if (err) { setError(err.message); setBrainPkg(null); }
+    else if (!data) { setError('Bu maç için brain paketi bulunamadı. Önce Generate Brain çalıştırın.'); setBrainPkg(null); }
+    else { setBrainPkg(data as BrainPackage); setActiveBrain(null); }
+    setLoading(false);
+  };
+
+  const generateBrainPackage = async () => {
+    if (!matchId) return;
+    setGenerating(true);
+    setError(null);
+    const { data, error: err } = await supabase.rpc('ml_generate_prematch_brain_package', {
+      p_match_id: matchId,
+      p_triggered_by: 'brain_inspector_ui',
+    });
+    if (err) { setError(err.message); }
+    else { setBrainPkg(data as BrainPackage); setActiveBrain(null); }
+    setGenerating(false);
+  };
+
+  const selectMatch = (id: string) => {
+    setMatchId(id);
+    setInputValue(id);
+    fetchBrainPackage(id);
+  };
+
+  const handleSearch = () => {
+    setMatchId(inputValue);
+    fetchBrainPackage(inputValue);
+  };
+
+  const BRAIN_ORDER = ['probability', 'draw_risk', 'upset_risk', 'tempo', 'late_pressure', 'calibration', 'data_quality'];
+
+  return (
+    <div>
+      {/* Search / select */}
+      <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-4 mb-6">
+        <div className="text-xs font-semibold text-navy-400 uppercase tracking-wider mb-3">Maç Seç (Match ID)</div>
+        <div className="flex gap-2 mb-4">
+          <input
+            type="text"
+            placeholder="Match UUID girin..."
+            value={inputValue}
+            onChange={e => setInputValue(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSearch()}
+            className="flex-1 bg-navy-800 border border-navy-700 rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-champagne/50 placeholder-navy-600"
+          />
+          <button onClick={handleSearch} disabled={loading || !inputValue}
+            className="flex items-center gap-1.5 text-xs font-medium px-4 py-2 rounded-lg bg-navy-800 border border-navy-700 text-navy-400 hover:text-white transition-all disabled:opacity-40">
+            <Eye className="w-3 h-3" />
+            Yükle
+          </button>
+          <button onClick={generateBrainPackage} disabled={generating || !matchId}
+            className="flex items-center gap-1.5 text-xs font-medium px-4 py-2 rounded-lg bg-champagne/15 border border-champagne/30 text-champagne hover:bg-champagne/25 transition-all disabled:opacity-40">
+            {generating ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Brain className="w-3 h-3" />}
+            Üret
+          </button>
+        </div>
+
+        {/* Recent runs */}
+        {!runsLoading && recentRuns.length > 0 && (
+          <div>
+            <div className="text-[11px] text-navy-500 mb-2">Son brain paketleri:</div>
+            <div className="flex flex-wrap gap-1.5">
+              {recentRuns.map(r => (
+                <button key={r.match_id} onClick={() => selectMatch(r.match_id)}
+                  className={`text-[11px] px-2.5 py-1 rounded-lg border transition-all ${
+                    matchId === r.match_id
+                      ? 'bg-champagne/15 border-champagne/30 text-champagne'
+                      : 'bg-navy-800 border-navy-700 text-navy-400 hover:text-white'
+                  }`}>
+                  {r.home} vs {r.away}
+                  <span className={`ml-1.5 font-mono ${
+                    r.confidence === 'high' ? 'text-emerald-400' :
+                    r.confidence === 'medium' ? 'text-amber-400' : 'text-red-400'
+                  }`}>{r.confidence}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {error && <ErrorBanner message={error} />}
+      {loading && <LoadingSkeleton rows={4} />}
+
+      {brainPkg && !loading && (
+        <div className="space-y-4">
+          {/* Master Brain Summary */}
+          <MasterBrainCard master={brainPkg.master_brain} generatedAt={brainPkg.generated_at} />
+
+          {/* Sub-Brain Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {BRAIN_ORDER.map(brainName => {
+              const brain = brainPkg.sub_brains?.[brainName];
+              if (!brain) return null;
+              const meta = BRAIN_META[brainName];
+              const isActive = activeBrain === brainName;
+              return (
+                <SubBrainCard
+                  key={brainName}
+                  brainName={brainName}
+                  brain={brain}
+                  meta={meta}
+                  isActive={isActive}
+                  onToggle={() => setActiveBrain(isActive ? null : brainName)}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {!brainPkg && !loading && !error && (
+        <EmptyState message="Bir maç UUID'si girin veya yukarıdaki listeden seçin." />
+      )}
+    </div>
+  );
+}
+
+function MasterBrainCard({ master, generatedAt }: {
+  master: BrainPackage['master_brain'];
+  generatedAt: string;
+}) {
+  const toneColors: Record<string, string> = {
+    favorite_control: 'text-blue-400',
+    draw_pressure:    'text-amber-400',
+    upset_watch:      'text-red-400',
+    balanced_tension: 'text-emerald-400',
+    low_data_caution: 'text-navy-400',
+  };
+  const pubColors: Record<string, string> = {
+    publish_safe:      'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
+    review_required:   'bg-amber-500/15 text-amber-400 border-amber-500/25',
+    do_not_publish:    'bg-red-500/15 text-red-400 border-red-500/25',
+  };
+  const confColors: Record<string, string> = {
+    high:         'text-emerald-400',
+    medium:       'text-amber-400',
+    low:          'text-red-400',
+    insufficient: 'text-navy-500',
+  };
+
+  return (
+    <div className="bg-navy-900/80 border border-champagne/20 rounded-xl p-5">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-champagne/10 border border-champagne/20 flex items-center justify-center">
+            <Star className="w-4.5 h-4.5 text-champagne" />
+          </div>
+          <div>
+            <div className="text-sm font-bold text-white">Master Brain</div>
+            <div className="text-[11px] text-navy-500">{new Date(generatedAt).toLocaleString('tr-TR')}</div>
+          </div>
+        </div>
+        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium border ${pubColors[master.publish_recommendation] ?? 'bg-navy-800 text-navy-400 border-navy-700'}`}>
+          {master.publish_recommendation?.replace(/_/g, ' ')}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+        <div className="bg-navy-800/60 rounded-lg p-3">
+          <div className="text-[11px] text-navy-500 mb-1">Readiness</div>
+          <OverallStatusBadge status={master.final_readiness} />
+        </div>
+        <div className="bg-navy-800/60 rounded-lg p-3">
+          <div className="text-[11px] text-navy-500 mb-1">Confidence</div>
+          <span className={`text-sm font-bold ${confColors[master.final_confidence] ?? 'text-white'}`}>
+            {master.final_confidence}
+          </span>
+        </div>
+        <div className="bg-navy-800/60 rounded-lg p-3 col-span-2">
+          <div className="text-[11px] text-navy-500 mb-1">Scenario Tone</div>
+          <span className={`text-sm font-semibold ${toneColors[master.scenario_tone] ?? 'text-white'}`}>
+            {master.scenario_tone?.replace(/_/g, ' ')}
+          </span>
+        </div>
+      </div>
+
+      <p className="text-xs text-navy-300 font-mono leading-relaxed bg-navy-800/40 rounded-lg p-3 mb-3">
+        {master.master_summary}
+      </p>
+
+      {master.warnings?.length > 0 && (
+        <div className="space-y-1.5">
+          <div className="text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Active Warnings</div>
+          {master.warnings.map((w, i) => (
+            <div key={i} className={`flex items-start gap-2 text-[11px] rounded-lg px-3 py-2 ${
+              w.level === 'high' ? 'bg-red-500/10 text-red-300' :
+              w.level === 'medium' ? 'bg-amber-500/10 text-amber-300' :
+              'bg-navy-800/40 text-navy-400'
+            }`}>
+              <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
+              <span><strong className="capitalize">{w.brain?.replace(/_/g, ' ')}</strong> — {w.msg}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SubBrainCard({ brainName, brain, meta, isActive, onToggle }: {
+  brainName: string;
+  brain: BrainOutput;
+  meta: (typeof BRAIN_META)[string];
+  isActive: boolean;
+  onToggle: () => void;
+}) {
+  const Icon = meta.icon;
+  const warnColor = {
+    none:   'text-emerald-400',
+    low:    'text-blue-400',
+    medium: 'text-amber-400',
+    high:   'text-red-400',
+  }[brain.warning_level] ?? 'text-navy-400';
+
+  const warnBg = {
+    none:   '',
+    low:    'border-blue-500/20',
+    medium: 'border-amber-500/20',
+    high:   'border-red-500/20',
+  }[brain.warning_level] ?? '';
+
+  return (
+    <div className={`bg-navy-900/50 border rounded-xl overflow-hidden transition-all ${warnBg || 'border-navy-800'}`}>
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-navy-800/30 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-7 h-7 rounded-lg bg-navy-800 flex items-center justify-center shrink-0">
+            <Icon className="w-3.5 h-3.5 text-navy-400" />
+          </div>
+          <div className="text-left">
+            <div className="text-xs font-semibold text-white">{meta.label}</div>
+            <div className="text-[11px] text-navy-500">{meta.description}</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0 ml-3">
+          <div className="text-right">
+            <div className={`text-[11px] font-bold ${warnColor}`}>
+              {brain.warning_level === 'none' ? 'OK' : brain.warning_level.toUpperCase()}
+            </div>
+            <div className="text-[11px] text-navy-500 font-mono">
+              {brain.confidence_score != null ? (brain.confidence_score * 100).toFixed(0) + '%' : '–'}
+            </div>
+          </div>
+          <ChevronRight className={`w-3.5 h-3.5 text-navy-500 transition-transform ${isActive ? 'rotate-90' : ''}`} />
+        </div>
+      </button>
+
+      {isActive && (
+        <div className="px-4 pb-4 border-t border-navy-800/50">
+          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5">
+            {Object.entries(brain.output ?? {}).map(([k, v]) => {
+              if (k === 'note') return null;
+              return (
+                <div key={k} className="flex items-start justify-between text-[11px] col-span-2 sm:col-span-1">
+                  <span className="text-navy-500 shrink-0 mr-2">{k.replace(/_/g, ' ')}</span>
+                  <span className="text-navy-200 font-mono text-right break-all">
+                    {typeof v === 'boolean' ? (v ? 'yes' : 'no') :
+                     typeof v === 'number' ? v.toString() :
+                     typeof v === 'string' ? v :
+                     Array.isArray(v) ? (v.length === 0 ? 'none' : v.join(', ')) :
+                     JSON.stringify(v)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          {brain.output?.note && (
+            <div className="mt-3 pt-2.5 border-t border-navy-800/50 text-[11px] text-navy-500 italic">
+              {String(brain.output.note)}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -559,17 +909,17 @@ function JobsTab() {
   useEffect(() => { load(); }, [load]);
 
   const statusCounts = {
-    queued: jobs.filter(j => j.status === 'queued').length,
+    queued:    jobs.filter(j => j.status === 'queued').length,
     completed: jobs.filter(j => j.status === 'completed').length,
-    failed: jobs.filter(j => j.status === 'failed').length,
+    failed:    jobs.filter(j => j.status === 'failed').length,
   };
 
   return (
     <div>
       <div className="grid grid-cols-3 gap-3 mb-6">
-        <SmallStat label="Bekleyen" value={statusCounts.queued} accent={statusCounts.queued > 0 ? 'amber' : undefined} />
+        <SmallStat label="Bekleyen"   value={statusCounts.queued}    accent={statusCounts.queued > 0 ? 'amber' : undefined} />
         <SmallStat label="Tamamlandı" value={statusCounts.completed} accent="green" />
-        <SmallStat label="Başarısız" value={statusCounts.failed} accent={statusCounts.failed > 0 ? 'red' : undefined} />
+        <SmallStat label="Başarısız"  value={statusCounts.failed}    accent={statusCounts.failed > 0 ? 'red' : undefined} />
       </div>
 
       <div className="flex justify-end mb-4">
@@ -605,13 +955,9 @@ function JobsTab() {
               <tbody>
                 {jobs.map(j => (
                   <tr key={j.id} className="border-b border-navy-800/40 hover:bg-navy-800/20 transition-colors">
-                    <td className="px-5 py-3">
-                      <span className="font-mono text-navy-300">{j.job_type}</span>
-                    </td>
+                    <td className="px-5 py-3"><span className="font-mono text-navy-300">{j.job_type}</span></td>
                     <td className="px-3 py-3 text-navy-400 hidden md:table-cell">{j.competition}</td>
-                    <td className="px-3 py-3 text-center">
-                      <JobStatusBadge status={j.status} />
-                    </td>
+                    <td className="px-3 py-3 text-center"><JobStatusBadge status={j.status} /></td>
                     <td className="px-3 py-3 text-navy-500 tabular-nums hidden sm:table-cell">
                       {j.started_at ? new Date(j.started_at).toLocaleString('tr-TR') : '–'}
                     </td>
@@ -632,23 +978,22 @@ function JobsTab() {
   );
 }
 
-// ─── ReadinessDetail (expanded row) ──────────────────────────────────────────
+// ─── ReadinessDetail ─────────────────────────────────────────────────────────
 
 function ReadinessDetail({ row }: { row: ReadinessRow }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {/* Readiness dimensions */}
       <div className="bg-navy-800/40 rounded-lg p-3">
         <div className="text-[11px] font-semibold text-navy-400 uppercase tracking-wider mb-2">Hazırlık Boyutları</div>
         <div className="space-y-1.5">
           {[
-            { label: 'ELO Puanları', ok: row.elo_readiness },
+            { label: 'ELO Puanları',      ok: row.elo_readiness },
             { label: 'Öznitelik Matrisi', ok: row.feature_readiness },
-            { label: 'Kalibrasyon Durumu', ok: row.calibration_readiness },
-            { label: 'Kadro Verisi', ok: row.lineup_availability },
+            { label: 'Kalibrasyon',       ok: row.calibration_readiness },
+            { label: 'Kadro Verisi',      ok: row.lineup_availability },
             { label: 'İstatistik Verisi', ok: row.stats_availability },
-            { label: 'Tahmin Taslağı', ok: row.prediction_readiness },
-            { label: 'Senaryo Taslağı', ok: row.scenario_readiness },
+            { label: 'Tahmin Taslağı',    ok: row.prediction_readiness },
+            { label: 'Senaryo Taslağı',   ok: row.scenario_readiness },
           ].map(({ label, ok }) => (
             <div key={label} className="flex items-center justify-between">
               <span className="text-navy-400">{label}</span>
@@ -658,44 +1003,36 @@ function ReadinessDetail({ row }: { row: ReadinessRow }) {
         </div>
       </div>
 
-      {/* Signals */}
       <div className="bg-navy-800/40 rounded-lg p-3">
         <div className="text-[11px] font-semibold text-navy-400 uppercase tracking-wider mb-2">Sinyal Kalitesi</div>
         <div className="space-y-1.5">
-          <DetailRow label="ELO Ev" value={row.elo_home != null ? row.elo_home.toFixed(0) : '–'} />
-          <DetailRow label="ELO Deplasman" value={row.elo_away != null ? row.elo_away.toFixed(0) : '–'} />
-          <DetailRow label="ELO Farkı" value={row.elo_home != null && row.elo_away != null ? (row.elo_home - row.elo_away).toFixed(0) : '–'} />
-          <DetailRow label="Ev L5 Maç" value={row.home_l5_available.toString()} />
-          <DetailRow label="Dep L5 Maç" value={row.away_l5_available.toString()} />
-          <DetailRow label="Kalibrasyon Brier" value={row.calibration_brier_l50 != null ? row.calibration_brier_l50.toFixed(4) : '–'} />
-          <DetailRow label="Tahmin Durumu" value={row.prediction_status ?? '–'} />
+          <DetailRow label="ELO Ev"       value={row.elo_home != null ? row.elo_home.toFixed(0) : '–'} />
+          <DetailRow label="ELO Deplasm."  value={row.elo_away != null ? row.elo_away.toFixed(0) : '–'} />
+          <DetailRow label="ELO Farkı"    value={row.elo_home != null && row.elo_away != null ? (row.elo_home - row.elo_away).toFixed(0) : '–'} />
+          <DetailRow label="Ev L5 Maç"    value={row.home_l5_available.toString()} />
+          <DetailRow label="Dep L5 Maç"   value={row.away_l5_available.toString()} />
+          <DetailRow label="Brier L50"    value={row.calibration_brier_l50 != null ? row.calibration_brier_l50.toFixed(4) : '–'} />
+          <DetailRow label="Tahmin Durum" value={row.prediction_status ?? '–'} />
         </div>
       </div>
 
-      {/* Warnings / Blockers */}
       <div className="bg-navy-800/40 rounded-lg p-3">
         <div className="text-[11px] font-semibold text-navy-400 uppercase tracking-wider mb-2">Uyarılar</div>
-        {row.blocking_reasons.length > 0 && (
+        {row.blocking_reasons?.length > 0 && (
           <div className="mb-2">
             <div className="text-[11px] text-red-400 font-semibold mb-1">Bloke Nedenleri</div>
             {row.blocking_reasons.map((r, i) => (
               <div key={i} className="flex items-start gap-1.5 text-red-300 text-[11px] mb-1">
-                <XCircle className="w-3 h-3 shrink-0 mt-0.5" />
-                {r}
+                <XCircle className="w-3 h-3 shrink-0 mt-0.5" />{r}
               </div>
             ))}
           </div>
         )}
-        {row.warnings.length > 0 ? (
-          row.warnings.map((w, i) => (
-            <div key={i} className="flex items-start gap-1.5 text-amber-300 text-[11px] mb-1">
-              <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
-              {w}
-            </div>
-          ))
-        ) : (
-          <span className="text-navy-500 text-[11px]">Uyarı yok</span>
-        )}
+        {row.warnings?.length > 0 ? row.warnings.map((w, i) => (
+          <div key={i} className="flex items-start gap-1.5 text-amber-300 text-[11px] mb-1">
+            <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />{w}
+          </div>
+        )) : <span className="text-navy-500 text-[11px]">Uyarı yok</span>}
         <div className="mt-3 pt-2 border-t border-navy-700">
           <span className="text-[11px] text-navy-500">
             Değerlendirme: {new Date(row.assessed_at).toLocaleString('tr-TR')}
@@ -706,7 +1043,7 @@ function ReadinessDetail({ row }: { row: ReadinessRow }) {
   );
 }
 
-// ─── Shared Components ────────────────────────────────────────────────────────
+// ─── Shared UI Components ─────────────────────────────────────────────────────
 
 function ReadinessDot({ ok, withLabel }: { ok: boolean; withLabel?: boolean }) {
   if (withLabel) {
@@ -721,9 +1058,9 @@ function ReadinessDot({ ok, withLabel }: { ok: boolean; withLabel?: boolean }) {
 
 function OverallStatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; color: string }> = {
-    ready:   { label: 'Hazır',  color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' },
-    partial: { label: 'Kısmi',  color: 'bg-amber-500/15 text-amber-400 border-amber-500/25' },
-    blocked: { label: 'Bloke',  color: 'bg-red-500/15 text-red-400 border-red-500/25' },
+    ready:   { label: 'Hazır', color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' },
+    partial: { label: 'Kısmi', color: 'bg-amber-500/15 text-amber-400 border-amber-500/25' },
+    blocked: { label: 'Bloke', color: 'bg-red-500/15 text-red-400 border-red-500/25' },
   };
   const cfg = map[status] ?? { label: status, color: 'bg-navy-800 text-navy-400 border-navy-700' };
   return (
@@ -741,11 +1078,7 @@ function PredStatusBadge({ status }: { status: string | null }) {
     rejected:          'text-red-400',
     published:         'text-emerald-400',
   };
-  return (
-    <span className={`text-[11px] font-medium ${map[status] ?? 'text-navy-400'}`}>
-      {status.replace(/_/g, ' ')}
-    </span>
-  );
+  return <span className={`text-[11px] font-medium ${map[status] ?? 'text-navy-400'}`}>{status.replace(/_/g, ' ')}</span>;
 }
 
 function JobStatusBadge({ status }: { status: string }) {
@@ -763,9 +1096,7 @@ function JobStatusBadge({ status }: { status: string }) {
 
 function FeatureTierBadge({ tier }: { tier: string }) {
   const map: Record<string, string> = {
-    elo_only:       'text-navy-400',
-    elo_form:       'text-blue-400',
-    elo_form_stats: 'text-emerald-400',
+    elo_only: 'text-navy-400', elo_form: 'text-blue-400', elo_form_stats: 'text-emerald-400',
   };
   return <span className={`text-[11px] font-mono ${map[tier] ?? 'text-navy-400'}`}>{tier ?? '–'}</span>;
 }
@@ -789,9 +1120,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ActionButton({
-  label, icon, loading, onClick, variant,
-}: {
+function ActionButton({ label, icon, loading, onClick, variant }: {
   label: string;
   icon: React.ReactNode;
   loading: boolean;
@@ -804,13 +1133,9 @@ function ActionButton({
     success: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25 hover:bg-emerald-500/25',
     danger:  'bg-red-500/15 text-red-400 border-red-500/25 hover:bg-red-500/25',
   }[variant];
-
   return (
-    <button
-      onClick={onClick}
-      disabled={loading}
-      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-all disabled:opacity-40 ${variantClass}`}
-    >
+    <button onClick={onClick} disabled={loading}
+      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-all disabled:opacity-40 ${variantClass}`}>
       {loading ? <RefreshCw className="w-3 h-3 animate-spin" /> : icon}
       {label}
     </button>
