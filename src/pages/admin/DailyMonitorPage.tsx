@@ -18,6 +18,7 @@ import {
   Zap,
   Target,
   Info,
+  Radio,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -197,6 +198,45 @@ interface EnrichmentHealth {
   team_statistics: EnrichmentSyncEntry;
   venues: EnrichmentSyncEntry;
   coverageUpcoming: { standings: number; injuries: number; team_stats: number; venue: number; total: number };
+}
+
+interface LiveMatchStateRow {
+  fixture_id: string;
+  api_football_fixture_id: number | null;
+  status_short: string | null;
+  elapsed: number | null;
+  home_score: number;
+  away_score: number;
+  current_live_state: string;
+  state_confidence: string;
+  momentum_direction: string;
+  chaos_score: number | null;
+  desperation_level: number | null;
+  late_goal_pressure: number | null;
+  comeback_pressure_score: number | null;
+  live_pressure_index_home: number | null;
+  live_pressure_index_away: number | null;
+  data_completeness_score: number | null;
+  stale_warning: boolean;
+  computed_at: string;
+  engine_version: string;
+}
+
+interface LiveEngineRun {
+  started_at: string;
+  completed_at: string | null;
+  status: string;
+  live_matches_found: number | null;
+  fixtures_processed: number | null;
+  fixtures_errored: number | null;
+  states_classified: Record<string, number> | null;
+  duration_ms: number | null;
+}
+
+interface LiveEngineHealth {
+  liveStates: LiveMatchStateRow[];
+  latestRun: LiveEngineRun | null;
+  engineRunCount1h: number;
 }
 
 interface KPIs {
@@ -629,6 +669,171 @@ function EnrichmentHealthCard({ health }: { health: EnrichmentHealth }) {
   );
 }
 
+// ── Live Engine card ──────────────────────────────────────────────────────────
+
+const LIVE_STATE_COLORS: Record<string, string> = {
+  balanced: 'text-navy-300',
+  high_press_home: 'text-sky-400',
+  high_press_away: 'text-sky-400',
+  low_block_home: 'text-teal-400',
+  low_block_away: 'text-teal-400',
+  transition_heavy: 'text-amber-400',
+  desperation_home: 'text-orange-400',
+  desperation_away: 'text-orange-400',
+  game_killed: 'text-emerald-400',
+  chaos_phase: 'text-red-400',
+  late_pressure_home: 'text-amber-400',
+  late_pressure_away: 'text-amber-400',
+  comeback_mode_home: 'text-rose-400',
+  comeback_mode_away: 'text-rose-400',
+};
+
+function SignalBar({ val, color }: { val: number | null; color: string }) {
+  const v = Math.round((val ?? 0) * 100);
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className="w-14 h-1.5 bg-navy-700 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${v}%` }} />
+      </div>
+      <span className="text-[10px] text-navy-400 tabular-nums w-5">{v}</span>
+    </div>
+  );
+}
+
+function LiveEngineCard({ health }: { health: LiveEngineHealth }) {
+  const { liveStates, latestRun, engineRunCount1h } = health;
+  const hasStale = liveStates.some(s => s.stale_warning);
+  const hasRunErrors = (latestRun?.fixtures_errored ?? 0) > 0;
+  const hasProblems = hasStale || hasRunErrors;
+
+  function sinceStr(ts: string | null | undefined) {
+    if (!ts) return '—';
+    const mins = Math.round((Date.now() - new Date(ts).getTime()) / 60000);
+    if (mins < 60) return `${mins}dk once`;
+    return `${Math.floor(mins / 60)}s ${mins % 60}dk`;
+  }
+
+  const stateCount = latestRun?.states_classified ?? {};
+
+  return (
+    <div className={`bg-navy-800 border rounded-xl p-4 mb-4 ${hasProblems ? 'border-amber-700/60' : 'border-navy-700'}`}>
+      <div className="flex items-center gap-2 mb-3">
+        <Radio className="w-4 h-4 text-red-400" />
+        <span className="text-sm font-semibold text-white">Live Match Engine</span>
+        <span className="text-[10px] text-navy-500 font-mono ml-1">v1 · deterministik</span>
+        {hasProblems ? (
+          <span className="ml-auto flex items-center gap-1 px-2 py-0.5 bg-amber-900/40 border border-amber-700/50 text-amber-300 text-xs rounded-full">
+            <AlertTriangle className="w-3 h-3" /> Dikkat
+          </span>
+        ) : liveStates.length > 0 ? (
+          <span className="ml-auto flex items-center gap-1.5 text-red-400 text-xs">
+            <span className="inline-block w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse" />
+            {liveStates.length} CANLI
+          </span>
+        ) : (
+          <span className="ml-auto flex items-center gap-1 text-navy-500 text-xs">
+            <Clock className="w-3 h-3" /> Mac yok
+          </span>
+        )}
+      </div>
+
+      {/* Engine run summary */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+        <div className="bg-navy-900/50 rounded-lg p-2.5">
+          <div className="text-[10px] text-navy-500 uppercase mb-1">Son Kos</div>
+          <div className="text-xs font-semibold text-navy-300">{sinceStr(latestRun?.started_at)}</div>
+          {latestRun?.duration_ms != null && (
+            <div className="text-[10px] text-navy-500">{latestRun.duration_ms}ms</div>
+          )}
+        </div>
+        <div className="bg-navy-900/50 rounded-lg p-2.5">
+          <div className="text-[10px] text-navy-500 uppercase mb-1">Islenen</div>
+          <div className={`text-lg font-bold ${(latestRun?.fixtures_processed ?? 0) > 0 ? 'text-sky-400' : 'text-navy-500'}`}>
+            {latestRun?.fixtures_processed ?? 0}
+          </div>
+        </div>
+        <div className="bg-navy-900/50 rounded-lg p-2.5">
+          <div className="text-[10px] text-navy-500 uppercase mb-1">Hata</div>
+          <div className={`text-lg font-bold ${(latestRun?.fixtures_errored ?? 0) > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+            {latestRun?.fixtures_errored ?? 0}
+          </div>
+        </div>
+        <div className="bg-navy-900/50 rounded-lg p-2.5">
+          <div className="text-[10px] text-navy-500 uppercase mb-1">Kos (1s)</div>
+          <div className={`text-lg font-bold ${engineRunCount1h >= 8 ? 'text-emerald-400' : engineRunCount1h > 0 ? 'text-amber-400' : 'text-red-400'}`}>
+            {engineRunCount1h}
+          </div>
+        </div>
+      </div>
+
+      {/* State distribution from last run */}
+      {Object.keys(stateCount).length > 0 && (
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {Object.entries(stateCount).map(([state, count]) => (
+            <span key={state} className={`text-[10px] px-2 py-0.5 bg-navy-900/60 rounded-full font-medium ${LIVE_STATE_COLORS[state] ?? 'text-navy-300'}`}>
+              {state.replace(/_/g, ' ')} ×{count}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Per-match live state rows */}
+      {liveStates.length > 0 && (
+        <div className="border-t border-navy-700/50 pt-3">
+          <div className="text-[10px] text-navy-500 uppercase mb-2">Canli Maclar</div>
+          <div className="space-y-2">
+            {liveStates.map(s => (
+              <div key={s.fixture_id} className={`bg-navy-900/40 rounded-lg p-2.5 ${s.stale_warning ? 'ring-1 ring-amber-700/60' : ''}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm font-bold text-white tabular-nums">
+                    {s.home_score} — {s.away_score}
+                  </span>
+                  <span className="text-[10px] text-navy-500">
+                    {s.status_short}{s.elapsed != null ? ` ${s.elapsed}'` : ''}
+                  </span>
+                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 bg-navy-800 rounded ${LIVE_STATE_COLORS[s.current_live_state] ?? 'text-navy-300'}`}>
+                    {s.current_live_state.replace(/_/g, ' ')}
+                  </span>
+                  <span className={`text-[10px] ml-auto ${s.state_confidence === 'high' ? 'text-emerald-400' : s.state_confidence === 'medium' ? 'text-amber-400' : 'text-navy-500'}`}>
+                    {s.state_confidence}
+                  </span>
+                  {s.stale_warning && <AlertTriangle className="w-3 h-3 text-amber-400" />}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-1">
+                  <div>
+                    <div className="text-[9px] text-navy-600 mb-0.5">Kaos</div>
+                    <SignalBar val={s.chaos_score} color="bg-red-500" />
+                  </div>
+                  <div>
+                    <div className="text-[9px] text-navy-600 mb-0.5">Caresize</div>
+                    <SignalBar val={s.desperation_level} color="bg-orange-500" />
+                  </div>
+                  <div>
+                    <div className="text-[9px] text-navy-600 mb-0.5">Gec Gol</div>
+                    <SignalBar val={s.late_goal_pressure} color="bg-amber-500" />
+                  </div>
+                  <div>
+                    <div className="text-[9px] text-navy-600 mb-0.5">Geri Donus</div>
+                    <SignalBar val={s.comeback_pressure_score} color="bg-rose-500" />
+                  </div>
+                </div>
+                <div className="mt-1.5 flex items-center gap-4 text-[10px]">
+                  <span className="text-navy-600">Momentum: <span className={`font-semibold ${s.momentum_direction === 'home' ? 'text-sky-400' : s.momentum_direction === 'away' ? 'text-teal-400' : s.momentum_direction === 'chaotic' ? 'text-red-400' : 'text-navy-400'}`}>{s.momentum_direction}</span></span>
+                  <span className="text-navy-600">Veri: <span className={`font-semibold ${(s.data_completeness_score ?? 0) >= 0.8 ? 'text-emerald-400' : (s.data_completeness_score ?? 0) >= 0.4 ? 'text-amber-400' : 'text-navy-500'}`}>{Math.round((s.data_completeness_score ?? 0) * 100)}%</span></span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {liveStates.length === 0 && !latestRun && (
+        <p className="text-xs text-navy-500">Engine hic kosulmamis. Cron: */5 * * * *</p>
+      )}
+    </div>
+  );
+}
+
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
 function KpiCard({
@@ -798,6 +1003,7 @@ function OverviewTab({
   evalHealth,
   liveSyncHealth,
   enrichmentHealth,
+  liveEngineHealth,
   onAction,
   actionLoading,
 }: {
@@ -811,6 +1017,7 @@ function OverviewTab({
   evalHealth: EvalHealth;
   liveSyncHealth: LiveSyncHealth;
   enrichmentHealth: EnrichmentHealth;
+  liveEngineHealth: LiveEngineHealth;
   onAction: (action: string, matchId: string) => void;
   actionLoading: Record<string, string>;
 }) {
@@ -828,6 +1035,9 @@ function OverviewTab({
 
       {/* Live sync health */}
       <LiveSyncHealthCard health={liveSyncHealth} />
+
+      {/* Live engine V1 */}
+      <LiveEngineCard health={liveEngineHealth} />
 
       {/* Result sync + eval health */}
       <ResultSyncEvalCard syncRun={syncRun} evalHealth={evalHealth} />
@@ -1566,6 +1776,12 @@ export default function DailyMonitorPage() {
     coverageUpcoming: { standings: 0, injuries: 0, team_stats: 0, venue: 0, total: 0 },
   });
 
+  const [liveEngineHealth, setLiveEngineHealth] = useState<LiveEngineHealth>({
+    liveStates: [],
+    latestRun: null,
+    engineRunCount1h: 0,
+  });
+
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [actionLoading, setActionLoading] = useState<Record<string, string>>({});
@@ -1839,6 +2055,33 @@ export default function DailyMonitorPage() {
       console.warn('[DailyMonitor] enrichment_health:', enrichErr);
     }
 
+    // 12. Live Engine health
+    try {
+      const oneHourAgo = new Date(Date.now() - 36e5).toISOString();
+      const [liveStatesRes, engineRunRes, engineRunCountRes] = await Promise.allSettled([
+        supabase.rpc('admin_get_live_match_states'),
+        supabase.schema('model_lab').from('live_engine_runs')
+          .select('started_at, completed_at, status, live_matches_found, fixtures_processed, fixtures_errored, states_classified, duration_ms')
+          .order('started_at', { ascending: false }).limit(1).maybeSingle(),
+        supabase.schema('model_lab').from('live_engine_runs')
+          .select('id', { count: 'exact', head: true })
+          .gte('started_at', oneHourAgo),
+      ]);
+      setLiveEngineHealth({
+        liveStates: liveStatesRes.status === 'fulfilled' && !liveStatesRes.value.error
+          ? ((liveStatesRes.value.data as LiveMatchStateRow[]) ?? [])
+          : [],
+        latestRun: engineRunRes.status === 'fulfilled'
+          ? (engineRunRes.value.data as LiveEngineRun | null) ?? null
+          : null,
+        engineRunCount1h: engineRunCountRes.status === 'fulfilled'
+          ? (engineRunCountRes.value.count ?? 0)
+          : 0,
+      });
+    } catch (liveEngineErr) {
+      console.warn('[DailyMonitor] live_engine_health:', liveEngineErr);
+    }
+
     setQueryErrors(errors);
     setLastRefresh(new Date());
     setLoading(false);
@@ -2041,6 +2284,7 @@ export default function DailyMonitorPage() {
                 evalHealth={evalHealth}
                 liveSyncHealth={liveSyncHealth}
                 enrichmentHealth={enrichmentHealth}
+                liveEngineHealth={liveEngineHealth}
                 onAction={handleAction}
                 actionLoading={actionLoading}
               />

@@ -88,6 +88,7 @@ Deno.serve(async (req: Request) => {
 
     let totalUpdated = 0;
     const errors: string[] = [];
+    const updatedLiveMatchIds: string[] = [];
 
     for (const chunk of chunks) {
       const idsParam = chunk.join("-");
@@ -157,6 +158,10 @@ Deno.serve(async (req: Request) => {
               errors.push(`fixture_${fixtureId}: ${updateErr.message}`);
             } else {
               totalUpdated++;
+              // Queue live engine compute for LIVE matches (not terminal)
+              if (LIVE_STATUSES.includes(statusShort)) {
+                updatedLiveMatchIds.push(dbMatch.id as string);
+              }
             }
           } catch (perFixtureErr: unknown) {
             const msg = perFixtureErr instanceof Error ? perFixtureErr.message : String(perFixtureErr);
@@ -171,7 +176,14 @@ Deno.serve(async (req: Request) => {
       await new Promise((r) => setTimeout(r, 200));
     }
 
-    // ── 3. Persist sync run log ─────────────────────────────────────────────
+    // ── 3. Trigger live engine for updated live matches ─────────────────────
+    if (updatedLiveMatchIds.length > 0) {
+      try {
+        await supabase.rpc("run_live_match_engine_public");
+      } catch (_) { /* best effort — never block sync log */ }
+    }
+
+    // ── 4. Persist sync run log ─────────────────────────────────────────────
     await persistSyncRun(supabase, {
       mode, startedAt, status: errors.length > 0 && totalUpdated === 0 ? "failed" : "completed",
       matchesSeen, matchesUpdated: totalUpdated, errors,
