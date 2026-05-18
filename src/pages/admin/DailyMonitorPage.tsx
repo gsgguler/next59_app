@@ -131,6 +131,25 @@ interface CalibrationRow {
   updated_at: string | null;
 }
 
+interface PipelineRun {
+  id: string;
+  started_at: string;
+  completed_at: string | null;
+  status: 'running' | 'completed' | 'failed';
+  horizon_days: number | null;
+  fixtures_seen: number | null;
+  readiness_processed: number | null;
+  features_generated: number | null;
+  predictions_generated: number | null;
+  brain_packages_generated: number | null;
+  scenarios_generated: number | null;
+  story_drafts_generated: number | null;
+  skipped_existing: number | null;
+  blocked_count: number | null;
+  error_count: number | null;
+  errors_json: unknown;
+}
+
 interface KPIs {
   upcoming: number;
   ready: number;
@@ -176,6 +195,91 @@ function pct(n: number | null) {
 function num(n: number | null, d = 3) {
   if (n == null) return '—';
   return n.toFixed(d);
+}
+
+// ── Pipeline run card ──────────────────────────────────────────────────────────
+
+function PipelineRunCard({ run }: { run: PipelineRun | null }) {
+  const STALE_HOURS = 25;
+  const isStale = !run || (() => {
+    const h = (Date.now() - new Date(run.started_at).getTime()) / 36e5;
+    return h > STALE_HOURS;
+  })();
+
+  const statusColor = !run
+    ? 'text-navy-500'
+    : run.status === 'completed'
+    ? 'text-emerald-400'
+    : run.status === 'running'
+    ? 'text-sky-400'
+    : 'text-red-400';
+
+  const statusIcon = !run
+    ? <Clock className="w-3.5 h-3.5 text-navy-500" />
+    : run.status === 'completed'
+    ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+    : run.status === 'running'
+    ? <RefreshCw className="w-3.5 h-3.5 text-sky-400 animate-spin" />
+    : <XCircle className="w-3.5 h-3.5 text-red-400" />;
+
+  function elapsed(start: string, end: string | null) {
+    const ms = (end ? new Date(end) : new Date()).getTime() - new Date(start).getTime();
+    const s = Math.round(ms / 1000);
+    if (s < 60) return `${s}s`;
+    return `${Math.floor(s / 60)}m ${s % 60}s`;
+  }
+
+  return (
+    <div className="mb-6 bg-navy-800 border border-navy-700 rounded-xl p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Activity className="w-4 h-4 text-sky-400" />
+        <span className="text-sm font-semibold text-white">Pipeline Son Kosu</span>
+        {isStale && (
+          <span className="ml-auto flex items-center gap-1 px-2 py-0.5 bg-amber-900/40 border border-amber-700/50 text-amber-300 text-xs rounded-full">
+            <AlertTriangle className="w-3 h-3" />
+            Gecikme — {STALE_HOURS}h+ once
+          </span>
+        )}
+        {!isStale && run && (
+          <span className="ml-auto text-xs text-navy-500">
+            {new Date(run.started_at).toLocaleString('tr-TR')}
+          </span>
+        )}
+      </div>
+
+      {!run ? (
+        <p className="text-xs text-navy-500">Hic pipeline kosu bulunamadi.</p>
+      ) : (
+        <div className="flex flex-wrap gap-x-6 gap-y-2">
+          <div className="flex items-center gap-1.5">
+            {statusIcon}
+            <span className={`text-xs font-semibold uppercase ${statusColor}`}>{run.status}</span>
+            {run.completed_at && (
+              <span className="text-xs text-navy-500 ml-1">({elapsed(run.started_at, run.completed_at)})</span>
+            )}
+          </div>
+          <Stat label="Gorulen" value={run.fixtures_seen} color="text-sky-400" />
+          <Stat label="Tahmin" value={run.predictions_generated} color="text-emerald-400" />
+          <Stat label="Brain" value={run.brain_packages_generated} color="text-sky-300" />
+          <Stat label="Hikaye" value={run.story_drafts_generated} color="text-teal-400" />
+          <Stat label="Atlandı" value={run.skipped_existing} color="text-navy-400" />
+          <Stat label="Bloke" value={run.blocked_count} color="text-amber-400" />
+          {(run.error_count ?? 0) > 0 && (
+            <Stat label="Hata" value={run.error_count} color="text-red-400" />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Stat({ label, value, color }: { label: string; value: number | null; color: string }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-xs text-navy-500">{label}:</span>
+      <span className={`text-xs font-bold ${color}`}>{value ?? '—'}</span>
+    </div>
+  );
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
@@ -342,6 +446,7 @@ function OverviewTab({
   masterBrains,
   brainRunMap,
   kpis,
+  pipelineRun,
   onAction,
   actionLoading,
 }: {
@@ -350,6 +455,7 @@ function OverviewTab({
   masterBrains: MasterBrainRow[];
   brainRunMap: Map<string, BrainRun>;
   kpis: KPIs;
+  pipelineRun: PipelineRun | null;
   onAction: (action: string, matchId: string) => void;
   actionLoading: Record<string, string>;
 }) {
@@ -362,6 +468,9 @@ function OverviewTab({
 
   return (
     <div className="space-y-8">
+      {/* Pipeline run status */}
+      <PipelineRunCard run={pipelineRun} />
+
       {/* KPI Grid */}
       <div>
         <SectionHeader title="KPI Ozeti" />
@@ -1072,6 +1181,7 @@ export default function DailyMonitorPage() {
   const [masterBrains, setMasterBrains] = useState<MasterBrainRow[]>([]);
   const [evals, setEvals] = useState<EvalRow[]>([]);
   const [calibration, setCalibration] = useState<CalibrationRow[]>([]);
+  const [pipelineRun, setPipelineRun] = useState<PipelineRun | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
@@ -1206,6 +1316,20 @@ export default function DailyMonitorPage() {
       errors.push(`calibration: ${calErr.message}`);
     }
     setCalibration((calData as CalibrationRow[]) ?? []);
+
+    // 7. Latest pipeline run
+    const { data: prData, error: prErr } = await supabase
+      .schema('model_lab')
+      .from('prematch_pipeline_runs')
+      .select('*')
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (prErr) {
+      console.error('[DailyMonitor] prematch_pipeline_runs:', prErr);
+      errors.push(`pipeline_run: ${prErr.message}`);
+    }
+    setPipelineRun((prData as PipelineRun) ?? null);
 
     setQueryErrors(errors);
     setLastRefresh(new Date());
@@ -1404,6 +1528,7 @@ export default function DailyMonitorPage() {
                 masterBrains={masterBrains}
                 brainRunMap={brainRunMap}
                 kpis={kpis}
+                pipelineRun={pipelineRun}
                 onAction={handleAction}
                 actionLoading={actionLoading}
               />
