@@ -12,15 +12,15 @@ const TERMINAL_STATUSES = ["FT", "AET", "PEN", "AWD", "WO"];
 // In-progress statuses
 const LIVE_STATUSES = ["1H", "HT", "2H", "ET", "BT", "P", "SUSP", "INT", "LIVE"];
 
-// AF league ID → competition_season_id (current 2024-2025)
+// AF league ID → competition_season_id (current 2025-2026)
 const LEAGUE_SEASONS: Record<number, { cs_id: string; af_season: number }> = {
-  39:  { cs_id: "fd68b1e3-0d03-4c9b-b6ec-669dabf3ef52", af_season: 2024 },
-  61:  { cs_id: "b72036b8-dcc8-4f58-9fbb-cf33a72bfaf4", af_season: 2024 },
-  78:  { cs_id: "24e1dc20-6483-4d0c-a8dd-12e71013db6f", af_season: 2024 },
-  88:  { cs_id: "4d8e5440-c7f9-4aa6-9e0b-409e7efa765c", af_season: 2024 },
-  135: { cs_id: "5e6c9ea5-ae04-4b12-8d16-ccd628592179", af_season: 2024 },
-  140: { cs_id: "b966b8dc-8f63-407f-bb67-4b6a014fe29e", af_season: 2024 },
-  203: { cs_id: "e6ab7df6-9e47-47ed-9e04-a414f8bebc8d", af_season: 2024 },
+  39:  { cs_id: "f0f5f43c-55c4-44a1-9ca6-dbed10460097", af_season: 2025 }, // Premier League
+  61:  { cs_id: "96b68baf-5368-43ed-93d4-05720a45a843", af_season: 2025 }, // Ligue 1
+  78:  { cs_id: "dff96a19-a77a-42ae-bf04-bae1098e8411", af_season: 2025 }, // Bundesliga
+  88:  { cs_id: "09af551c-9bae-48ed-aa01-28a328f0d5cb", af_season: 2025 }, // Eredivisie
+  135: { cs_id: "160eb576-5b10-4803-be2c-e92eeb4afd82", af_season: 2025 }, // Serie A
+  140: { cs_id: "60b9c7ec-ae43-4986-98e8-77ac6de3c3f2", af_season: 2025 }, // La Liga
+  203: { cs_id: "fb898419-630e-439c-a709-003b9ac3bb34", af_season: 2025 }, // Süper Lig
 };
 
 Deno.serve(async (req: Request) => {
