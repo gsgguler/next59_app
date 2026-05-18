@@ -134,12 +134,25 @@ interface CalibrationRow {
 interface ResultSyncRun {
   id: string;
   triggered_at: string;
+  started_at: string | null;
+  completed_at: string | null;
   mode: string;
+  status: string | null;
   matches_found: number | null;
+  matches_seen: number | null;
   updated: number | null;
+  matches_updated: number | null;
   errors_json: unknown;
   http_status: number | null;
   duration_ms: number | null;
+}
+
+interface LiveSyncHealth {
+  liveMatchCount: number;
+  staleMatchCount: number;
+  latestLiveRun: ResultSyncRun | null;
+  latestRecentRun: ResultSyncRun | null;
+  failedRunsLast1h: number;
 }
 
 interface EvalHealth {
@@ -297,6 +310,108 @@ function Stat({ label, value, color }: { label: string; value: number | null; co
     <div className="flex items-center gap-1.5">
       <span className="text-xs text-navy-500">{label}:</span>
       <span className={`text-xs font-bold ${color}`}>{value ?? '—'}</span>
+    </div>
+  );
+}
+
+// ── Live sync health card ──────────────────────────────────────────────────────
+
+function LiveSyncHealthCard({ health }: { health: LiveSyncHealth }) {
+  const { liveMatchCount, staleMatchCount, latestLiveRun, latestRecentRun, failedRunsLast1h } = health;
+
+  function sinceStr(ts: string | null | undefined): string {
+    if (!ts) return '—';
+    const mins = Math.round((Date.now() - new Date(ts).getTime()) / 60000);
+    if (mins < 60) return `${mins}dk once`;
+    return `${Math.floor(mins / 60)}s ${mins % 60}dk once`;
+  }
+
+  function latencyColor(ms: number | null): string {
+    if (ms == null) return 'text-navy-400';
+    if (ms < 5000) return 'text-emerald-400';
+    if (ms < 15000) return 'text-amber-400';
+    return 'text-red-400';
+  }
+
+  const hasProblems = staleMatchCount > 0 || failedRunsLast1h > 0;
+
+  return (
+    <div className={`bg-navy-800 border rounded-xl p-4 mb-4 ${hasProblems ? 'border-amber-700/60' : 'border-navy-700'}`}>
+      <div className="flex items-center gap-2 mb-3">
+        <Zap className="w-4 h-4 text-amber-400" />
+        <span className="text-sm font-semibold text-white">Live Sync Sagligi</span>
+        {hasProblems && (
+          <span className="ml-auto flex items-center gap-1 px-2 py-0.5 bg-amber-900/40 border border-amber-700/50 text-amber-300 text-xs rounded-full">
+            <AlertTriangle className="w-3 h-3" />
+            Dikkat
+          </span>
+        )}
+        {!hasProblems && (
+          <span className="ml-auto flex items-center gap-1 text-emerald-400 text-xs">
+            <CheckCircle className="w-3 h-3" /> Normal
+          </span>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {/* Live match count */}
+        <div className="bg-navy-900/50 rounded-lg p-2.5">
+          <div className="text-[10px] text-navy-500 uppercase mb-1">Canli Mac</div>
+          <div className={`text-lg font-bold ${liveMatchCount > 0 ? 'text-sky-400' : 'text-navy-500'}`}>
+            {liveMatchCount}
+          </div>
+        </div>
+
+        {/* Stale warnings */}
+        <div className="bg-navy-900/50 rounded-lg p-2.5">
+          <div className="text-[10px] text-navy-500 uppercase mb-1">Gecikme Uyarisi</div>
+          <div className={`text-lg font-bold ${staleMatchCount > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+            {staleMatchCount}
+          </div>
+        </div>
+
+        {/* Failed runs last 1h */}
+        <div className="bg-navy-900/50 rounded-lg p-2.5">
+          <div className="text-[10px] text-navy-500 uppercase mb-1">Basarisiz (1s)</div>
+          <div className={`text-lg font-bold ${failedRunsLast1h > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+            {failedRunsLast1h}
+          </div>
+        </div>
+
+        {/* Latest live sync */}
+        <div className="bg-navy-900/50 rounded-lg p-2.5">
+          <div className="text-[10px] text-navy-500 uppercase mb-1">Son Live Sync</div>
+          <div className="text-xs font-semibold text-navy-300 truncate">
+            {sinceStr(latestLiveRun?.started_at ?? latestLiveRun?.triggered_at)}
+          </div>
+          {latestLiveRun && (
+            <div className="text-[10px] text-navy-500 mt-0.5">
+              {latestLiveRun.matches_updated ?? latestLiveRun.updated ?? 0} guncellendi
+            </div>
+          )}
+        </div>
+
+        {/* Latest recent sync */}
+        <div className="bg-navy-900/50 rounded-lg p-2.5">
+          <div className="text-[10px] text-navy-500 uppercase mb-1">Son Recent Sync</div>
+          <div className="text-xs font-semibold text-navy-300 truncate">
+            {sinceStr(latestRecentRun?.started_at ?? latestRecentRun?.triggered_at)}
+          </div>
+          {latestRecentRun && (
+            <div className="text-[10px] text-navy-500 mt-0.5">
+              {latestRecentRun.matches_updated ?? latestRecentRun.updated ?? 0} guncellendi
+            </div>
+          )}
+        </div>
+
+        {/* Live sync latency */}
+        <div className="bg-navy-900/50 rounded-lg p-2.5">
+          <div className="text-[10px] text-navy-500 uppercase mb-1">Latency (live)</div>
+          <div className={`text-xs font-bold ${latencyColor(latestLiveRun?.duration_ms ?? null)}`}>
+            {latestLiveRun?.duration_ms != null ? `${latestLiveRun.duration_ms}ms` : '—'}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -561,6 +676,7 @@ function OverviewTab({
   pipelineRun,
   syncRun,
   evalHealth,
+  liveSyncHealth,
   onAction,
   actionLoading,
 }: {
@@ -572,6 +688,7 @@ function OverviewTab({
   pipelineRun: PipelineRun | null;
   syncRun: ResultSyncRun | null;
   evalHealth: EvalHealth;
+  liveSyncHealth: LiveSyncHealth;
   onAction: (action: string, matchId: string) => void;
   actionLoading: Record<string, string>;
 }) {
@@ -586,6 +703,9 @@ function OverviewTab({
     <div className="space-y-8">
       {/* Pipeline run status */}
       <PipelineRunCard run={pipelineRun} />
+
+      {/* Live sync health */}
+      <LiveSyncHealthCard health={liveSyncHealth} />
 
       {/* Result sync + eval health */}
       <ResultSyncEvalCard syncRun={syncRun} evalHealth={evalHealth} />
@@ -1302,6 +1422,10 @@ export default function DailyMonitorPage() {
   const [calibration, setCalibration] = useState<CalibrationRow[]>([]);
   const [pipelineRun, setPipelineRun] = useState<PipelineRun | null>(null);
   const [syncRun, setSyncRun] = useState<ResultSyncRun | null>(null);
+  const [liveSyncHealth, setLiveSyncHealth] = useState<LiveSyncHealth>({
+    liveMatchCount: 0, staleMatchCount: 0,
+    latestLiveRun: null, latestRecentRun: null, failedRunsLast1h: 0,
+  });
   const [evalHealth, setEvalHealth] = useState<EvalHealth>({
     total: 0, false_confidence: 0, correct: 0, avg_brier: null, last_evaluated_at: null,
   });
@@ -1454,21 +1578,39 @@ export default function DailyMonitorPage() {
     }
     setPipelineRun((prData as PipelineRun) ?? null);
 
-    // 8. Latest result sync run
-    const { data: srData, error: srErr } = await supabase
-      .schema('model_lab')
-      .from('result_sync_runs')
-      .select('*')
-      .order('triggered_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (srErr) {
-      console.error('[DailyMonitor] result_sync_runs:', srErr);
-      errors.push(`sync_run: ${srErr.message}`);
-    }
-    setSyncRun((srData as ResultSyncRun) ?? null);
+    // 8+9. Live sync health — last live + recent run, stale warnings, live match count
+    const oneHourAgo = new Date(Date.now() - 36e5).toISOString();
+    const [liveRunRes, recentRunRes, staleRes, failedRes, liveMatchRes] = await Promise.allSettled([
+      supabase.schema('model_lab').from('result_sync_runs')
+        .select('*').eq('mode', 'live').order('started_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.schema('model_lab').from('result_sync_runs')
+        .select('*').eq('mode', 'recent').order('started_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.schema('model_lab').from('live_match_stale_warnings')
+        .select('id', { count: 'exact', head: true }).eq('resolved', false),
+      supabase.schema('model_lab').from('result_sync_runs')
+        .select('id', { count: 'exact', head: true }).eq('status', 'failed').gte('started_at', oneHourAgo),
+      supabase.from('matches')
+        .select('id', { count: 'exact', head: true })
+        .in('status_short', ['1H','HT','2H','ET','BT','P','SUSP','INT','LIVE']),
+    ]);
+    setLiveSyncHealth({
+      liveMatchCount: liveMatchRes.status === 'fulfilled' ? (liveMatchRes.value.count ?? 0) : 0,
+      staleMatchCount: staleRes.status === 'fulfilled' ? (staleRes.value.count ?? 0) : 0,
+      latestLiveRun: liveRunRes.status === 'fulfilled' ? ((liveRunRes.value.data as ResultSyncRun) ?? null) : null,
+      latestRecentRun: recentRunRes.status === 'fulfilled' ? ((recentRunRes.value.data as ResultSyncRun) ?? null) : null,
+      failedRunsLast1h: failedRes.status === 'fulfilled' ? (failedRes.value.count ?? 0) : 0,
+    });
+    // Keep syncRun pointing to whichever is newest overall
+    const lrData = liveRunRes.status === 'fulfilled' ? (liveRunRes.value.data as ResultSyncRun | null) : null;
+    const rrData = recentRunRes.status === 'fulfilled' ? (recentRunRes.value.data as ResultSyncRun | null) : null;
+    const newestRun = (!lrData && !rrData) ? null
+      : !lrData ? rrData
+      : !rrData ? lrData
+      : new Date(lrData.started_at ?? lrData.triggered_at) > new Date(rrData.started_at ?? rrData.triggered_at)
+        ? lrData : rrData;
+    setSyncRun(newestRun);
 
-    // 9. Evaluation health summary
+    // 10. Evaluation health summary
     const { data: ehData, error: ehErr } = await supabase
       .schema('model_lab')
       .from('prediction_evaluations')
@@ -1689,6 +1831,7 @@ export default function DailyMonitorPage() {
                 pipelineRun={pipelineRun}
                 syncRun={syncRun}
                 evalHealth={evalHealth}
+                liveSyncHealth={liveSyncHealth}
                 onAction={handleAction}
                 actionLoading={actionLoading}
               />
