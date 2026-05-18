@@ -1474,6 +1474,3 @@ export default function DailyMonitorPage() {
     </div>
   );
 }
-
-
-export default DailyMonitorPage
