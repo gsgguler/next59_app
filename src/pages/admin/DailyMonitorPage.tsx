@@ -256,10 +256,26 @@ interface LivePatternMemoryRow {
   updated_at: string;
 }
 
+interface ReplayRunRow {
+  id: string;
+  started_at: string;
+  completed_at: string | null;
+  status: string;
+  batch_size: number;
+  processed_count: number;
+  outcome_rows_created: number;
+  pattern_rows_updated: number;
+  error_count: number;
+  remaining_candidates: number | null;
+}
+
 interface LiveMemoryHealth {
   patternRows: LivePatternMemoryRow[];
   outcomeCount: number;
   lastRefreshedAt: string | null;
+  replayRuns: ReplayRunRow[];
+  remainingCandidates: number;
+  evaluatedFixtures: number;
 }
 
 interface KPIs {
@@ -858,7 +874,7 @@ function LiveEngineCard({ health }: { health: LiveEngineHealth }) {
 }
 
 function LiveMemoryCard({ health }: { health: LiveMemoryHealth }) {
-  const { patternRows, outcomeCount, lastRefreshedAt } = health;
+  const { patternRows, outcomeCount, lastRefreshedAt, replayRuns, remainingCandidates, evaluatedFixtures } = health;
   if (patternRows.length === 0 && outcomeCount === 0) return null;
 
   // Aggregate to global rows only (competition_season_id = null) for summary
@@ -902,15 +918,28 @@ function LiveMemoryCard({ health }: { health: LiveMemoryHealth }) {
         </span>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
         <div className="bg-navy-900/50 rounded-lg p-2.5">
-          <div className="text-[10px] text-navy-500 uppercase mb-1">Replay Sonuclari</div>
-          <div className="text-lg font-bold text-sky-400">{outcomeCount.toLocaleString()}</div>
+          <div className="text-[10px] text-navy-500 uppercase mb-1">Degerl. Fixture</div>
+          <div className="text-lg font-bold text-sky-400">{evaluatedFixtures.toLocaleString()}</div>
+          <div className="text-[10px] text-navy-600">replay edilmis</div>
+        </div>
+        <div className="bg-navy-900/50 rounded-lg p-2.5">
+          <div className="text-[10px] text-navy-500 uppercase mb-1">Outcome Satiri</div>
+          <div className="text-lg font-bold text-sky-300">{outcomeCount.toLocaleString()}</div>
+          <div className="text-[10px] text-navy-600">toplam bukum</div>
         </div>
         <div className="bg-navy-900/50 rounded-lg p-2.5">
           <div className="text-[10px] text-navy-500 uppercase mb-1">Pattern Hafiza</div>
-          <div className="text-lg font-bold text-sky-300">{globalRows.length}</div>
+          <div className="text-lg font-bold text-teal-400">{globalRows.length}</div>
           <div className="text-[10px] text-navy-600">global gruplar</div>
+        </div>
+        <div className="bg-navy-900/50 rounded-lg p-2.5">
+          <div className="text-[10px] text-navy-500 uppercase mb-1">Kalan Aday</div>
+          <div className={`text-lg font-bold ${remainingCandidates > 1000 ? 'text-amber-400' : remainingCandidates > 0 ? 'text-sky-400' : 'text-emerald-400'}`}>
+            {remainingCandidates.toLocaleString()}
+          </div>
+          <div className="text-[10px] text-navy-600">replay bekliyor</div>
         </div>
         <div className="bg-navy-900/50 rounded-lg p-2.5">
           <div className="text-[10px] text-navy-500 uppercase mb-1">Dusuk Ornek</div>
@@ -928,6 +957,36 @@ function LiveMemoryCard({ health }: { health: LiveMemoryHealth }) {
           </div>
         </div>
       </div>
+
+      {/* Latest replay batch runs */}
+      {replayRuns.length > 0 && (
+        <div className="mb-4 border border-navy-700/50 rounded-lg p-3">
+          <div className="text-[10px] text-navy-500 uppercase font-semibold mb-2">Son Replay Koslari</div>
+          <div className="space-y-1">
+            {replayRuns.map(r => {
+              const dur = r.completed_at
+                ? Math.round((new Date(r.completed_at).getTime() - new Date(r.started_at).getTime()) / 1000)
+                : null;
+              const since = Math.round((Date.now() - new Date(r.started_at).getTime()) / 60000);
+              return (
+                <div key={r.id} className="flex items-center gap-3 text-[10px]">
+                  <span className={`font-semibold w-16 ${r.status === 'completed' ? 'text-emerald-400' : r.status === 'failed' ? 'text-red-400' : 'text-amber-400'}`}>
+                    {r.status}
+                  </span>
+                  <span className="text-navy-500">{since}dk once</span>
+                  <span className="text-navy-400">+{r.processed_count} mac</span>
+                  <span className="text-sky-400">+{r.outcome_rows_created} outcome</span>
+                  {r.error_count > 0 && <span className="text-red-400">{r.error_count} hata</span>}
+                  {dur != null && <span className="text-navy-600">{dur}s</span>}
+                  {r.remaining_candidates != null && (
+                    <span className="text-navy-500 ml-auto">{r.remaining_candidates.toLocaleString()} kalan</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {topReliable.length > 0 && (
@@ -1967,6 +2026,9 @@ export default function DailyMonitorPage() {
     patternRows: [],
     outcomeCount: 0,
     lastRefreshedAt: null,
+    replayRuns: [],
+    remainingCandidates: 0,
+    evaluatedFixtures: 0,
   });
 
   const [loading, setLoading] = useState(true);
@@ -2271,10 +2333,14 @@ export default function DailyMonitorPage() {
 
     // 13. Live Memory health
     try {
-      const [patternRes, outcomeCountRes] = await Promise.allSettled([
+      const [patternRes, outcomeCountRes, replayRunsRes, evaluatedFixturesRes] = await Promise.allSettled([
         supabase.rpc('admin_get_live_pattern_memory_summary'),
         supabase.schema('model_lab').from('live_state_outcomes')
           .select('id', { count: 'exact', head: true })
+          .not('evaluated_at', 'is', null),
+        supabase.rpc('admin_get_replay_runs', { p_limit: 5 }),
+        supabase.schema('model_lab').from('live_state_outcomes')
+          .select('fixture_id')
           .not('evaluated_at', 'is', null),
       ]);
       const patternRows = patternRes.status === 'fulfilled' && !patternRes.value.error
@@ -2283,10 +2349,24 @@ export default function DailyMonitorPage() {
       const lastRefreshedAt = patternRows.length > 0
         ? patternRows.reduce((latest, r) => r.updated_at > latest ? r.updated_at : latest, patternRows[0].updated_at)
         : null;
+      const replayRuns = replayRunsRes.status === 'fulfilled' && !replayRunsRes.value.error
+        ? ((replayRunsRes.value.data as ReplayRunRow[]) ?? [])
+        : [];
+      // Remaining candidates from latest replay run
+      const remainingCandidates = replayRuns.length > 0
+        ? (replayRuns[0].remaining_candidates ?? 0)
+        : 0;
+      // Distinct evaluated fixtures
+      const evalFixtures = evaluatedFixturesRes.status === 'fulfilled' && !evaluatedFixturesRes.value.error
+        ? new Set((evaluatedFixturesRes.value.data as { fixture_id: string }[])?.map(r => r.fixture_id) ?? []).size
+        : 0;
       setLiveMemoryHealth({
         patternRows,
         outcomeCount: outcomeCountRes.status === 'fulfilled' ? (outcomeCountRes.value.count ?? 0) : 0,
         lastRefreshedAt,
+        replayRuns,
+        remainingCandidates,
+        evaluatedFixtures: evalFixtures,
       });
     } catch (liveMemoryErr) {
       console.warn('[DailyMonitor] live_memory_health:', liveMemoryErr);
