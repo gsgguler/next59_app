@@ -131,6 +131,25 @@ interface CalibrationRow {
   updated_at: string | null;
 }
 
+interface ResultSyncRun {
+  id: string;
+  triggered_at: string;
+  mode: string;
+  matches_found: number | null;
+  updated: number | null;
+  errors_json: unknown;
+  http_status: number | null;
+  duration_ms: number | null;
+}
+
+interface EvalHealth {
+  total: number;
+  false_confidence: number;
+  correct: number;
+  avg_brier: number | null;
+  last_evaluated_at: string | null;
+}
+
 interface PipelineRun {
   id: string;
   started_at: string;
@@ -278,6 +297,99 @@ function Stat({ label, value, color }: { label: string; value: number | null; co
     <div className="flex items-center gap-1.5">
       <span className="text-xs text-navy-500">{label}:</span>
       <span className={`text-xs font-bold ${color}`}>{value ?? '—'}</span>
+    </div>
+  );
+}
+
+// ── Result sync + eval health card ────────────────────────────────────────────
+
+function ResultSyncEvalCard({
+  syncRun,
+  evalHealth,
+}: {
+  syncRun: ResultSyncRun | null;
+  evalHealth: EvalHealth;
+}) {
+  const SYNC_STALE_MINS = 20;
+  const syncStale = !syncRun || (() => {
+    const mins = (Date.now() - new Date(syncRun.triggered_at).getTime()) / 60000;
+    return mins > SYNC_STALE_MINS;
+  })();
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+      {/* Result sync health */}
+      <div className="bg-navy-800 border border-navy-700 rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <RefreshCw className="w-4 h-4 text-sky-400" />
+          <span className="text-sm font-semibold text-white">Sonuc Sync</span>
+          {syncStale ? (
+            <span className="ml-auto flex items-center gap-1 px-2 py-0.5 bg-amber-900/40 border border-amber-700/50 text-amber-300 text-xs rounded-full">
+              <AlertTriangle className="w-3 h-3" />
+              {syncRun ? `${Math.round((Date.now() - new Date(syncRun.triggered_at).getTime()) / 60000)}dk` : 'Hic kosulmadi'}
+            </span>
+          ) : (
+            <span className="ml-auto flex items-center gap-1 text-emerald-400 text-xs">
+              <CheckCircle className="w-3 h-3" /> Guncel
+            </span>
+          )}
+        </div>
+        {!syncRun ? (
+          <p className="text-xs text-navy-500">Sync kaydi bulunamadi.</p>
+        ) : (
+          <div className="flex flex-wrap gap-x-5 gap-y-1.5">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-navy-500">Son kos:</span>
+              <span className="text-xs font-bold text-navy-300">
+                {new Date(syncRun.triggered_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+            <Stat label="Bulunan" value={syncRun.matches_found} color="text-sky-400" />
+            <Stat label="Guncellenen" value={syncRun.updated} color="text-emerald-400" />
+            {syncRun.http_status != null && syncRun.http_status >= 400 && (
+              <Stat label="HTTP" value={syncRun.http_status} color="text-red-400" />
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Evaluation health */}
+      <div className="bg-navy-800 border border-navy-700 rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Target className="w-4 h-4 text-emerald-400" />
+          <span className="text-sm font-semibold text-white">Tahmin Degerlendirme</span>
+          {evalHealth.false_confidence > 0 && (
+            <span className="ml-auto flex items-center gap-1 px-2 py-0.5 bg-red-900/40 border border-red-700/50 text-red-300 text-xs rounded-full">
+              <AlertTriangle className="w-3 h-3" />
+              {evalHealth.false_confidence} yanlis guven
+            </span>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-x-5 gap-y-1.5">
+          <Stat label="Toplam eval" value={evalHealth.total} color="text-sky-400" />
+          <Stat label="Dogru" value={evalHealth.correct} color="text-emerald-400" />
+          <Stat label="Yanlis guven" value={evalHealth.false_confidence} color={evalHealth.false_confidence > 0 ? 'text-red-400' : 'text-navy-400'} />
+          {evalHealth.avg_brier != null && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-navy-500">Ort. Brier:</span>
+              <span className={`text-xs font-bold ${evalHealth.avg_brier > 0.32 ? 'text-amber-400' : 'text-navy-300'}`}>
+                {evalHealth.avg_brier.toFixed(4)}
+              </span>
+            </div>
+          )}
+          {evalHealth.last_evaluated_at && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-navy-500">Son eval:</span>
+              <span className="text-xs text-navy-400">
+                {new Date(evalHealth.last_evaluated_at).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })}
+              </span>
+            </div>
+          )}
+          {evalHealth.total === 0 && (
+            <span className="text-xs text-navy-500">Bitmis mac yok — bekleniyor.</span>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -447,6 +559,8 @@ function OverviewTab({
   brainRunMap,
   kpis,
   pipelineRun,
+  syncRun,
+  evalHealth,
   onAction,
   actionLoading,
 }: {
@@ -456,6 +570,8 @@ function OverviewTab({
   brainRunMap: Map<string, BrainRun>;
   kpis: KPIs;
   pipelineRun: PipelineRun | null;
+  syncRun: ResultSyncRun | null;
+  evalHealth: EvalHealth;
   onAction: (action: string, matchId: string) => void;
   actionLoading: Record<string, string>;
 }) {
@@ -470,6 +586,9 @@ function OverviewTab({
     <div className="space-y-8">
       {/* Pipeline run status */}
       <PipelineRunCard run={pipelineRun} />
+
+      {/* Result sync + eval health */}
+      <ResultSyncEvalCard syncRun={syncRun} evalHealth={evalHealth} />
 
       {/* KPI Grid */}
       <div>
@@ -1182,6 +1301,10 @@ export default function DailyMonitorPage() {
   const [evals, setEvals] = useState<EvalRow[]>([]);
   const [calibration, setCalibration] = useState<CalibrationRow[]>([]);
   const [pipelineRun, setPipelineRun] = useState<PipelineRun | null>(null);
+  const [syncRun, setSyncRun] = useState<ResultSyncRun | null>(null);
+  const [evalHealth, setEvalHealth] = useState<EvalHealth>({
+    total: 0, false_confidence: 0, correct: 0, avg_brier: null, last_evaluated_at: null,
+  });
 
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
@@ -1330,6 +1453,41 @@ export default function DailyMonitorPage() {
       errors.push(`pipeline_run: ${prErr.message}`);
     }
     setPipelineRun((prData as PipelineRun) ?? null);
+
+    // 8. Latest result sync run
+    const { data: srData, error: srErr } = await supabase
+      .schema('model_lab')
+      .from('result_sync_runs')
+      .select('*')
+      .order('triggered_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (srErr) {
+      console.error('[DailyMonitor] result_sync_runs:', srErr);
+      errors.push(`sync_run: ${srErr.message}`);
+    }
+    setSyncRun((srData as ResultSyncRun) ?? null);
+
+    // 9. Evaluation health summary
+    const { data: ehData, error: ehErr } = await supabase
+      .schema('model_lab')
+      .from('prediction_evaluations')
+      .select('was_correct, false_confidence, brier_score, evaluated_at');
+    if (ehErr) {
+      console.error('[DailyMonitor] prediction_evaluations:', ehErr);
+      errors.push(`eval_health: ${ehErr.message}`);
+    }
+    const ehRows = (ehData as { was_correct: boolean; false_confidence: boolean; brier_score: number | null; evaluated_at: string }[]) ?? [];
+    const briersValid = ehRows.map(r => r.brier_score).filter((b): b is number => b != null);
+    setEvalHealth({
+      total: ehRows.length,
+      false_confidence: ehRows.filter(r => r.false_confidence).length,
+      correct: ehRows.filter(r => r.was_correct).length,
+      avg_brier: briersValid.length > 0 ? briersValid.reduce((a, b) => a + b, 0) / briersValid.length : null,
+      last_evaluated_at: ehRows.length > 0
+        ? ehRows.sort((a, b) => new Date(b.evaluated_at).getTime() - new Date(a.evaluated_at).getTime())[0].evaluated_at
+        : null,
+    });
 
     setQueryErrors(errors);
     setLastRefresh(new Date());
@@ -1529,6 +1687,8 @@ export default function DailyMonitorPage() {
                 brainRunMap={brainRunMap}
                 kpis={kpis}
                 pipelineRun={pipelineRun}
+                syncRun={syncRun}
+                evalHealth={evalHealth}
                 onAction={handleAction}
                 actionLoading={actionLoading}
               />
