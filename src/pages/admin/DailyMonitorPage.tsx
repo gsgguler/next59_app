@@ -182,6 +182,23 @@ interface PipelineRun {
   errors_json: unknown;
 }
 
+interface EnrichmentSyncEntry {
+  sync_type: string;
+  latest_at: string | null;
+  rows_inserted_today: number;
+  rows_updated_today: number;
+  errors_today: number;
+  last_status: string | null;
+}
+
+interface EnrichmentHealth {
+  standings: EnrichmentSyncEntry;
+  injuries: EnrichmentSyncEntry;
+  team_statistics: EnrichmentSyncEntry;
+  venues: EnrichmentSyncEntry;
+  coverageUpcoming: { standings: number; injuries: number; team_stats: number; venue: number; total: number };
+}
+
 interface KPIs {
   upcoming: number;
   ready: number;
@@ -509,6 +526,109 @@ function ResultSyncEvalCard({
   );
 }
 
+// ── Enrichment health card ─────────────────────────────────────────────────────
+
+function EnrichmentHealthCard({ health }: { health: EnrichmentHealth }) {
+  const STALE_HOURS: Record<string, number> = {
+    standings: 2, injuries: 5, team_statistics: 13, venues: 25,
+  };
+
+  function sinceStr(ts: string | null | undefined): string {
+    if (!ts) return 'Hic';
+    const h = (Date.now() - new Date(ts).getTime()) / 36e5;
+    if (h < 1) return `${Math.round(h * 60)}dk once`;
+    if (h < 24) return `${h.toFixed(1)}s once`;
+    return `${Math.floor(h / 24)}g once`;
+  }
+
+  function pctFmt(n: number, total: number) {
+    if (total === 0) return '—';
+    return `${Math.round((n / total) * 100)}%`;
+  }
+
+  const types: { key: keyof Pick<EnrichmentHealth, 'standings' | 'injuries' | 'team_statistics' | 'venues'>; label: string }[] = [
+    { key: 'standings', label: 'Puan Tab.' },
+    { key: 'injuries', label: 'Sakatlıklar' },
+    { key: 'team_statistics', label: 'Takım İstat.' },
+    { key: 'venues', label: 'Venüler' },
+  ];
+
+  const hasErrors = types.some(t => (health[t.key].errors_today ?? 0) > 0);
+  const anyStale = types.some(t => {
+    const e = health[t.key];
+    if (!e.latest_at) return true;
+    const h = (Date.now() - new Date(e.latest_at).getTime()) / 36e5;
+    return h > STALE_HOURS[t.key];
+  });
+
+  const cov = health.coverageUpcoming;
+
+  return (
+    <div className={`bg-navy-800 border rounded-xl p-4 mb-4 ${hasErrors || anyStale ? 'border-amber-700/60' : 'border-navy-700'}`}>
+      <div className="flex items-center gap-2 mb-3">
+        <BarChart3 className="w-4 h-4 text-sky-400" />
+        <span className="text-sm font-semibold text-white">Enrichment Sagligi</span>
+        {(hasErrors || anyStale) && (
+          <span className="ml-auto flex items-center gap-1 px-2 py-0.5 bg-amber-900/40 border border-amber-700/50 text-amber-300 text-xs rounded-full">
+            <AlertTriangle className="w-3 h-3" />
+            Eksik Veri
+          </span>
+        )}
+        {!hasErrors && !anyStale && (
+          <span className="ml-auto flex items-center gap-1 text-emerald-400 text-xs">
+            <CheckCircle className="w-3 h-3" /> Normal
+          </span>
+        )}
+      </div>
+
+      {/* Per-type rows */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+        {types.map(({ key, label }) => {
+          const e = health[key];
+          const stale = !e.latest_at || (Date.now() - new Date(e.latest_at).getTime()) / 36e5 > STALE_HOURS[key];
+          const hasErr = (e.errors_today ?? 0) > 0;
+          return (
+            <div key={key} className={`bg-navy-900/50 rounded-lg p-2.5 ${hasErr ? 'ring-1 ring-red-700/50' : ''}`}>
+              <div className="text-[10px] text-navy-500 uppercase mb-1">{label}</div>
+              <div className={`text-xs font-semibold ${stale ? 'text-amber-400' : 'text-navy-300'}`}>
+                {sinceStr(e.latest_at)}
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-[10px] text-navy-500">+{e.rows_inserted_today ?? 0} yeni</span>
+                {(e.errors_today ?? 0) > 0 && (
+                  <span className="text-[10px] text-red-400">{e.errors_today} hata</span>
+                )}
+                {e.last_status && (
+                  <span className={`text-[10px] ${e.last_status === 'completed' ? 'text-emerald-500' : e.last_status === 'failed' ? 'text-red-400' : 'text-navy-500'}`}>
+                    {e.last_status}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Coverage for upcoming fixtures */}
+      {cov.total > 0 && (
+        <div className="border-t border-navy-700/50 pt-2.5">
+          <div className="text-[10px] text-navy-500 uppercase mb-2">Yaklasan Mac Enrichment Kapsami ({cov.total} mac)</div>
+          <div className="flex flex-wrap gap-x-5 gap-y-1">
+            <Stat label="Puan tab." value={null} color="text-sky-400" />
+            <span className="text-xs text-sky-400 font-bold -ml-3">{pctFmt(cov.standings, cov.total)}</span>
+            <Stat label="Sakatlık" value={null} color="text-amber-400" />
+            <span className="text-xs text-amber-400 font-bold -ml-3">{pctFmt(cov.injuries, cov.total)}</span>
+            <Stat label="Takım ist." value={null} color="text-teal-400" />
+            <span className="text-xs text-teal-400 font-bold -ml-3">{pctFmt(cov.team_stats, cov.total)}</span>
+            <Stat label="Venü" value={null} color="text-navy-300" />
+            <span className="text-xs text-navy-300 font-bold -ml-3">{pctFmt(cov.venue, cov.total)}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
 function KpiCard({
@@ -677,6 +797,7 @@ function OverviewTab({
   syncRun,
   evalHealth,
   liveSyncHealth,
+  enrichmentHealth,
   onAction,
   actionLoading,
 }: {
@@ -689,6 +810,7 @@ function OverviewTab({
   syncRun: ResultSyncRun | null;
   evalHealth: EvalHealth;
   liveSyncHealth: LiveSyncHealth;
+  enrichmentHealth: EnrichmentHealth;
   onAction: (action: string, matchId: string) => void;
   actionLoading: Record<string, string>;
 }) {
@@ -709,6 +831,9 @@ function OverviewTab({
 
       {/* Result sync + eval health */}
       <ResultSyncEvalCard syncRun={syncRun} evalHealth={evalHealth} />
+
+      {/* Enrichment health */}
+      <EnrichmentHealthCard health={enrichmentHealth} />
 
       {/* KPI Grid */}
       <div>
@@ -1430,6 +1555,17 @@ export default function DailyMonitorPage() {
     total: 0, false_confidence: 0, correct: 0, avg_brier: null, last_evaluated_at: null,
   });
 
+  const emptyEnrichEntry = (): EnrichmentSyncEntry => ({
+    sync_type: '', latest_at: null, rows_inserted_today: 0, rows_updated_today: 0, errors_today: 0, last_status: null,
+  });
+  const [enrichmentHealth, setEnrichmentHealth] = useState<EnrichmentHealth>({
+    standings: emptyEnrichEntry(),
+    injuries: emptyEnrichEntry(),
+    team_statistics: emptyEnrichEntry(),
+    venues: emptyEnrichEntry(),
+    coverageUpcoming: { standings: 0, injuries: 0, team_stats: 0, venue: 0, total: 0 },
+  });
+
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [actionLoading, setActionLoading] = useState<Record<string, string>>({});
@@ -1630,6 +1766,78 @@ export default function DailyMonitorPage() {
         ? ehRows.sort((a, b) => new Date(b.evaluated_at).getTime() - new Date(a.evaluated_at).getTime())[0].evaluated_at
         : null,
     });
+
+    // 11. Enrichment health — per-type sync log summary + upcoming coverage
+    try {
+      const todayIso = new Date().toISOString().slice(0, 10);
+      const [standingsLogRes, injuriesLogRes, teamStatsLogRes, venuesLogRes] = await Promise.allSettled([
+        supabase.schema('model_lab').from('enrichment_sync_log')
+          .select('sync_type, started_at, status, rows_inserted, rows_updated, errors_json')
+          .eq('sync_type', 'standings').order('started_at', { ascending: false }).limit(10),
+        supabase.schema('model_lab').from('enrichment_sync_log')
+          .select('sync_type, started_at, status, rows_inserted, rows_updated, errors_json')
+          .eq('sync_type', 'injuries').order('started_at', { ascending: false }).limit(10),
+        supabase.schema('model_lab').from('enrichment_sync_log')
+          .select('sync_type, started_at, status, rows_inserted, rows_updated, errors_json')
+          .eq('sync_type', 'team_statistics').order('started_at', { ascending: false }).limit(10),
+        supabase.schema('model_lab').from('enrichment_sync_log')
+          .select('sync_type, started_at, status, rows_inserted, rows_updated, errors_json')
+          .eq('sync_type', 'venues').order('started_at', { ascending: false }).limit(10),
+      ]);
+
+      function summarize(res: PromiseSettledResult<{ data: any; error: any }>): EnrichmentSyncEntry {
+        if (res.status === 'rejected' || !res.value.data?.length) return emptyEnrichEntry();
+        const rows = res.value.data as Array<{
+          sync_type: string; started_at: string; status: string;
+          rows_inserted: number; rows_updated: number; errors_json: unknown;
+        }>;
+        const latest = rows[0];
+        const todayRows = rows.filter(r => r.started_at?.startsWith(todayIso));
+        const errorsToday = todayRows.reduce((acc, r) => {
+          const arr = Array.isArray(r.errors_json) ? r.errors_json : [];
+          return acc + arr.length;
+        }, 0);
+        return {
+          sync_type: latest.sync_type,
+          latest_at: latest.started_at,
+          rows_inserted_today: todayRows.reduce((a, r) => a + (r.rows_inserted ?? 0), 0),
+          rows_updated_today: todayRows.reduce((a, r) => a + (r.rows_updated ?? 0), 0),
+          errors_today: errorsToday,
+          last_status: latest.status,
+        };
+      }
+
+      const stHealth = summarize(standingsLogRes);
+      const injHealth = summarize(injuriesLogRes);
+      const tsHealth = summarize(teamStatsLogRes);
+      const venHealth = summarize(venuesLogRes);
+
+      // Coverage: count upcoming matches that have enrichment data
+      const { start: upStart, end: upEnd } = dateRange();
+      const { data: covRows } = await supabase
+        .schema('model_lab')
+        .from('prematch_upcoming_feature_snapshots')
+        .select('match_id, has_standings_features, has_injuries_features, has_team_stats_features, has_venue_features')
+        .gte('match_date', upStart ?? todayIso)
+        .lte('match_date', upEnd ?? addDays(todayIso, 30));
+
+      const covTotal = covRows?.length ?? 0;
+      setEnrichmentHealth({
+        standings: stHealth,
+        injuries: injHealth,
+        team_statistics: tsHealth,
+        venues: venHealth,
+        coverageUpcoming: {
+          total: covTotal,
+          standings: covRows?.filter((r: any) => r.has_standings_features).length ?? 0,
+          injuries: covRows?.filter((r: any) => r.has_injuries_features).length ?? 0,
+          team_stats: covRows?.filter((r: any) => r.has_team_stats_features).length ?? 0,
+          venue: covRows?.filter((r: any) => r.has_venue_features).length ?? 0,
+        },
+      });
+    } catch (enrichErr) {
+      console.warn('[DailyMonitor] enrichment_health:', enrichErr);
+    }
 
     setQueryErrors(errors);
     setLastRefresh(new Date());
@@ -1832,6 +2040,7 @@ export default function DailyMonitorPage() {
                 syncRun={syncRun}
                 evalHealth={evalHealth}
                 liveSyncHealth={liveSyncHealth}
+                enrichmentHealth={enrichmentHealth}
                 onAction={handleAction}
                 actionLoading={actionLoading}
               />
