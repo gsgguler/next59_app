@@ -88,7 +88,8 @@ const adminGroups = [
     label: 'DK 2026',
     icon: Globe,
     items: [
-      { to: '/admin/wc2026/kadro-ops', label: 'Kadro Operasyonları', icon: Globe },
+      { to: '/admin/wc2026/kadro-ops',   label: 'Kadro Operasyonları', icon: Globe },
+      { to: '/admin/wc2026/kalibrasyon', label: 'DK Kalibrasyonu',     icon: BarChart3 },
     ],
   },
 ];
