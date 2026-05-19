@@ -3,9 +3,16 @@ import { Link } from 'react-router-dom';
 import {
   FlaskConical, ChevronRight, AlertCircle, Shield,
   TrendingDown, TrendingUp, Minus, RefreshCw,
-  CheckCircle, AlertTriangle,
+  CheckCircle, AlertTriangle, Info,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+
+interface ActiveRunMeta {
+  run_key: string;
+  prediction_formula: string;
+  completed_at: string | null;
+  sample_size: number | null;
+}
 
 interface CalibrationRow {
   id: string;
@@ -347,9 +354,27 @@ export default function ModelLabKalibrasyonPage() {
   const [groupType, setGroupType] = useState('overall');
   const [expandedBins, setExpandedBins] = useState<string | null>(null);
   const [tab, setTab] = useState<'summary' | 'adjustments' | 'simulations' | 'decision' | 'drawfloor' | 'tempgrid' | 'pathology' | 'refinement'>('summary');
+  const [activeRun, setActiveRun] = useState<ActiveRunMeta | null>(null);
 
   useEffect(() => {
     document.title = 'Kalibrasyon | Model Lab | Admin | Next59';
+  }, []);
+
+  useEffect(() => {
+    async function loadActiveRun() {
+      const { data } = await supabase.rpc('ml_get_backtest_runs', { p_limit: 1 });
+      const runs = (data as unknown[]) ?? [];
+      if (runs.length > 0) {
+        const r = runs[0] as Record<string, unknown>;
+        setActiveRun({
+          run_key: String(r.run_key ?? ''),
+          prediction_formula: String(r.prediction_formula ?? ''),
+          completed_at: r.completed_at ? String(r.completed_at) : null,
+          sample_size: r.total_predictions != null ? Number(r.total_predictions) : null,
+        });
+      }
+    }
+    loadActiveRun();
   }, []);
 
   useEffect(() => {
@@ -475,6 +500,37 @@ export default function ModelLabKalibrasyonPage() {
           </div>
         </div>
 
+        {/* Active run context banner */}
+        {activeRun && (
+          <div className="bg-navy-900/60 border border-navy-800 rounded-xl px-4 py-3 mb-6 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+            <div className="flex items-center gap-1.5 text-xs text-navy-400">
+              <Info className="w-3.5 h-3.5 text-navy-600 shrink-0" />
+              <span className="text-navy-500">Aktif koşu:</span>
+              <span className="font-mono text-white">{activeRun.run_key}</span>
+            </div>
+            {activeRun.prediction_formula && (
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border ${
+                activeRun.prediction_formula.toLowerCase().includes('v2') || activeRun.prediction_formula.toLowerCase().includes('recalibrated')
+                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                  : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+              }`}>
+                {activeRun.prediction_formula.toLowerCase().includes('v2') || activeRun.prediction_formula.toLowerCase().includes('recalibrated')
+                  ? 'Draw V2'
+                  : 'V1 (eski)'}
+                {' · '}{activeRun.prediction_formula}
+              </span>
+            )}
+            {activeRun.completed_at && (
+              <span className="text-[11px] text-navy-500">
+                Tamamlandı: {new Date(activeRun.completed_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
+            {activeRun.sample_size != null && (
+              <span className="text-[11px] text-navy-500 tabular-nums">N={activeRun.sample_size.toLocaleString('tr-TR')}</span>
+            )}
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="flex gap-2 mb-6 border-b border-navy-800 pb-px flex-wrap">
           {(['summary', 'adjustments', 'simulations', 'decision', 'drawfloor', 'tempgrid', 'pathology', 'refinement'] as const).map((t) => (
@@ -490,11 +546,11 @@ export default function ModelLabKalibrasyonPage() {
               {t === 'summary' ? 'Kalibrasyon Özeti'
                 : t === 'adjustments' ? 'Düzeltme Adayları'
                 : t === 'simulations' ? 'Olasılık Simülasyonları'
-                : t === 'decision' ? 'Decision Calibration'
-                : t === 'drawfloor' ? 'Draw Floor & Temp'
-                : t === 'tempgrid' ? 'T Grid Search'
-                : t === 'pathology' ? 'Comp. Pathology'
-                : 'Bias Refinement'}
+                : t === 'decision' ? 'Karar Kalibrasyonu'
+                : t === 'drawfloor' ? 'Berab. Tabanı & Sıcaklık'
+                : t === 'tempgrid' ? 'Sıcaklık Grid Araması'
+                : t === 'pathology' ? 'Lig Patolojisi'
+                : 'Bias İncelemesi'}
             </button>
           ))}
         </div>

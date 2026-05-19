@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Sliders, Play, RefreshCw, CheckCircle, AlertCircle,
-  Clock, ChevronDown, Shield, Info, BarChart3, Zap,
+  Clock, ChevronDown, Shield, Info, Zap,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -453,10 +453,11 @@ function SezonSatiri({
     ? Math.round(((satir.islenen_mac ?? 0) / satir.mac_sayisi) * 100)
     : 0;
 
-  // When completed, prefer live best-run metrics over stale kalibrasyon_kuyrugu snapshot
+  // When completed, prefer live best-run metrics over stale kalibrasyon_kuyrugu snapshot.
+  // home_gap is not in BestRunIndex, so always fall back to the queue row value.
   const displayBrier = satir.durum === 'tamamlandı' && bestRun ? bestRun.brier : satir.ortalama_brier;
   const displayIsabet = satir.durum === 'tamamlandı' && bestRun ? bestRun.hit_rate : satir.isabet_orani;
-  const displayEvSap = satir.durum === 'tamamlandı' && bestRun ? null : satir.ev_sahibi_sapması;
+  const displayEvSap = satir.ev_sahibi_sapması;
   const displayBerSap = satir.durum === 'tamamlandı' && bestRun ? bestRun.draw_gap : satir.beraberlik_sapması;
   const fRozet = satir.durum === 'tamamlandı' ? formulaRozeti(bestRun?.prediction_formula) : null;
 
@@ -614,5 +615,3 @@ function OzetKart({ label, deger, renk }: { label: string; deger: number | strin
   );
 }
 
-// suppress unused warning
-void BarChart3;
