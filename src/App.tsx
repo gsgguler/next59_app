@@ -86,6 +86,7 @@ import PreMatchOpsPage from './pages/admin/PreMatchOpsPage';
 import KalibrasyonMerkeziPage from './pages/admin/KalibrasyonMerkeziPage';
 import KalibrasyonDurumuPage from './pages/admin/KalibrasyonDurumuPage';
 import DailyMonitorPage from './pages/admin/DailyMonitorPage';
+import WcSquadOpsPage from './pages/admin/WcSquadOpsPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import PlaceholderPage from './pages/PlaceholderPage';
@@ -205,6 +206,7 @@ export default function App() {
                 <Route path="model-lab/publishing-queue" element={<MatchPublishingQueuePage />} />
                 <Route path="model-lab/prematch-ops" element={<PreMatchOpsPage />} />
                 <Route path="model-lab/daily-monitor" element={<DailyMonitorPage />} />
+                <Route path="wc2026/kadro-ops" element={<WcSquadOpsPage />} />
                 <Route path="auth-debug" element={<AuthDebugPage />} />
               </Route>
 
