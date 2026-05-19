@@ -4,7 +4,7 @@ import {
   Play, Eye, ThumbsUp, ThumbsDown, AlertTriangle, Filter,
   ChevronDown, ChevronUp, BarChart2, FileText, Cpu, XCircle,
   TrendingUp, Activity, Brain, Target, Waves, Timer,
-  Sliders, Database, Star, ChevronRight,
+  Sliders, Database, Star, ChevronRight, Ban,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -23,6 +23,12 @@ interface ReadinessRow {
   calibration_readiness: boolean;
   lineup_availability: boolean;
   stats_availability: boolean;
+  standings_readiness: boolean;
+  injuries_readiness: boolean;
+  team_statistics_readiness: boolean;
+  venue_readiness: boolean;
+  enrichment_score: number | null;
+  injury_warning_level: string | null;
   prediction_readiness: boolean;
   scenario_readiness: boolean;
   feature_quality_tier: string | null;
@@ -48,12 +54,26 @@ interface PredictionDraft {
   p_home: number;
   p_draw: number;
   p_away: number;
+  p_ht_home: number | null;
+  p_ht_draw: number | null;
+  p_ht_away: number | null;
+  expected_goals_home: number | null;
+  expected_goals_away: number | null;
+  predicted_score: string | null;
   confidence_score: number;
   confidence_tier: string;
   feature_quality_tier: string;
   prediction_formula: string;
   status: string;
   warnings: string[];
+  generated_at: string;
+  has_calibration_warning: boolean;
+  has_data_warning: boolean;
+}
+
+interface StoryDraftLink {
+  match_id: string;
+  status: string;
   generated_at: string;
 }
 
@@ -97,13 +117,13 @@ const COMPETITION_OPTIONS = [
 ];
 
 const BRAIN_META: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; description: string }> = {
-  probability:   { label: 'Probability Brain',   icon: BarChart2, description: 'p_home / p_draw / p_away + ELO gap + confidence' },
-  draw_risk:     { label: 'Draw Risk Brain',      icon: Target,    description: 'Draw risk level + pressure + league prior + calibration gap' },
-  upset_risk:    { label: 'Upset Risk Brain',     icon: AlertTriangle, description: 'Favorite fragility + upset probability + overconfidence' },
-  tempo:         { label: 'Tempo Brain',          icon: Waves,     description: 'Expected tempo from goals/form/stats — no event prediction' },
-  late_pressure: { label: 'Late Pressure Brain',  icon: Timer,     description: 'Late goal pressure from closeness + draw risk + attack index' },
-  calibration:   { label: 'Calibration Brain',    icon: Sliders,   description: 'League Brier score + home correction + production candidate' },
-  data_quality:  { label: 'Data Quality Brain',   icon: Database,  description: 'Feature tier + ELO/lineup/calibration readiness + severity' },
+  probability:   { label: 'Olasılık Beyni',         icon: BarChart2,     description: 'p_ev / p_beraberlik / p_deplasman + ELO farkı + güven' },
+  draw_risk:     { label: 'Beraberlik Riski Beyni',  icon: Target,        description: 'Beraberlik seviyesi + baskı + lig prior + kalibrasyon farkı' },
+  upset_risk:    { label: 'Sürpriz Riski Beyni',     icon: AlertTriangle, description: 'Favori kırılganlığı + sürpriz olasılığı + aşırı güven' },
+  tempo:         { label: 'Tempo Beyni',             icon: Waves,         description: 'Gol/form/istatistik kaynaklı beklenen tempo — olay tahmini değil' },
+  late_pressure: { label: 'Geç Baskı Beyni',         icon: Timer,         description: 'Yakınlık + beraberlik riski + atak endeksinden geç gol baskısı' },
+  calibration:   { label: 'Kalibrasyon Beyni',       icon: Sliders,       description: 'Lig Brier skoru + ev düzeltmesi + üretim adayı' },
+  data_quality:  { label: 'Veri Kalitesi Beyni',     icon: Database,      description: 'Öznitelik tipi + ELO/kadro/kalibrasyon hazırlığı + şiddet' },
 };
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
@@ -118,7 +138,7 @@ export default function PreMatchOpsPage() {
         <div className="bg-amber-500/10 border border-amber-500/25 rounded-xl px-5 py-3 mb-8 flex items-start gap-3">
           <Shield className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
           <p className="text-sm text-amber-300">
-            <strong>Pre-Match Operations — Admin Only.</strong>{' '}
+            <strong>Pre-Match Operations — Yalnızca Admin.</strong>{' '}
             Yaklaşan maçlar için Sub-Brain → Master Brain orkestrasyon sistemi. Hiçbir içerik otomatik yayınlanmaz.
           </p>
         </div>
@@ -130,7 +150,7 @@ export default function PreMatchOpsPage() {
           <div>
             <h1 className="text-2xl font-bold text-white font-display">Pre-Match Operations</h1>
             <p className="text-sm text-readable-muted mt-1">
-              Maç hazırlık · tahmin · beyin paketi · senaryo · inceleme kuyruğu
+              Hazırlık durumu · tahmin üretimi · beyin paketi · senaryo · inceleme kuyruğu
             </p>
           </div>
         </div>
@@ -139,7 +159,7 @@ export default function PreMatchOpsPage() {
           {([
             { id: 'queue' as TabId,       label: 'Hazırlık Kuyruğu', icon: Activity },
             { id: 'predictions' as TabId, label: 'Tahmin Taslakları', icon: BarChart2 },
-            { id: 'brains' as TabId,      label: 'Brain Inspector',   icon: Brain },
+            { id: 'brains' as TabId,      label: 'Beyin Denetçisi',   icon: Brain },
             { id: 'jobs' as TabId,        label: 'İşlem Geçmişi',     icon: Cpu },
           ] as const).map(({ id, label, icon: Icon }) => (
             <button
@@ -172,6 +192,7 @@ function ReadinessQueueTab() {
   const [rows, setRows] = useState<ReadinessRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionErrors, setActionErrors] = useState<Record<string, string>>({});
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [compFilter, setCompFilter] = useState('Tümü');
   const [dateFrom, setDateFrom] = useState('');
@@ -180,6 +201,11 @@ function ReadinessQueueTab() {
   const [generating, setGenerating] = useState<string | null>(null);
   const [brainGen, setBrainGen] = useState<string | null>(null);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+
+  const setActionError = (id: string, msg: string) => {
+    setActionErrors(prev => ({ ...prev, [id]: msg }));
+    setTimeout(() => setActionErrors(prev => { const n = { ...prev }; delete n[id]; return n; }), 6000);
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -205,16 +231,16 @@ function ReadinessQueueTab() {
   const assessMatch = async (matchId: string) => {
     setAssessing(matchId);
     const { error: err } = await supabase.rpc('ml_assess_upcoming_match_readiness', { p_match_id: matchId });
-    if (err) alert('Hata: ' + err.message);
-    await load();
+    if (err) setActionError(matchId, err.message);
+    else await load();
     setAssessing(null);
   };
 
   const generatePackage = async (matchId: string) => {
     setGenerating(matchId);
     const { error: err } = await supabase.rpc('ml_generate_full_prematch_package', { p_match_id: matchId });
-    if (err) alert('Üretim hatası: ' + err.message);
-    await load();
+    if (err) setActionError(matchId, 'Üretim hatası: ' + err.message);
+    else await load();
     setGenerating(null);
   };
 
@@ -224,27 +250,29 @@ function ReadinessQueueTab() {
       p_match_id: matchId,
       p_triggered_by: 'admin_ui',
     });
-    if (err) alert('Brain hatası: ' + err.message);
-    await load();
+    if (err) setActionError(matchId, 'Beyin hatası: ' + err.message);
+    else await load();
     setBrainGen(null);
   };
 
   const summary = {
-    total: rows.length,
-    ready: rows.filter(r => r.overall_status === 'ready').length,
-    partial: rows.filter(r => r.overall_status === 'partial').length,
-    blocked: rows.filter(r => r.overall_status === 'blocked').length,
+    total:          rows.length,
+    ready:          rows.filter(r => r.overall_status === 'ready').length,
+    partial:        rows.filter(r => r.overall_status === 'partial').length,
+    blocked:        rows.filter(r => r.overall_status === 'blocked').length,
     withPrediction: rows.filter(r => r.prediction_readiness).length,
+    withScenario:   rows.filter(r => r.scenario_readiness).length,
   };
 
   return (
     <div>
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
-        <SmallStat label="Toplam"     value={summary.total} />
-        <SmallStat label="Hazır"      value={summary.ready}         accent="green" />
-        <SmallStat label="Kısmi"      value={summary.partial}       accent="amber" />
-        <SmallStat label="Bloke"      value={summary.blocked}       accent="red" />
-        <SmallStat label="Tahmin Var" value={summary.withPrediction} accent="blue" />
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-6">
+        <SmallStat label="Toplam"        value={summary.total} />
+        <SmallStat label="Hazır"         value={summary.ready}          accent="green" />
+        <SmallStat label="Kısmi"         value={summary.partial}        accent="amber" />
+        <SmallStat label="Bloke"         value={summary.blocked}        accent="red" />
+        <SmallStat label="Tahmin Hazır"  value={summary.withPrediction} accent="blue" />
+        <SmallStat label="Senaryo Hazır" value={summary.withScenario}   accent="blue" />
       </div>
 
       <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-4 mb-4">
@@ -289,7 +317,10 @@ function ReadinessQueueTab() {
       <div className="bg-navy-900/50 border border-navy-800 rounded-xl overflow-hidden">
         <div className="px-5 py-3 border-b border-navy-800 flex items-center justify-between">
           <span className="text-xs font-semibold text-readable-muted uppercase tracking-wider">
-            Maç Kuyruğu ({rows.length})
+            Hazırlık Kuyruğu ({rows.length})
+          </span>
+          <span className="text-[11px] text-navy-600">
+            Satıra tıkla → ayrıntı · Blokaj + Uyarı nedenleri
           </span>
         </div>
 
@@ -304,12 +335,13 @@ function ReadinessQueueTab() {
                 <tr className="border-b border-navy-800">
                   <th className="text-left px-5 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Maç</th>
                   <th className="text-left px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider hidden md:table-cell">Lig / Tarih</th>
-                  <th className="text-center px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">ELO</th>
-                  <th className="text-center px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Öznitelik</th>
-                  <th className="text-center px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Kalibrasyon</th>
-                  <th className="text-center px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Tahmin</th>
+                  <th className="text-center px-2 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">ELO</th>
+                  <th className="text-center px-2 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Öznitelik</th>
+                  <th className="text-center px-2 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Kal.</th>
+                  <th className="text-center px-2 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Tahmin</th>
+                  <th className="text-center px-2 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Senaryo</th>
                   <th className="text-center px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Durum</th>
-                  <th className="text-right px-5 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">İşlem</th>
+                  <th className="text-right px-5 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">İşlemler</th>
                 </tr>
               </thead>
               <tbody>
@@ -317,28 +349,55 @@ function ReadinessQueueTab() {
                   <>
                     <tr
                       key={row.match_id}
-                      className="border-b border-navy-800/40 hover:bg-navy-800/20 transition-colors cursor-pointer"
+                      className={`border-b border-navy-800/40 transition-colors cursor-pointer ${
+                        row.overall_status === 'blocked'
+                          ? 'hover:bg-red-900/10'
+                          : row.overall_status === 'partial'
+                          ? 'hover:bg-amber-900/10'
+                          : 'hover:bg-navy-800/20'
+                      }`}
                       onClick={() => setExpandedRow(expandedRow === row.match_id ? null : row.match_id)}
                     >
                       <td className="px-5 py-3">
                         <div className="text-white font-medium leading-tight">
                           {row.home_team_name} <span className="text-navy-500">vs</span> {row.away_team_name}
                         </div>
-                        {row.feature_quality_tier && (
-                          <span className="text-[10px] text-navy-500 mt-0.5 block">{row.feature_quality_tier}</span>
-                        )}
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          {row.feature_quality_tier && (
+                            <FeatureTierBadge tier={row.feature_quality_tier} />
+                          )}
+                          {row.enrichment_score != null && (
+                            <span className={`text-[10px] font-mono ${
+                              row.enrichment_score >= 4 ? 'text-emerald-500' :
+                              row.enrichment_score >= 2 ? 'text-amber-500' : 'text-navy-600'
+                            }`}>
+                              zenginleştirme {row.enrichment_score}/6
+                            </span>
+                          )}
+                          {(row.warnings?.length > 0) && (
+                            <span className="text-[10px] text-amber-500 flex items-center gap-0.5">
+                              <AlertTriangle className="w-2.5 h-2.5" />{row.warnings.length} uyarı
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-3 py-3 hidden md:table-cell">
                         <div className="text-navy-400">{row.competition_name}</div>
-                        <div className="text-navy-600 tabular-nums">{row.match_date}</div>
+                        <div className="text-navy-600 tabular-nums text-[11px]">{row.match_date}</div>
                       </td>
-                      <td className="px-3 py-3 text-center"><ReadinessDot ok={row.elo_readiness} /></td>
-                      <td className="px-3 py-3 text-center"><ReadinessDot ok={row.feature_readiness} /></td>
-                      <td className="px-3 py-3 text-center"><ReadinessDot ok={row.calibration_readiness} /></td>
-                      <td className="px-3 py-3 text-center">
+                      <td className="px-2 py-3 text-center"><ReadinessDot ok={row.elo_readiness} /></td>
+                      <td className="px-2 py-3 text-center"><ReadinessDot ok={row.feature_readiness} /></td>
+                      <td className="px-2 py-3 text-center"><ReadinessDot ok={row.calibration_readiness} /></td>
+                      <td className="px-2 py-3 text-center">
                         {row.prediction_readiness
-                          ? <PredStatusBadge status={row.prediction_status} />
-                          : <span className="text-navy-600">–</span>
+                          ? <PredStatusBadge status={row.prediction_status} small />
+                          : <XCircle className="w-3.5 h-3.5 text-navy-700 mx-auto" />
+                        }
+                      </td>
+                      <td className="px-2 py-3 text-center">
+                        {row.scenario_readiness
+                          ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 mx-auto" />
+                          : <XCircle className="w-3.5 h-3.5 text-navy-700 mx-auto" />
                         }
                       </td>
                       <td className="px-3 py-3 text-center">
@@ -346,21 +405,24 @@ function ReadinessQueueTab() {
                       </td>
                       <td className="px-5 py-3 text-right">
                         <div className="flex items-center gap-1.5 justify-end flex-wrap">
+                          {/* Tekrar Değerlendir — always available */}
                           <ActionButton
-                            label="Değerlendir"
+                            label="Tekrar Değerlendir"
                             icon={<Eye className="w-3 h-3" />}
                             loading={assessing === row.match_id}
                             onClick={e => { e.stopPropagation(); assessMatch(row.match_id); }}
                             variant="ghost"
                           />
+                          {/* Beyin Üret — always available */}
                           <ActionButton
-                            label="Brain"
+                            label="Beyin"
                             icon={<Brain className="w-3 h-3" />}
                             loading={brainGen === row.match_id}
                             onClick={e => { e.stopPropagation(); generateBrain(row.match_id); }}
                             variant="ghost"
                           />
-                          {(row.overall_status === 'ready' || row.overall_status === 'partial') && !row.prediction_readiness && (
+                          {/* Üret — only when prediction doesn't exist yet AND not blocked */}
+                          {!row.prediction_readiness && row.overall_status !== 'blocked' && (
                             <ActionButton
                               label="Üret"
                               icon={<Play className="w-3 h-3" />}
@@ -368,6 +430,13 @@ function ReadinessQueueTab() {
                               onClick={e => { e.stopPropagation(); generatePackage(row.match_id); }}
                               variant="primary"
                             />
+                          )}
+                          {/* Yayına Hazır Değil — explicit label for blocked rows */}
+                          {row.overall_status === 'blocked' && (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-red-400 bg-red-500/10 border border-red-500/20 rounded px-2 py-1">
+                              <Ban className="w-3 h-3" />
+                              Yayına Hazır Değil
+                            </span>
                           )}
                           <button
                             onClick={e => { e.stopPropagation(); setExpandedRow(expandedRow === row.match_id ? null : row.match_id); }}
@@ -379,11 +448,17 @@ function ReadinessQueueTab() {
                             }
                           </button>
                         </div>
+                        {/* Inline action error */}
+                        {actionErrors[row.match_id] && (
+                          <div className="mt-1 text-[10px] text-red-400 text-right max-w-[200px] ml-auto">
+                            {actionErrors[row.match_id]}
+                          </div>
+                        )}
                       </td>
                     </tr>
                     {expandedRow === row.match_id && (
                       <tr key={`${row.match_id}-expanded`} className="border-b border-navy-800/40 bg-navy-900/30">
-                        <td colSpan={8} className="px-5 py-4">
+                        <td colSpan={9} className="px-5 py-4">
                           <ReadinessDetail row={row} />
                         </td>
                       </tr>
@@ -403,10 +478,18 @@ function ReadinessQueueTab() {
 
 function PredictionDraftsTab() {
   const [drafts, setDrafts] = useState<PredictionDraft[]>([]);
+  const [storyLinks, setStoryLinks] = useState<Record<string, StoryDraftLink>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionErrors, setActionErrors] = useState<Record<string, string>>({});
   const [statusFilter, setStatusFilter] = useState('all');
   const [actioning, setActioning] = useState<string | null>(null);
+  const [expandedDraft, setExpandedDraft] = useState<string | null>(null);
+
+  const setActionError = (id: string, msg: string) => {
+    setActionErrors(prev => ({ ...prev, [id]: msg }));
+    setTimeout(() => setActionErrors(prev => { const n = { ...prev }; delete n[id]; return n; }), 6000);
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -414,13 +497,30 @@ function PredictionDraftsTab() {
     let q = supabase
       .schema('model_lab')
       .from('prematch_prediction_drafts')
-      .select('id, match_id, home_team_name, away_team_name, competition_name, match_date, p_home, p_draw, p_away, confidence_score, confidence_tier, feature_quality_tier, prediction_formula, status, warnings, generated_at')
+      .select('id, match_id, home_team_name, away_team_name, competition_name, match_date, p_home, p_draw, p_away, p_ht_home, p_ht_draw, p_ht_away, expected_goals_home, expected_goals_away, predicted_score, confidence_score, confidence_tier, feature_quality_tier, prediction_formula, status, warnings, generated_at, has_calibration_warning, has_data_warning')
       .order('generated_at', { ascending: false })
       .limit(200);
     if (statusFilter !== 'all') q = q.eq('status', statusFilter);
     const { data, error: err } = await q;
-    if (err) setError(err.message);
-    else setDrafts((data as PredictionDraft[]) ?? []);
+    if (err) { setError(err.message); setLoading(false); return; }
+    const draftList = (data as PredictionDraft[]) ?? [];
+    setDrafts(draftList);
+
+    // Load story draft links for these matches
+    if (draftList.length > 0) {
+      const matchIds = [...new Set(draftList.map(d => d.match_id))];
+      const { data: stories } = await supabase
+        .schema('model_lab')
+        .from('match_story_drafts')
+        .select('match_id, status, generated_at')
+        .in('match_id', matchIds)
+        .order('generated_at', { ascending: false });
+      const linkMap: Record<string, StoryDraftLink> = {};
+      (stories ?? []).forEach((s: StoryDraftLink) => {
+        if (!linkMap[s.match_id]) linkMap[s.match_id] = s;
+      });
+      setStoryLinks(linkMap);
+    }
     setLoading(false);
   }, [statusFilter]);
 
@@ -433,12 +533,33 @@ function PredictionDraftsTab() {
       .from('prematch_prediction_drafts')
       .update({ status: newStatus })
       .eq('id', id);
-    if (err) alert('Güncelleme hatası: ' + err.message);
-    await load();
+    if (err) setActionError(id, 'Güncelleme hatası: ' + err.message);
+    else await load();
     setActioning(null);
   };
 
+  const STATUS_LABELS: Record<string, string> = {
+    all:               'Tümü',
+    pending_review:    'İnceleme Bekliyor',
+    approved_internal: 'İç Onay Verildi',
+    rejected:          'Reddedildi',
+    published:         'Yayınlandı',
+  };
+
   const STATUS_OPTIONS = ['all', 'pending_review', 'approved_internal', 'rejected', 'published'];
+
+  const publishSafe = (d: PredictionDraft): boolean => {
+    return d.status === 'approved_internal' && !d.has_calibration_warning && !d.has_data_warning;
+  };
+
+  const publishBlockedReason = (d: PredictionDraft): string | null => {
+    if (d.status === 'published') return null;
+    if (d.status === 'rejected') return 'Reddedildi';
+    if (d.status === 'pending_review') return 'Henüz incelenmedi';
+    if (d.has_calibration_warning) return 'Kalibrasyon uyarısı mevcut';
+    if (d.has_data_warning) return 'Veri kalitesi uyarısı mevcut';
+    return null;
+  };
 
   return (
     <div>
@@ -452,7 +573,7 @@ function PredictionDraftsTab() {
                   : 'bg-navy-800 text-navy-400 border border-navy-700 hover:text-white'
               }`}
             >
-              {s === 'all' ? 'Tümü' : s.replace(/_/g, ' ')}
+              {STATUS_LABELS[s] ?? s}
             </button>
           ))}
           <button onClick={load} disabled={loading}
@@ -466,10 +587,11 @@ function PredictionDraftsTab() {
       {error && <ErrorBanner message={error} />}
 
       <div className="bg-navy-900/50 border border-navy-800 rounded-xl overflow-hidden">
-        <div className="px-5 py-3 border-b border-navy-800">
+        <div className="px-5 py-3 border-b border-navy-800 flex items-center justify-between">
           <span className="text-xs font-semibold text-readable-muted uppercase tracking-wider">
             Tahmin Taslakları ({drafts.length})
           </span>
+          <span className="text-[11px] text-navy-600">Satıra tıkla → detay + uyarılar + senaryo bağlantısı</span>
         </div>
         {loading ? <LoadingSkeleton rows={6} /> : drafts.length === 0 ? (
           <EmptyState message="Bu durumda tahmin taslağı yok." />
@@ -481,66 +603,239 @@ function PredictionDraftsTab() {
                   <th className="text-left px-5 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Maç</th>
                   <th className="text-center px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider hidden sm:table-cell">Olasılıklar</th>
                   <th className="text-center px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider hidden md:table-cell">Güven</th>
-                  <th className="text-center px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider hidden lg:table-cell">Tier</th>
+                  <th className="text-center px-2 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Tahmin Hazır</th>
+                  <th className="text-center px-2 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Senaryo Hazır</th>
+                  <th className="text-center px-2 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Yayın Güvenli</th>
                   <th className="text-center px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Durum</th>
                   <th className="text-right px-5 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Aksiyon</th>
                 </tr>
               </thead>
               <tbody>
-                {drafts.map(d => (
-                  <tr key={d.id} className="border-b border-navy-800/40 hover:bg-navy-800/20 transition-colors">
-                    <td className="px-5 py-3">
-                      <div className="text-white font-medium">{d.home_team_name} vs {d.away_team_name}</div>
-                      <div className="text-navy-500 text-[11px]">{d.competition_name} · {d.match_date}</div>
-                    </td>
-                    <td className="px-3 py-3 text-center hidden sm:table-cell">
-                      <ProbBar home={d.p_home} draw={d.p_draw} away={d.p_away} />
-                    </td>
-                    <td className="px-3 py-3 text-center hidden md:table-cell">
-                      <span className={`font-mono font-bold ${
-                        d.confidence_tier === 'high' ? 'text-emerald-400' :
-                        d.confidence_tier === 'medium' ? 'text-amber-400' : 'text-red-400'
-                      }`}>
-                        {(d.confidence_score * 100).toFixed(0)}%
-                      </span>
-                    </td>
-                    <td className="px-3 py-3 text-center hidden lg:table-cell">
-                      <FeatureTierBadge tier={d.feature_quality_tier} />
-                    </td>
-                    <td className="px-3 py-3 text-center"><PredStatusBadge status={d.status} /></td>
-                    <td className="px-5 py-3 text-right">
-                      <div className="flex items-center gap-1.5 justify-end">
-                        {d.status === 'pending_review' && (
-                          <>
-                            <ActionButton label="Onayla" icon={<ThumbsUp className="w-3 h-3" />}
-                              loading={actioning === d.id}
-                              onClick={() => updateStatus(d.id, 'approved_internal')}
-                              variant="success" />
-                            <ActionButton label="Reddet" icon={<ThumbsDown className="w-3 h-3" />}
-                              loading={actioning === d.id}
-                              onClick={() => updateStatus(d.id, 'rejected')}
-                              variant="danger" />
-                          </>
-                        )}
-                        {d.status === 'approved_internal' && (
-                          <ActionButton label="Yayınla" icon={<TrendingUp className="w-3 h-3" />}
-                            loading={actioning === d.id}
-                            onClick={() => updateStatus(d.id, 'published')}
-                            variant="primary" />
-                        )}
-                        {d.warnings?.length > 0 && (
-                          <span title={d.warnings.join('\n')} className="text-amber-400">
-                            <AlertTriangle className="w-3.5 h-3.5" />
+                {drafts.map(d => {
+                  const story = storyLinks[d.match_id];
+                  const safe = publishSafe(d);
+                  const blocked = publishBlockedReason(d);
+                  const hasWarnings = (d.warnings?.length > 0) || d.has_calibration_warning || d.has_data_warning;
+                  return (
+                    <>
+                      <tr
+                        key={d.id}
+                        className="border-b border-navy-800/40 hover:bg-navy-800/20 transition-colors cursor-pointer"
+                        onClick={() => setExpandedDraft(expandedDraft === d.id ? null : d.id)}
+                      >
+                        <td className="px-5 py-3">
+                          <div className="text-white font-medium">{d.home_team_name} vs {d.away_team_name}</div>
+                          <div className="text-navy-500 text-[11px]">{d.competition_name} · {d.match_date}</div>
+                          <div className="text-navy-600 text-[10px] font-mono mt-0.5">
+                            Son üretim: {new Date(d.generated_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 text-center hidden sm:table-cell">
+                          <ProbBar home={d.p_home} draw={d.p_draw} away={d.p_away} />
+                        </td>
+                        <td className="px-3 py-3 text-center hidden md:table-cell">
+                          <span className={`font-mono font-bold ${
+                            d.confidence_tier === 'high' ? 'text-emerald-400' :
+                            d.confidence_tier === 'medium' ? 'text-amber-400' : 'text-red-400'
+                          }`}>
+                            {(d.confidence_score * 100).toFixed(0)}%
                           </span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          <div className="text-[10px] text-navy-600">{d.confidence_tier === 'high' ? 'yüksek' : d.confidence_tier === 'medium' ? 'orta' : 'düşük'}</div>
+                        </td>
+                        {/* Tahmin Hazır */}
+                        <td className="px-2 py-3 text-center">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 mx-auto" />
+                        </td>
+                        {/* Senaryo Hazır */}
+                        <td className="px-2 py-3 text-center">
+                          {story ? (
+                            <div className="flex flex-col items-center gap-0.5">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                              <span className={`text-[9px] ${
+                                story.status === 'published' ? 'text-emerald-400' :
+                                story.status === 'approved_internal' ? 'text-blue-400' :
+                                story.status === 'pending_review' ? 'text-amber-400' : 'text-navy-500'
+                              }`}>{storyStatusLabel(story.status)}</span>
+                            </div>
+                          ) : (
+                            <XCircle className="w-3.5 h-3.5 text-navy-700 mx-auto" />
+                          )}
+                        </td>
+                        {/* Yayın Güvenli */}
+                        <td className="px-2 py-3 text-center">
+                          {safe ? (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 mx-auto" />
+                          ) : (
+                            <div className="flex flex-col items-center gap-0.5">
+                              <Ban className="w-3.5 h-3.5 text-red-400 mx-auto" />
+                              {blocked && <span className="text-[9px] text-red-400 max-w-[70px] text-center leading-tight">{blocked}</span>}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-3 py-3 text-center">
+                          <div className="flex flex-col items-center gap-1">
+                            <PredStatusBadge status={d.status} />
+                            {hasWarnings && (
+                              <span className="text-[9px] text-amber-400 flex items-center gap-0.5">
+                                <AlertTriangle className="w-2.5 h-2.5" />uyarı
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-5 py-3 text-right">
+                          <div className="flex items-center gap-1.5 justify-end">
+                            {d.status === 'pending_review' && (
+                              <>
+                                <ActionButton label="Onayla" icon={<ThumbsUp className="w-3 h-3" />}
+                                  loading={actioning === d.id}
+                                  onClick={e => { e.stopPropagation(); updateStatus(d.id, 'approved_internal'); }}
+                                  variant="success" />
+                                <ActionButton label="Reddet" icon={<ThumbsDown className="w-3 h-3" />}
+                                  loading={actioning === d.id}
+                                  onClick={e => { e.stopPropagation(); updateStatus(d.id, 'rejected'); }}
+                                  variant="danger" />
+                              </>
+                            )}
+                            {d.status === 'approved_internal' && safe && (
+                              <ActionButton label="Yayınla" icon={<TrendingUp className="w-3 h-3" />}
+                                loading={actioning === d.id}
+                                onClick={e => { e.stopPropagation(); updateStatus(d.id, 'published'); }}
+                                variant="primary" />
+                            )}
+                            {d.status === 'approved_internal' && !safe && (
+                              <span className="inline-flex items-center gap-1 text-[10px] text-red-400 bg-red-500/10 border border-red-500/20 rounded px-2 py-1">
+                                <Ban className="w-3 h-3" />Yayına Hazır Değil
+                              </span>
+                            )}
+                            <button
+                              onClick={e => { e.stopPropagation(); setExpandedDraft(expandedDraft === d.id ? null : d.id); }}
+                              className="p-1 text-navy-500 hover:text-white transition-colors"
+                            >
+                              {expandedDraft === d.id ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                          {actionErrors[d.id] && (
+                            <div className="mt-1 text-[10px] text-red-400 text-right max-w-[200px] ml-auto">
+                              {actionErrors[d.id]}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                      {expandedDraft === d.id && (
+                        <tr key={`${d.id}-exp`} className="border-b border-navy-800/40 bg-navy-900/30">
+                          <td colSpan={8} className="px-5 py-4">
+                            <PredictionDraftDetail draft={d} story={story ?? null} />
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function PredictionDraftDetail({ draft: d, story }: { draft: PredictionDraft; story: StoryDraftLink | null }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Probabilities */}
+      <div className="bg-navy-800/40 rounded-lg p-3">
+        <div className="text-[11px] font-semibold text-navy-400 uppercase tracking-wider mb-2">Olasılıklar</div>
+        <div className="space-y-1.5 text-xs">
+          <div className="flex justify-between">
+            <span className="text-navy-500">MS: Ev / Ber / Dep</span>
+            <span className="font-mono text-white tabular-nums">
+              {(d.p_home*100).toFixed(1)}% / {(d.p_draw*100).toFixed(1)}% / {(d.p_away*100).toFixed(1)}%
+            </span>
+          </div>
+          {d.p_ht_home != null && (
+            <div className="flex justify-between">
+              <span className="text-navy-500">İY: Ev / Ber / Dep</span>
+              <span className="font-mono text-navy-300 tabular-nums">
+                {(d.p_ht_home*100).toFixed(1)}% / {(d.p_ht_draw!=null?(d.p_ht_draw*100).toFixed(1):'-')}% / {(d.p_ht_away!=null?(d.p_ht_away*100).toFixed(1):'-')}%
+              </span>
+            </div>
+          )}
+          {(d.expected_goals_home != null || d.expected_goals_away != null) && (
+            <div className="flex justify-between">
+              <span className="text-navy-500">Bek. Gol (Ev / Dep)</span>
+              <span className="font-mono text-navy-300 tabular-nums">
+                {d.expected_goals_home?.toFixed(2) ?? '–'} / {d.expected_goals_away?.toFixed(2) ?? '–'}
+              </span>
+            </div>
+          )}
+          {d.predicted_score && (
+            <div className="flex justify-between">
+              <span className="text-navy-500">Tahmin Skor</span>
+              <span className="font-mono text-champagne font-bold">{d.predicted_score}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Model info */}
+      <div className="bg-navy-800/40 rounded-lg p-3">
+        <div className="text-[11px] font-semibold text-navy-400 uppercase tracking-wider mb-2">Model Bilgisi</div>
+        <div className="space-y-1.5 text-xs">
+          <DetailRow label="Formül"    value={d.prediction_formula ?? '–'} />
+          <DetailRow label="Tier"      value={d.feature_quality_tier ?? '–'} />
+          <DetailRow label="Güven"     value={`${(d.confidence_score*100).toFixed(0)}% (${d.confidence_tier})`} />
+          <DetailRow label="Son Üretim" value={new Date(d.generated_at).toLocaleString('tr-TR')} />
+        </div>
+      </div>
+
+      {/* Warnings + Story link */}
+      <div className="bg-navy-800/40 rounded-lg p-3">
+        <div className="text-[11px] font-semibold text-navy-400 uppercase tracking-wider mb-2">Uyarılar &amp; Senaryo</div>
+
+        {/* Senaryo bağlantısı */}
+        <div className="mb-3">
+          <div className="text-[11px] text-navy-500 mb-1">Senaryo Taslağı</div>
+          {story ? (
+            <div className="flex items-center gap-2 text-xs">
+              <FileText className="w-3 h-3 text-emerald-400 shrink-0" />
+              <span className={`font-medium ${
+                story.status === 'published' ? 'text-emerald-400' :
+                story.status === 'approved_internal' ? 'text-blue-400' :
+                story.status === 'pending_review' ? 'text-amber-400' : 'text-navy-400'
+              }`}>{storyStatusLabel(story.status)}</span>
+              <span className="text-navy-600 text-[10px]">
+                {new Date(story.generated_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+          ) : (
+            <span className="text-[11px] text-navy-600 flex items-center gap-1">
+              <XCircle className="w-3 h-3" />Senaryo üretilmemiş
+            </span>
+          )}
+        </div>
+
+        {/* Cal + data warnings */}
+        <div className="space-y-1">
+          {d.has_calibration_warning && (
+            <div className="flex items-start gap-1.5 text-amber-300 text-[11px]">
+              <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />Kalibrasyon uyarısı
+            </div>
+          )}
+          {d.has_data_warning && (
+            <div className="flex items-start gap-1.5 text-amber-300 text-[11px]">
+              <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />Veri kalitesi uyarısı
+            </div>
+          )}
+          {d.warnings?.map((w, i) => (
+            <div key={i} className="flex items-start gap-1.5 text-amber-300 text-[11px]">
+              <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />{w}
+            </div>
+          ))}
+          {!d.has_calibration_warning && !d.has_data_warning && (d.warnings?.length ?? 0) === 0 && (
+            <span className="text-navy-600 text-[11px]">Uyarı yok</span>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -557,7 +852,6 @@ function BrainInspectorTab() {
   const [error, setError] = useState<string | null>(null);
   const [activeBrain, setActiveBrain] = useState<string | null>(null);
 
-  // Recent brain runs for quick selection
   const [recentRuns, setRecentRuns] = useState<Array<{ match_id: string; generated_at: string; home: string; away: string; competition: string; tone: string; confidence: string }>>([]);
   const [runsLoading, setRunsLoading] = useState(true);
 
@@ -574,11 +868,9 @@ function BrainInspectorTab() {
 
       if (!data) { setRunsLoading(false); return; }
 
-      // Enrich with master brain verdict
       const enriched = await Promise.all(data.map(async (run) => {
         const { data: pkg } = await supabase.rpc('ml_get_latest_brain_package', { p_match_id: run.match_id });
         const master = pkg?.master_brain ?? {};
-        // Get match names from readiness table
         const { data: rd } = await supabase.schema('model_lab').from('upcoming_match_readiness')
           .select('home_team_name, away_team_name, competition_name')
           .eq('match_id', run.match_id).maybeSingle();
@@ -605,7 +897,7 @@ function BrainInspectorTab() {
     setError(null);
     const { data, error: err } = await supabase.rpc('ml_get_latest_brain_package', { p_match_id: id });
     if (err) { setError(err.message); setBrainPkg(null); }
-    else if (!data) { setError('Bu maç için brain paketi bulunamadı. Önce Generate Brain çalıştırın.'); setBrainPkg(null); }
+    else if (!data) { setError('Bu maç için beyin paketi bulunamadı. Önce "Beyin Üret" çalıştırın.'); setBrainPkg(null); }
     else { setBrainPkg(data as BrainPackage); setActiveBrain(null); }
     setLoading(false);
   };
@@ -638,7 +930,6 @@ function BrainInspectorTab() {
 
   return (
     <div>
-      {/* Search / select */}
       <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-4 mb-6">
         <div className="text-xs font-semibold text-navy-400 uppercase tracking-wider mb-3">Maç Seç (Match ID)</div>
         <div className="flex gap-2 mb-4">
@@ -658,14 +949,13 @@ function BrainInspectorTab() {
           <button onClick={generateBrainPackage} disabled={generating || !matchId}
             className="flex items-center gap-1.5 text-xs font-medium px-4 py-2 rounded-lg bg-champagne/15 border border-champagne/30 text-champagne hover:bg-champagne/25 transition-all disabled:opacity-40">
             {generating ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Brain className="w-3 h-3" />}
-            Üret
+            Beyin Üret
           </button>
         </div>
 
-        {/* Recent runs */}
         {!runsLoading && recentRuns.length > 0 && (
           <div>
-            <div className="text-[11px] text-navy-500 mb-2">Son brain paketleri:</div>
+            <div className="text-[11px] text-navy-500 mb-2">Son beyin paketleri:</div>
             <div className="flex flex-wrap gap-1.5">
               {recentRuns.map(r => (
                 <button key={r.match_id} onClick={() => selectMatch(r.match_id)}
@@ -691,10 +981,7 @@ function BrainInspectorTab() {
 
       {brainPkg && !loading && (
         <div className="space-y-4">
-          {/* Master Brain Summary */}
           <MasterBrainCard master={brainPkg.master_brain} generatedAt={brainPkg.generated_at} />
-
-          {/* Sub-Brain Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             {BRAIN_ORDER.map(brainName => {
               const brain = brainPkg.sub_brains?.[brainName];
@@ -735,9 +1022,14 @@ function MasterBrainCard({ master, generatedAt }: {
     low_data_caution: 'text-navy-400',
   };
   const pubColors: Record<string, string> = {
-    publish_safe:      'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
-    review_required:   'bg-amber-500/15 text-amber-400 border-amber-500/25',
-    do_not_publish:    'bg-red-500/15 text-red-400 border-red-500/25',
+    publish_safe:    'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
+    review_required: 'bg-amber-500/15 text-amber-400 border-amber-500/25',
+    do_not_publish:  'bg-red-500/15 text-red-400 border-red-500/25',
+  };
+  const pubLabels: Record<string, string> = {
+    publish_safe:    'Yayın Güvenli',
+    review_required: 'İnceleme Gerekli',
+    do_not_publish:  'Yayınlama',
   };
   const confColors: Record<string, string> = {
     high:         'text-emerald-400',
@@ -751,7 +1043,7 @@ function MasterBrainCard({ master, generatedAt }: {
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-champagne/10 border border-champagne/20 flex items-center justify-center">
-            <Star className="w-4.5 h-4.5 text-champagne" />
+            <Star className="w-4 h-4 text-champagne" />
           </div>
           <div>
             <div className="text-sm font-bold text-white">Master Brain</div>
@@ -759,23 +1051,23 @@ function MasterBrainCard({ master, generatedAt }: {
           </div>
         </div>
         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium border ${pubColors[master.publish_recommendation] ?? 'bg-navy-800 text-navy-400 border-navy-700'}`}>
-          {master.publish_recommendation?.replace(/_/g, ' ')}
+          {pubLabels[master.publish_recommendation] ?? master.publish_recommendation?.replace(/_/g, ' ')}
         </span>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
         <div className="bg-navy-800/60 rounded-lg p-3">
-          <div className="text-[11px] text-navy-500 mb-1">Readiness</div>
+          <div className="text-[11px] text-navy-500 mb-1">Hazırlık Durumu</div>
           <OverallStatusBadge status={master.final_readiness} />
         </div>
         <div className="bg-navy-800/60 rounded-lg p-3">
-          <div className="text-[11px] text-navy-500 mb-1">Confidence</div>
+          <div className="text-[11px] text-navy-500 mb-1">Güven</div>
           <span className={`text-sm font-bold ${confColors[master.final_confidence] ?? 'text-white'}`}>
-            {master.final_confidence}
+            {master.final_confidence === 'high' ? 'Yüksek' : master.final_confidence === 'medium' ? 'Orta' : master.final_confidence === 'low' ? 'Düşük' : master.final_confidence}
           </span>
         </div>
         <div className="bg-navy-800/60 rounded-lg p-3 col-span-2">
-          <div className="text-[11px] text-navy-500 mb-1">Scenario Tone</div>
+          <div className="text-[11px] text-navy-500 mb-1">Senaryo Tonu</div>
           <span className={`text-sm font-semibold ${toneColors[master.scenario_tone] ?? 'text-white'}`}>
             {master.scenario_tone?.replace(/_/g, ' ')}
           </span>
@@ -788,7 +1080,7 @@ function MasterBrainCard({ master, generatedAt }: {
 
       {master.warnings?.length > 0 && (
         <div className="space-y-1.5">
-          <div className="text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Active Warnings</div>
+          <div className="text-[11px] font-semibold text-navy-400 uppercase tracking-wider mb-1">Aktif Uyarılar</div>
           {master.warnings.map((w, i) => (
             <div key={i} className={`flex items-start gap-2 text-[11px] rounded-lg px-3 py-2 ${
               w.level === 'high' ? 'bg-red-500/10 text-red-300' :
@@ -819,7 +1111,6 @@ function SubBrainCard({ brainName, brain, meta, isActive, onToggle }: {
     medium: 'text-amber-400',
     high:   'text-red-400',
   }[brain.warning_level] ?? 'text-navy-400';
-
   const warnBg = {
     none:   '',
     low:    'border-blue-500/20',
@@ -845,7 +1136,7 @@ function SubBrainCard({ brainName, brain, meta, isActive, onToggle }: {
         <div className="flex items-center gap-2 shrink-0 ml-3">
           <div className="text-right">
             <div className={`text-[11px] font-bold ${warnColor}`}>
-              {brain.warning_level === 'none' ? 'OK' : brain.warning_level.toUpperCase()}
+              {brain.warning_level === 'none' ? 'Tamam' : brain.warning_level === 'low' ? 'Düşük' : brain.warning_level === 'medium' ? 'Orta' : 'Yüksek'}
             </div>
             <div className="text-[11px] text-navy-500 font-mono">
               {brain.confidence_score != null ? (brain.confidence_score * 100).toFixed(0) + '%' : '–'}
@@ -864,10 +1155,10 @@ function SubBrainCard({ brainName, brain, meta, isActive, onToggle }: {
                 <div key={k} className="flex items-start justify-between text-[11px] col-span-2 sm:col-span-1">
                   <span className="text-navy-500 shrink-0 mr-2">{k.replace(/_/g, ' ')}</span>
                   <span className="text-navy-200 font-mono text-right break-all">
-                    {typeof v === 'boolean' ? (v ? 'yes' : 'no') :
+                    {typeof v === 'boolean' ? (v ? 'evet' : 'hayır') :
                      typeof v === 'number' ? v.toString() :
                      typeof v === 'string' ? v :
-                     Array.isArray(v) ? (v.length === 0 ? 'none' : v.join(', ')) :
+                     Array.isArray(v) ? (v.length === 0 ? 'yok' : v.join(', ')) :
                      JSON.stringify(v)}
                   </span>
                 </div>
@@ -949,7 +1240,7 @@ function JobsTab() {
                   <th className="text-left px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider hidden md:table-cell">Lig</th>
                   <th className="text-center px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Durum</th>
                   <th className="text-left px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider hidden sm:table-cell">Başladı</th>
-                  <th className="text-left px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider hidden lg:table-cell">Hata</th>
+                  <th className="text-left px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Hata</th>
                 </tr>
               </thead>
               <tbody>
@@ -961,9 +1252,14 @@ function JobsTab() {
                     <td className="px-3 py-3 text-navy-500 tabular-nums hidden sm:table-cell">
                       {j.started_at ? new Date(j.started_at).toLocaleString('tr-TR') : '–'}
                     </td>
-                    <td className="px-3 py-3 hidden lg:table-cell">
+                    <td className="px-3 py-3">
                       {j.error_message
-                        ? <span className="text-red-400 font-mono text-[11px]">{j.error_message.slice(0, 80)}</span>
+                        ? (
+                          <div className="flex items-start gap-1.5">
+                            <AlertCircle className="w-3 h-3 text-red-400 shrink-0 mt-0.5" />
+                            <span className="text-red-400 font-mono text-[11px] leading-tight">{j.error_message.slice(0, 120)}</span>
+                          </div>
+                        )
                         : <span className="text-navy-600">–</span>
                       }
                     </td>
@@ -983,44 +1279,80 @@ function JobsTab() {
 function ReadinessDetail({ row }: { row: ReadinessRow }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Core readiness */}
       <div className="bg-navy-800/40 rounded-lg p-3">
         <div className="text-[11px] font-semibold text-navy-400 uppercase tracking-wider mb-2">Hazırlık Boyutları</div>
         <div className="space-y-1.5">
           {[
-            { label: 'ELO Puanları',      ok: row.elo_readiness },
-            { label: 'Öznitelik Matrisi', ok: row.feature_readiness },
-            { label: 'Kalibrasyon',       ok: row.calibration_readiness },
-            { label: 'Kadro Verisi',      ok: row.lineup_availability },
-            { label: 'İstatistik Verisi', ok: row.stats_availability },
-            { label: 'Tahmin Taslağı',    ok: row.prediction_readiness },
-            { label: 'Senaryo Taslağı',   ok: row.scenario_readiness },
+            { label: 'ELO Puanları',           ok: row.elo_readiness },
+            { label: 'Öznitelik Matrisi',      ok: row.feature_readiness },
+            { label: 'Kalibrasyon',             ok: row.calibration_readiness },
+            { label: 'Kadro Verisi',            ok: row.lineup_availability },
+            { label: 'İstatistik Verisi',       ok: row.stats_availability },
+            { label: 'Puan Durumu',             ok: row.standings_readiness },
+            { label: 'Sakatlık/Ceza Verisi',    ok: row.injuries_readiness },
+            { label: 'Takım İstatistikleri',    ok: row.team_statistics_readiness },
+            { label: 'Stat Bilgisi',            ok: row.venue_readiness },
           ].map(({ label, ok }) => (
             <div key={label} className="flex items-center justify-between">
               <span className="text-navy-400">{label}</span>
               <ReadinessDot ok={ok} withLabel />
             </div>
           ))}
+          <div className="flex items-center justify-between pt-1 border-t border-navy-700/50">
+            <span className="text-navy-400">Tahmin Taslağı</span>
+            <ReadinessDot ok={row.prediction_readiness} withLabel />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-navy-400">Senaryo Taslağı</span>
+            <ReadinessDot ok={row.scenario_readiness} withLabel />
+          </div>
         </div>
       </div>
 
+      {/* Signal quality */}
       <div className="bg-navy-800/40 rounded-lg p-3">
         <div className="text-[11px] font-semibold text-navy-400 uppercase tracking-wider mb-2">Sinyal Kalitesi</div>
         <div className="space-y-1.5">
-          <DetailRow label="ELO Ev"       value={row.elo_home != null ? row.elo_home.toFixed(0) : '–'} />
-          <DetailRow label="ELO Deplasm."  value={row.elo_away != null ? row.elo_away.toFixed(0) : '–'} />
-          <DetailRow label="ELO Farkı"    value={row.elo_home != null && row.elo_away != null ? (row.elo_home - row.elo_away).toFixed(0) : '–'} />
-          <DetailRow label="Ev L5 Maç"    value={row.home_l5_available.toString()} />
-          <DetailRow label="Dep L5 Maç"   value={row.away_l5_available.toString()} />
-          <DetailRow label="Brier L50"    value={row.calibration_brier_l50 != null ? row.calibration_brier_l50.toFixed(4) : '–'} />
-          <DetailRow label="Tahmin Durum" value={row.prediction_status ?? '–'} />
+          <DetailRow label="ELO Ev"          value={row.elo_home != null ? row.elo_home.toFixed(0) : '–'} />
+          <DetailRow label="ELO Deplasman"   value={row.elo_away != null ? row.elo_away.toFixed(0) : '–'} />
+          <DetailRow label="ELO Farkı"       value={row.elo_home != null && row.elo_away != null ? (row.elo_home - row.elo_away).toFixed(0) : '–'} />
+          <DetailRow label="Ev L5 Maç"       value={row.home_l5_available.toString()} />
+          <DetailRow label="Dep L5 Maç"      value={row.away_l5_available.toString()} />
+          <DetailRow label="Brier L50"       value={row.calibration_brier_l50 != null ? row.calibration_brier_l50.toFixed(4) : '–'} />
+          <DetailRow label="Zenginleştirme"  value={row.enrichment_score != null ? `${row.enrichment_score} / 6` : '–'} />
+          <DetailRow label="Sakatlık Seviye" value={row.injury_warning_level ?? '–'} />
+          <DetailRow label="Tahmin Durum"    value={row.prediction_status ?? '–'} />
         </div>
       </div>
 
+      {/* Blocking + warnings + publish safety */}
       <div className="bg-navy-800/40 rounded-lg p-3">
-        <div className="text-[11px] font-semibold text-navy-400 uppercase tracking-wider mb-2">Uyarılar</div>
+        <div className="text-[11px] font-semibold text-navy-400 uppercase tracking-wider mb-2">
+          Blokaj · Uyarılar · Yayın Güvenliği
+        </div>
+
+        {/* Publish safety */}
+        <div className="mb-3 pb-2.5 border-b border-navy-700/50">
+          <div className="text-[11px] text-navy-500 mb-1">Yayın Güvenli</div>
+          {row.overall_status === 'ready' && row.prediction_readiness ? (
+            <div className="flex items-center gap-1.5 text-emerald-400 text-xs">
+              <CheckCircle2 className="w-3.5 h-3.5" />Yayına Hazır
+            </div>
+          ) : row.overall_status === 'blocked' ? (
+            <div className="flex items-center gap-1.5 text-red-400 text-xs">
+              <Ban className="w-3.5 h-3.5" />Yayına Hazır Değil — Blokaj Var
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-amber-400 text-xs">
+              <AlertTriangle className="w-3.5 h-3.5" />Kısmi — İnceleme Gerekli
+            </div>
+          )}
+        </div>
+
         {row.blocking_reasons?.length > 0 && (
           <div className="mb-2">
-            <div className="text-[11px] text-red-400 font-semibold mb-1">Bloke Nedenleri</div>
+            <div className="text-[11px] text-red-400 font-semibold mb-1">Blokaj Nedenleri</div>
             {row.blocking_reasons.map((r, i) => (
               <div key={i} className="flex items-start gap-1.5 text-red-300 text-[11px] mb-1">
                 <XCircle className="w-3 h-3 shrink-0 mt-0.5" />{r}
@@ -1028,14 +1360,17 @@ function ReadinessDetail({ row }: { row: ReadinessRow }) {
             ))}
           </div>
         )}
+
+        <div className="text-[11px] text-navy-500 font-semibold mb-1 mt-1">Uyarılar</div>
         {row.warnings?.length > 0 ? row.warnings.map((w, i) => (
           <div key={i} className="flex items-start gap-1.5 text-amber-300 text-[11px] mb-1">
             <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />{w}
           </div>
-        )) : <span className="text-navy-500 text-[11px]">Uyarı yok</span>}
-        <div className="mt-3 pt-2 border-t border-navy-700">
+        )) : <span className="text-navy-600 text-[11px]">Uyarı yok</span>}
+
+        <div className="mt-3 pt-2 border-t border-navy-700/50">
           <span className="text-[11px] text-navy-500">
-            Değerlendirme: {new Date(row.assessed_at).toLocaleString('tr-TR')}
+            Son değerlendirme: {new Date(row.assessed_at).toLocaleString('tr-TR')}
           </span>
         </div>
       </div>
@@ -1058,9 +1393,9 @@ function ReadinessDot({ ok, withLabel }: { ok: boolean; withLabel?: boolean }) {
 
 function OverallStatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; color: string }> = {
-    ready:   { label: 'Hazır', color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' },
-    partial: { label: 'Kısmi', color: 'bg-amber-500/15 text-amber-400 border-amber-500/25' },
-    blocked: { label: 'Bloke', color: 'bg-red-500/15 text-red-400 border-red-500/25' },
+    ready:   { label: 'Hazır',       color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' },
+    partial: { label: 'Kısmi',       color: 'bg-amber-500/15 text-amber-400 border-amber-500/25' },
+    blocked: { label: 'Bloke',       color: 'bg-red-500/15 text-red-400 border-red-500/25' },
   };
   const cfg = map[status] ?? { label: status, color: 'bg-navy-800 text-navy-400 border-navy-700' };
   return (
@@ -1070,18 +1405,46 @@ function OverallStatusBadge({ status }: { status: string }) {
   );
 }
 
-function PredStatusBadge({ status }: { status: string | null }) {
+function PredStatusBadge({ status, small }: { status: string | null; small?: boolean }) {
   if (!status) return <span className="text-navy-600">–</span>;
-  const map: Record<string, string> = {
+  const labels: Record<string, string> = {
+    pending_review:    'İnceleme Bekliyor',
+    approved_internal: 'İç Onay',
+    rejected:          'Reddedildi',
+    published:         'Yayınlandı',
+  };
+  const colors: Record<string, string> = {
     pending_review:    'text-amber-400',
     approved_internal: 'text-blue-400',
     rejected:          'text-red-400',
     published:         'text-emerald-400',
   };
-  return <span className={`text-[11px] font-medium ${map[status] ?? 'text-navy-400'}`}>{status.replace(/_/g, ' ')}</span>;
+  const label = labels[status] ?? status.replace(/_/g, ' ');
+  if (small) {
+    return <span className={`text-[10px] font-medium ${colors[status] ?? 'text-navy-400'} leading-tight`}>{label}</span>;
+  }
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${
+      status === 'pending_review'    ? 'bg-amber-500/15 text-amber-400 border-amber-500/25' :
+      status === 'approved_internal' ? 'bg-blue-500/15 text-blue-400 border-blue-500/25' :
+      status === 'rejected'          ? 'bg-red-500/15 text-red-400 border-red-500/25' :
+      status === 'published'         ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' :
+      'bg-navy-800 text-navy-400 border-navy-700'
+    }`}>
+      {label}
+    </span>
+  );
+}
+
+function storyStatusLabel(s: string): string {
+  const m: Record<string, string> = {
+    pending_review: 'İnceleme Bekliyor', approved_internal: 'İç Onay', rejected: 'Reddedildi', published: 'Yayınlandı',
+  };
+  return m[s] ?? s.replace(/_/g, ' ');
 }
 
 function JobStatusBadge({ status }: { status: string }) {
+  const labels: Record<string, string> = { queued: 'Bekliyor', completed: 'Tamamlandı', failed: 'Başarısız' };
   const map: Record<string, string> = {
     queued:    'bg-navy-700 text-navy-300',
     completed: 'bg-emerald-500/15 text-emerald-400',
@@ -1089,16 +1452,15 @@ function JobStatusBadge({ status }: { status: string }) {
   };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${map[status] ?? 'bg-navy-800 text-navy-400'}`}>
-      {status}
+      {labels[status] ?? status}
     </span>
   );
 }
 
 function FeatureTierBadge({ tier }: { tier: string }) {
-  const map: Record<string, string> = {
-    elo_only: 'text-navy-400', elo_form: 'text-blue-400', elo_form_stats: 'text-emerald-400',
-  };
-  return <span className={`text-[11px] font-mono ${map[tier] ?? 'text-navy-400'}`}>{tier ?? '–'}</span>;
+  const labels: Record<string, string> = { elo_only: 'elo-only', elo_form: 'elo+form', elo_form_stats: 'elo+form+istat' };
+  const colors: Record<string, string> = { elo_only: 'text-navy-500', elo_form: 'text-blue-400', elo_form_stats: 'text-emerald-400' };
+  return <span className={`text-[10px] font-mono ${colors[tier] ?? 'text-navy-400'}`}>{labels[tier] ?? tier ?? '–'}</span>;
 }
 
 function ProbBar({ home, draw, away }: { home: number; draw: number; away: number }) {
