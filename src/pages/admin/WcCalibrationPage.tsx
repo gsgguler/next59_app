@@ -4,7 +4,7 @@ import {
   ChevronDown, ChevronUp, AlertCircle, Play,
   BarChart2, Target, Activity, Database,
   Zap, Users, Link2, TrendingUp, Calendar, Clock, Search,
-  Info, CheckCheck, XCircle, HelpCircle,
+  Info, CheckCheck, XCircle, HelpCircle, Armchair,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -81,7 +81,7 @@ interface PoolSummary {
   by_conf: Record<string, number>;
 }
 
-type TabId = 'teams' | 'mac-senaryosu' | 'scenarios' | 'runs';
+type TabId = 'teams' | 'mac-senaryosu' | 'bench' | 'scenarios' | 'runs';
 type ConfFilter = 'tumu' | 'high' | 'medium' | 'low' | 'none';
 
 // ─── Fixture scenario types ───────────────────────────────────────────────────
@@ -401,6 +401,7 @@ export default function WcCalibrationPage() {
           {([
             { id: 'teams'         as TabId, label: 'Takım Kalibrasyonları', icon: Globe },
             { id: 'mac-senaryosu' as TabId, label: 'Maç Senaryosu',         icon: Calendar },
+            { id: 'bench'         as TabId, label: 'Yedek Etki',            icon: Armchair },
             { id: 'scenarios'     as TabId, label: 'Senaryo Detayları',     icon: Target },
             { id: 'runs'          as TabId, label: 'Kalibrasyon Geçmişi',   icon: Activity },
           ] as const).map(({ id, label, icon: Icon }) => (
@@ -421,6 +422,7 @@ export default function WcCalibrationPage() {
 
         {tab === 'teams'         && <TeamsTab />}
         {tab === 'mac-senaryosu' && <MatchScenarioDashboard />}
+        {tab === 'bench'         && <BenchImpactTab />}
         {tab === 'scenarios'     && <ScenariosTab />}
         {tab === 'runs'          && <RunsTab />}
       </div>
@@ -1169,6 +1171,423 @@ function MatchScenarioDashboard() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Bench Impact Tab ─────────────────────────────────────────────────────────
+
+interface BenchReadinessRow {
+  api_football_team_id:        number;
+  team_name:                   string;
+  fifa_code:                   string | null;
+  confederation:               string | null;
+  calibration_confidence:      string;
+  wc2026_bench_impact_index:   number;
+  bench_avg_rating:            number | null;
+  bench_quality_vs_xi:         number | null;
+  has_bench_data:              boolean;
+  has_probable_xi_data:        boolean;
+  has_player_pool:             boolean;
+  has_perf_snapshots:          boolean;
+  player_pool_count:           number;
+  probable_squad_count:        number;
+  perf_snapshot_count:         number;
+  bench_readiness_status:      string;
+  bench_readiness_reason:      string;
+  availability_window_warning: string;
+  calibrated_at:               string | null;
+}
+
+const BENCH_STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
+  hazır:           { label: 'Hazır',              color: 'text-emerald-400', bg: 'bg-emerald-500/10 border border-emerald-500/20' },
+  kısmi:           { label: 'Kısmi',              color: 'text-amber-400',   bg: 'bg-amber-500/10 border border-amber-500/20' },
+  veri_bekleniyor: { label: 'Veri Bekleniyor',    color: 'text-blue-400',    bg: 'bg-blue-500/10 border border-blue-500/20' },
+  nötr_varsayım:   { label: 'Nötr Varsayım',      color: 'text-navy-400',    bg: 'bg-navy-800 border border-navy-700' },
+};
+
+function BenchDataFlag({ ok, label }: { ok: boolean; label: string }) {
+  return (
+    <div className="flex items-center gap-1.5 text-[11px]">
+      {ok
+        ? <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+        : <XCircle className="w-3 h-3 text-navy-600 shrink-0" />
+      }
+      <span className={ok ? 'text-emerald-300' : 'text-navy-500'}>{label}</span>
+    </div>
+  );
+}
+
+function BenchIndexBar({ value }: { value: number }) {
+  // value is -1..+1; display as signed percentage, bar centred at 50%
+  const isNeutral = value === 0;
+  const pct = ((value + 1) / 2) * 100; // map -1→0%, 0→50%, +1→100%
+  const barColor = isNeutral ? 'bg-navy-600' : value > 0 ? 'bg-emerald-500' : 'bg-red-500';
+  return (
+    <div className="flex items-center gap-2 min-w-[120px]">
+      <div className="flex-1 h-1.5 bg-navy-800 rounded-full overflow-hidden relative">
+        {/* centre tick */}
+        <div className="absolute top-0 bottom-0 left-1/2 w-px bg-navy-600" />
+        <div
+          className={`h-full rounded-full transition-all ${barColor}`}
+          style={{
+            width: `${Math.abs(value) * 50}%`,
+            marginLeft: value < 0 ? `${pct}%` : '50%',
+          }}
+        />
+      </div>
+      <span className={`text-[11px] font-mono w-12 text-right ${isNeutral ? 'text-navy-500' : value > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+        {isNeutral ? '0.0 ±' : (value > 0 ? '+' : '') + value.toFixed(3)}
+      </span>
+    </div>
+  );
+}
+
+function BenchImpactTab() {
+  const [rows, setRows]         = useState<BenchReadinessRow[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState<string | null>(null);
+  const [search, setSearch]     = useState('');
+  const [confFilter, setConfFilter] = useState<ConfFilter>('tumu');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [expanded, setExpanded] = useState<number | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    const { data, error: err } = await supabase.rpc('wc2026_get_bench_impact_readiness');
+    if (err) { setError(err.message); setLoading(false); return; }
+    setRows((data as BenchReadinessRow[]) ?? []);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const filtered = rows.filter(r => {
+    if (confFilter !== 'tumu' && r.confederation !== confFilter) return false;
+    if (statusFilter !== 'all' && r.bench_readiness_status !== statusFilter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      if (!r.team_name.toLowerCase().includes(q) && !(r.fifa_code ?? '').toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+
+  const counts = {
+    total:           rows.length,
+    hazır:           rows.filter(r => r.bench_readiness_status === 'hazır').length,
+    kısmi:           rows.filter(r => r.bench_readiness_status === 'kısmi').length,
+    veri_bekleniyor: rows.filter(r => r.bench_readiness_status === 'veri_bekleniyor').length,
+    nötr_varsayım:   rows.filter(r => r.bench_readiness_status === 'nötr_varsayım').length,
+  };
+
+  const CONF_OPTIONS = ['tumu', 'UEFA', 'CONMEBOL', 'CAF', 'AFC', 'CONCACAF', 'OFC'] as const;
+
+  return (
+    <div>
+      {/* Honest disclaimer */}
+      <div className="bg-navy-900/60 border border-navy-700 rounded-xl px-5 py-4 mb-6 flex items-start gap-3">
+        <Info className="w-4 h-4 text-navy-400 shrink-0 mt-0.5" />
+        <div className="text-xs text-navy-300 space-y-1">
+          <p className="font-semibold text-navy-200">Yedek Etki Endeksi — Mevcut Durum</p>
+          <p>
+            Resmî kadro açıklanmadan önce yedek oyuncu verisi doğal olarak sınırlıdır.
+            Tüm takımlar için <strong className="text-navy-200">Nötr Varsayım (0.0)</strong> uygulanmaktadır.
+            Bu değer kalibrasyonu engellemez — senaryo hesaplamalarına dahil edilir ancak ağırlığı sıfırdır.
+          </p>
+          <p className="text-navy-500">
+            Resmî Kadro Bekleniyor: DK 2026 Grup Aşaması öncesi (Haziran 2026).
+            Bu tarihten önce yedek endeksi güvenilir şekilde hesaplanamaz.
+          </p>
+        </div>
+      </div>
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+        <SmallStat label="Toplam Takım"     value={counts.total} />
+        <SmallStat label="Hazır"            value={counts.hazır}           accent="green" />
+        <SmallStat label="Kısmi"            value={counts.kısmi}           accent="amber" />
+        <SmallStat label="Veri Bekleniyor"  value={counts.veri_bekleniyor} accent="blue" />
+        <SmallStat label="Nötr Varsayım"    value={counts.nötr_varsayım} />
+      </div>
+
+      {/* Progress bar showing overall bench data readiness */}
+      {rows.length > 0 && (
+        <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-4 mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-navy-400 uppercase tracking-wider">Yedek Veri Kapsamı</span>
+            <span className="text-xs text-navy-500">
+              {rows.filter(r => r.has_bench_data).length} / {rows.length} takımda gerçek yedek verisi
+            </span>
+          </div>
+          <div className="h-2 bg-navy-800 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-emerald-500/60 rounded-full transition-all"
+              style={{ width: `${(rows.filter(r => r.has_bench_data).length / Math.max(rows.length, 1)) * 100}%` }}
+            />
+          </div>
+          <div className="flex items-center gap-4 mt-3 text-[11px] text-navy-500 flex-wrap">
+            <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-emerald-400" /> Yedek Oyuncular: {rows.filter(r => r.has_bench_data).length}</span>
+            <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-blue-400" /> Oyuncu Havuzu: {rows.filter(r => r.has_player_pool).length}</span>
+            <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-amber-400" /> Performans Verisi: {rows.filter(r => r.has_perf_snapshots).length}</span>
+            <span className="flex items-center gap-1"><XCircle className="w-3 h-3 text-navy-600" /> Düşük Güven: {counts.nötr_varsayım + counts.veri_bekleniyor}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Controls */}
+      <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-4 mb-4">
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="flex items-center gap-2 flex-1 min-w-[160px] bg-navy-800 border border-navy-700 rounded-lg px-3 py-1.5">
+            <Search className="w-3 h-3 text-navy-500 shrink-0" />
+            <input
+              type="text"
+              placeholder="Takım ara..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="bg-transparent text-xs text-white focus:outline-none placeholder-navy-600 w-full"
+            />
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {CONF_OPTIONS.map(c => (
+              <button key={c} onClick={() => setConfFilter(c as ConfFilter)}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all ${
+                  confFilter === c
+                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                    : 'bg-navy-800 text-navy-400 border border-navy-700 hover:text-white'
+                }`}>
+                {c === 'tumu' ? 'Tüm Kıta' : c}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {(['all', 'hazır', 'kısmi', 'veri_bekleniyor', 'nötr_varsayım'] as const).map(s => (
+              <button key={s} onClick={() => setStatusFilter(s)}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all ${
+                  statusFilter === s
+                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                    : 'bg-navy-800 text-navy-400 border border-navy-700 hover:text-white'
+                }`}>
+                {s === 'all' ? 'Tümü' : BENCH_STATUS_META[s]?.label ?? s}
+              </button>
+            ))}
+          </div>
+          <button onClick={load} disabled={loading}
+            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-navy-800 border border-navy-700 text-navy-400 hover:text-white transition-all disabled:opacity-40">
+            <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+            Yenile
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/25 rounded-xl px-4 py-3 mb-4 text-xs text-red-400 font-mono flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          {error}
+        </div>
+      )}
+
+      {!loading && rows.length === 0 && (
+        <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-10 text-center">
+          <Database className="w-10 h-10 text-navy-700 mx-auto mb-3" />
+          <p className="text-sm text-readable-muted mb-2">Henüz kalibrasyon profili yok</p>
+          <p className="text-xs text-navy-600">Kalibrasyonu çalıştırdıktan sonra burada görünecek.</p>
+        </div>
+      )}
+
+      {(loading || filtered.length > 0) && (
+        <div className="bg-navy-900/50 border border-navy-800 rounded-xl overflow-hidden">
+          <div className="px-5 py-3 border-b border-navy-800 flex items-center justify-between">
+            <span className="text-xs font-semibold text-readable-muted uppercase tracking-wider">
+              Yedek Etki Endeksi ({filtered.length})
+            </span>
+            <span className="text-[10px] text-navy-600 flex items-center gap-1">
+              <Info className="w-3 h-3" /> Satıra tıkla → neden düşük güven
+            </span>
+          </div>
+
+          {loading ? (
+            <div className="p-5 space-y-2">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="h-10 bg-navy-800/40 rounded animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-navy-800">
+                    <th className="text-left px-5 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Takım</th>
+                    <th className="text-center px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Durum</th>
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider hidden lg:table-cell w-44">Yedek Etki Endeksi</th>
+                    <th className="text-center px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider hidden md:table-cell">Yedek Oyuncular</th>
+                    <th className="text-center px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider hidden md:table-cell">Oyuncu Havuzu</th>
+                    <th className="text-center px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider hidden lg:table-cell">Performans Verisi</th>
+                    <th className="text-center px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider hidden xl:table-cell">Güven</th>
+                    <th className="text-right px-5 py-3"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map(row => {
+                    const isExpanded = expanded === row.api_football_team_id;
+                    const statusMeta = BENCH_STATUS_META[row.bench_readiness_status] ?? BENCH_STATUS_META.nötr_varsayım;
+                    return (
+                      <React.Fragment key={row.api_football_team_id}>
+                        <tr
+                          className={`border-b border-navy-800/40 transition-colors cursor-pointer ${
+                            isExpanded ? 'bg-navy-800/30' : 'hover:bg-navy-800/20'
+                          }`}
+                          onClick={() => setExpanded(isExpanded ? null : row.api_football_team_id)}
+                        >
+                          <td className="px-5 py-3">
+                            <div className="text-white font-medium">{row.team_name}</div>
+                            <div className="text-navy-500 text-[10px]">
+                              {row.fifa_code ?? '–'} · {row.confederation ?? '–'}
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${statusMeta.bg} ${statusMeta.color}`}>
+                              {statusMeta.label}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3 hidden lg:table-cell w-44">
+                            <BenchIndexBar value={Number(row.wc2026_bench_impact_index)} />
+                          </td>
+                          <td className="px-3 py-3 text-center hidden md:table-cell">
+                            {row.has_bench_data
+                              ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 mx-auto" />
+                              : <span className="text-[11px] text-navy-500 italic">Veri Bekleniyor</span>
+                            }
+                          </td>
+                          <td className="px-3 py-3 text-center hidden md:table-cell">
+                            {row.has_player_pool
+                              ? <span className="text-emerald-400 font-mono text-[11px]">{row.player_pool_count}</span>
+                              : <span className="text-[11px] text-navy-600">–</span>
+                            }
+                          </td>
+                          <td className="px-3 py-3 text-center hidden lg:table-cell">
+                            {row.has_perf_snapshots
+                              ? <span className="text-emerald-400 font-mono text-[11px]">{row.perf_snapshot_count}</span>
+                              : <span className="text-[11px] text-navy-500 italic">Veri Bekleniyor</span>
+                            }
+                          </td>
+                          <td className="px-3 py-3 text-center hidden xl:table-cell">
+                            <ConfBadge level={row.calibration_confidence} />
+                          </td>
+                          <td className="px-5 py-3 text-right">
+                            <button
+                              onClick={e => { e.stopPropagation(); setExpanded(isExpanded ? null : row.api_football_team_id); }}
+                              className="p-1 text-navy-500 hover:text-white transition-colors"
+                            >
+                              {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                            </button>
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr key={`${row.api_football_team_id}-bench-detail`}>
+                            <td colSpan={8}>
+                              <BenchDetailPanel row={row} />
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BenchDetailPanel({ row }: { row: BenchReadinessRow }) {
+  const statusMeta = BENCH_STATUS_META[row.bench_readiness_status] ?? BENCH_STATUS_META.nötr_varsayım;
+  const isNeutral = row.bench_readiness_status === 'nötr_varsayım';
+
+  return (
+    <div className="px-5 py-4 bg-navy-900/30 border-b border-navy-800/40">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+        {/* Yedek Etki Endeksi */}
+        <div className="bg-navy-800/40 rounded-lg p-3">
+          <div className="text-[11px] font-semibold text-navy-400 uppercase tracking-wider mb-3">Yedek Etki Endeksi</div>
+          <div className="mb-3">
+            <div className="text-2xl font-bold font-mono text-center mb-1 text-navy-400">
+              {isNeutral
+                ? <span className="text-navy-500">0.0 <span className="text-[13px]">Nötr</span></span>
+                : <span className={Number(row.wc2026_bench_impact_index) > 0 ? 'text-emerald-400' : 'text-red-400'}>
+                    {Number(row.wc2026_bench_impact_index) > 0 ? '+' : ''}{Number(row.wc2026_bench_impact_index).toFixed(3)}
+                  </span>
+              }
+            </div>
+            <BenchIndexBar value={Number(row.wc2026_bench_impact_index)} />
+          </div>
+          <div className="text-[10px] text-navy-500 leading-relaxed">
+            Aralık: −1.0 (zayıf yedek) → 0.0 (nötr) → +1.0 (güçlü yedek).
+            Şu an tüm takımlar 0.0 — veri eksikliğinden kaynaklanan nötr varsayım.
+          </div>
+        </div>
+
+        {/* Veri Katmanları */}
+        <div className="bg-navy-800/40 rounded-lg p-3">
+          <div className="text-[11px] font-semibold text-navy-400 uppercase tracking-wider mb-3">Veri Katmanları</div>
+          <div className="space-y-1.5">
+            <BenchDataFlag ok={row.has_bench_data}       label="Yedek Oyuncular" />
+            <BenchDataFlag ok={row.has_probable_xi_data} label="Muhtemel İlk 11" />
+            <BenchDataFlag ok={row.has_player_pool}      label="Oyuncu Havuzu" />
+            <BenchDataFlag ok={row.has_perf_snapshots}   label="Performans Verisi" />
+          </div>
+          {row.probable_squad_count > 0 && (
+            <div className="mt-2 pt-2 border-t border-navy-700 text-[11px] text-navy-400">
+              Aday Kadro: <span className="text-emerald-400 font-mono">{row.probable_squad_count}</span> kayıt
+            </div>
+          )}
+        </div>
+
+        {/* Neden Düşük Güven */}
+        <div className="bg-navy-800/40 rounded-lg p-3">
+          <div className="text-[11px] font-semibold text-navy-400 uppercase tracking-wider mb-3">
+            {isNeutral ? 'Nötr Varsayım' : 'Düşük Güven'}
+          </div>
+          <div className={`text-[11px] rounded-lg px-3 py-2 leading-relaxed mb-3 ${statusMeta.bg} ${statusMeta.color}`}>
+            {row.bench_readiness_reason}
+          </div>
+          {row.bench_avg_rating != null && (
+            <div className="text-[11px]">
+              <span className="text-navy-500">Yedek Ort. Rating: </span>
+              <span className="text-navy-300 font-mono">{Number(row.bench_avg_rating).toFixed(2)}</span>
+            </div>
+          )}
+          {row.bench_quality_vs_xi != null && (
+            <div className="text-[11px] mt-1">
+              <span className="text-navy-500">Yedek / XI Farkı: </span>
+              <span className="text-navy-300 font-mono">{Number(row.bench_quality_vs_xi).toFixed(2)}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Zaman Penceresi */}
+        <div className="bg-navy-800/40 rounded-lg p-3">
+          <div className="text-[11px] font-semibold text-navy-400 uppercase tracking-wider mb-3">Resmî Kadro Bekleniyor</div>
+          <div className="text-[11px] text-navy-400 leading-relaxed mb-3">
+            {row.availability_window_warning}
+          </div>
+          <div className="pt-2 border-t border-navy-700 space-y-1">
+            <div className="flex items-center gap-1.5 text-[11px] text-emerald-400">
+              <CheckCircle2 className="w-3 h-3" />
+              Kalibrasyon engellenmedi
+            </div>
+            <div className="flex items-center gap-1.5 text-[11px] text-navy-500">
+              <Info className="w-3 h-3" />
+              Son kalibrasyon: {row.calibrated_at ? new Date(row.calibrated_at).toLocaleDateString('tr-TR') : '–'}
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }
