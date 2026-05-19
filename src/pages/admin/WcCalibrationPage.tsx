@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   RefreshCw, AlertTriangle, CheckCircle2, Shield, Globe,
-  Filter, ChevronDown, ChevronUp, AlertCircle, Play,
-  BarChart2, Target, Waves, Activity, Clock, Database,
+  ChevronDown, ChevronUp, AlertCircle, Play,
+  BarChart2, Target, Activity, Database,
+  Zap, Users, Link2, TrendingUp,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -70,6 +71,13 @@ interface ScenarioRow {
   comeback_probability:             number | null;
   set_piece_threat:                 string | null;
   calibrated_at:                    string;
+}
+
+interface PoolSummary {
+  total: number;
+  missing_mapping: number;
+  has_warning: number;
+  by_conf: Record<string, number>;
 }
 
 type TabId = 'teams' | 'scenarios' | 'runs';
@@ -152,6 +160,169 @@ function CoverageFlag({ flags }: { flags: Record<string, boolean | number> }) {
   );
 }
 
+// ─── Coverage Header ─────────────────────────────────────────────────────────
+
+function CoverageHeader() {
+  const [pool, setPool] = useState<PoolSummary | null>(null);
+  const [engineRunning, setEngineRunning] = useState(false);
+  const [engineResult, setEngineResult] = useState<string | null>(null);
+  const [lastEngineRun, setLastEngineRun] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadPool() {
+      const { data } = await supabase
+        .from('wc2026_team_pool')
+        .select('confederation, overall_status, missing_warning');
+      if (!data) return;
+      const summary: PoolSummary = { total: data.length, missing_mapping: 0, has_warning: 0, by_conf: {} };
+      for (const r of data) {
+        if (r.overall_status === 'missing_mapping') summary.missing_mapping++;
+        if (r.missing_warning) summary.has_warning++;
+        const c = r.confederation ?? 'Diğer';
+        summary.by_conf[c] = (summary.by_conf[c] ?? 0) + 1;
+      }
+      setPool(summary);
+    }
+
+    async function loadLastRun() {
+      const { data } = await supabase
+        .from('wc2026_provider_fetch_logs')
+        .select('fetched_at')
+        .eq('data_type', 'recent_form')
+        .order('fetched_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data) setLastEngineRun(data.fetched_at);
+    }
+
+    loadPool();
+    loadLastRun();
+  }, []);
+
+  const runStrengthEngine = async () => {
+    setEngineRunning(true);
+    setEngineResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('wc2026-strength-engine', {
+        body: { mode: 'full' },
+      });
+      if (error) {
+        setEngineResult('Hata: ' + error.message);
+      } else {
+        const r = data as { status?: string; teams_processed?: number; predictions_created?: number } | null;
+        setEngineResult(
+          r?.teams_processed != null
+            ? `Tamamlandı: ${r.teams_processed} takım işlendi, ${r.predictions_created ?? 0} tahmin oluşturuldu`
+            : 'Güç motoru çalıştı'
+        );
+        setLastEngineRun(new Date().toISOString());
+      }
+    } catch (e) {
+      setEngineResult('Hata: ' + (e instanceof Error ? e.message : String(e)));
+    }
+    setEngineRunning(false);
+  };
+
+  const mapped = pool ? pool.total - pool.missing_mapping : null;
+
+  return (
+    <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-5 mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-sm font-semibold text-white">Takım Havuzu Durumu</h2>
+        <button
+          onClick={runStrengthEngine}
+          disabled={engineRunning}
+          className="flex items-center gap-1.5 text-xs px-3.5 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/25 text-blue-400 hover:bg-blue-500/20 transition-all disabled:opacity-40 font-medium"
+        >
+          {engineRunning ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+          Güç Motorunu Çalıştır
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+        <CoverageCard
+          icon={<Users className="w-4 h-4 text-white" />}
+          label="Takım Havuzu"
+          value={pool ? `${pool.total} / 48` : '–'}
+          ok={pool?.total === 48}
+          okText="Tam"
+          warnText="Eksik"
+        />
+        <CoverageCard
+          icon={<Link2 className="w-4 h-4 text-white" />}
+          label="API Eşleşmesi"
+          value={mapped != null ? `${mapped} / ${pool?.total ?? 48}` : '–'}
+          ok={pool != null && pool.missing_mapping === 0}
+          okText="Tümü Eşleşti"
+          warnText={pool ? `${pool.missing_mapping} Eksik Eşleşme` : '–'}
+        />
+        <CoverageCard
+          icon={<AlertTriangle className="w-4 h-4 text-white" />}
+          label="Veri Uyarısı"
+          value={pool ? pool.has_warning.toString() : '–'}
+          ok={pool != null && pool.has_warning === 0}
+          okText="Uyarı Yok"
+          warnText={pool ? `${pool.has_warning} Takım` : '–'}
+        />
+        <CoverageCard
+          icon={<TrendingUp className="w-4 h-4 text-white" />}
+          label="Son Güç Çalıştırma"
+          value={lastEngineRun ? fmt(lastEngineRun) : 'Hiç çalışmadı'}
+          ok={lastEngineRun != null}
+          okText="Hazır"
+          warnText="Bekliyor"
+        />
+      </div>
+
+      {pool && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {Object.entries(pool.by_conf).sort().map(([conf, count]) => (
+            <span key={conf} className="text-[10px] px-2 py-0.5 rounded-full bg-navy-800 text-navy-400 font-medium">
+              {conf} · {count}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {engineResult && (
+        <div className={`text-xs rounded-lg px-3 py-2 font-mono ${
+          engineResult.startsWith('Hata')
+            ? 'bg-red-500/10 text-red-400'
+            : 'bg-blue-500/10 text-blue-400'
+        }`}>
+          {engineResult}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CoverageCard({
+  icon, label, value, ok, okText, warnText,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  ok: boolean;
+  okText: string;
+  warnText: string;
+}) {
+  return (
+    <div className="bg-navy-800/50 rounded-lg p-3">
+      <div className="flex items-center gap-2 mb-2">
+        <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${ok ? 'bg-emerald-500/15' : 'bg-amber-500/15'}`}>
+          {icon}
+        </div>
+        <span className="text-[11px] text-navy-500 font-medium">{label}</span>
+      </div>
+      <div className="text-sm font-bold text-white tabular-nums mb-0.5">{value}</div>
+      <div className={`text-[10px] font-medium ${ok ? 'text-emerald-400' : 'text-amber-400'}`}>
+        {ok ? okText : warnText}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function WcCalibrationPage() {
@@ -169,7 +340,7 @@ export default function WcCalibrationPage() {
           </p>
         </div>
 
-        <div className="flex items-start gap-4 mb-8">
+        <div className="flex items-start gap-4 mb-6">
           <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
             <BarChart2 className="w-6 h-6 text-emerald-400" />
           </div>
@@ -180,6 +351,8 @@ export default function WcCalibrationPage() {
             </p>
           </div>
         </div>
+
+        <CoverageHeader />
 
         <div className="flex items-center gap-1 mb-6 border-b border-navy-800">
           {([
