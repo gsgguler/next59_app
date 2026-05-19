@@ -65,6 +65,7 @@ export function useMatch(matchId: string | undefined): UseMatchResult {
 
       const dbMatch = raw as unknown as DbMatch;
 
+      // Try legacy predictions table first
       const { data: predData } = await supabase
         .from('predictions')
         .select('id, match_id, prediction_type, predicted_outcome, confidence, odds_fair, explanation_json, is_elite_only, superseded_by, created_at, updated_at')
@@ -75,8 +76,19 @@ export function useMatch(matchId: string | undefined): UseMatchResult {
 
       if (controller.signal.aborted) return;
 
+      // Also try new prematch_prediction_drafts via public RPC
+      const { data: newPredData } = await supabase
+        .rpc('get_match_prediction', { p_match_id: matchId })
+        .abortSignal(controller.signal);
+
+      if (controller.signal.aborted) return;
+
       setMatch(
-        transformMatch(dbMatch, (predData as unknown as DbPrediction[]) ?? []),
+        transformMatch(
+          dbMatch,
+          (predData as unknown as DbPrediction[]) ?? [],
+          newPredData ?? null,
+        ),
       );
       setLoading(false);
     }

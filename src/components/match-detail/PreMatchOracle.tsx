@@ -20,9 +20,16 @@ export default function PreMatchOracle({ match }: { match: UIMatch }) {
         home_prob: p.home_prob,
         draw_prob: p.draw_prob,
         away_prob: p.away_prob,
-        over_2_5: p.high_scoring,
-        btts: p.mutual_scoring,
+        ht_home_prob: p.ht_home_prob,
+        ht_draw_prob: p.ht_draw_prob,
+        ht_away_prob: p.ht_away_prob,
+        over_2_5: p.over_2_5,
+        btts: p.btts,
         confidence: p.confidence,
+        xg_home: p.xg_home,
+        xg_away: p.xg_away,
+        predicted_score: p.predicted_score,
+        predicted_score_ht: p.predicted_score_ht,
       }
     : null;
 

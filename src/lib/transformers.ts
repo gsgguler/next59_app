@@ -39,7 +39,50 @@ function transformVenue(raw: DbVenue | null): UIStadium | null {
   return { name: raw.name, city: raw.city };
 }
 
-function transformPredictions(predictions: DbPrediction[]): UIPrediction | null {
+// New prediction shape from model_lab.prematch_prediction_drafts via get_match_prediction RPC
+interface NewPrediction {
+  p_home: number;
+  p_draw: number;
+  p_away: number;
+  p_ht_home: number | null;
+  p_ht_draw: number | null;
+  p_ht_away: number | null;
+  over_2_5: number | null;
+  btts: number | null;
+  expected_goals_home: number | null;
+  expected_goals_away: number | null;
+  predicted_score: string | null;
+  predicted_score_ht: string | null;
+  confidence_score: number;
+  pre_match_elo_home: number | null;
+  pre_match_elo_away: number | null;
+}
+
+function transformNewPrediction(data: NewPrediction): UIPrediction {
+  const over25 = data.over_2_5 ?? 0.5;
+  const btts   = data.btts ?? 0.5;
+  return {
+    home_prob:         data.p_home,
+    draw_prob:         data.p_draw,
+    away_prob:         data.p_away,
+    ht_home_prob:      data.p_ht_home ?? data.p_home * 0.85,
+    ht_draw_prob:      data.p_ht_draw ?? 0.40,
+    ht_away_prob:      data.p_ht_away ?? data.p_away * 0.85,
+    over_2_5:          over25,
+    btts,
+    confidence:        data.confidence_score,
+    high_scoring:      over25,
+    mutual_scoring:    btts,
+    xg_home:           data.expected_goals_home,
+    xg_away:           data.expected_goals_away,
+    predicted_score:   data.predicted_score,
+    predicted_score_ht: data.predicted_score_ht,
+    elo_home:          data.pre_match_elo_home,
+    elo_away:          data.pre_match_elo_away,
+  };
+}
+
+function transformLegacyPredictions(predictions: DbPrediction[]): UIPrediction | null {
   if (!predictions || predictions.length === 0) return null;
 
   const resultPred = predictions.find(p => p.prediction_type === 'match_result');
@@ -52,20 +95,31 @@ function transformPredictions(predictions: DbPrediction[]): UIPrediction | null 
 
   const goalPred = predictions.find(p => p.prediction_type === 'over_under');
   const bttsPred = predictions.find(p => p.prediction_type === 'btts');
+  const over25   = goalPred ? goalPred.confidence : 0.5;
+  const btts     = bttsPred ? bttsPred.confidence : 0.5;
 
   return {
-    home_prob: homeProb,
-    draw_prob: drawProb,
-    away_prob: Math.max(0, awayProb),
-    confidence: resultPred.confidence,
-    high_scoring: goalPred ? goalPred.confidence : 0.5,
-    mutual_scoring: bttsPred ? bttsPred.confidence : 0.5,
+    home_prob:          homeProb,
+    draw_prob:          drawProb,
+    away_prob:          Math.max(0, awayProb),
+    ht_home_prob:       homeProb * 0.85,
+    ht_draw_prob:       0.40,
+    ht_away_prob:       Math.max(0, awayProb) * 0.85,
+    over_2_5:           over25,
+    btts,
+    confidence:         resultPred.confidence,
+    high_scoring:       over25,
+    mutual_scoring:     btts,
+    xg_home:            null,
+    xg_away:            null,
+    predicted_score:    null,
+    predicted_score_ht: null,
+    elo_home:           null,
+    elo_away:           null,
   };
 }
 
 function buildKickoffAt(raw: DbMatch): string {
-  // Always append +03:00 (Istanbul/TRT) so Date parsing is unambiguous everywhere.
-  // The source data is from football-data.co.uk which uses Turkish league local times.
   if (raw.match_time) {
     return `${raw.match_date}T${raw.match_time}:00+03:00`;
   }
@@ -75,7 +129,22 @@ function buildKickoffAt(raw: DbMatch): string {
 export function transformMatch(
   raw: DbMatch,
   predictions: DbPrediction[],
+  newPredData?: NewPrediction | null,
 ): UIMatch {
+  // Prefer new prediction system over legacy
+  let prediction: UIPrediction | null = null;
+  let hasNewPrediction = false;
+
+  if (newPredData && newPredData.p_home != null) {
+    prediction = transformNewPrediction(newPredData);
+    hasNewPrediction = true;
+  } else {
+    prediction = transformLegacyPredictions(predictions);
+  }
+
+  const eloHome = newPredData?.pre_match_elo_home ?? null;
+  const eloAway = newPredData?.pre_match_elo_away ?? null;
+
   return {
     id: raw.id,
     home_team: transformTeam(raw.home_team),
@@ -84,8 +153,9 @@ export function transformMatch(
     stadium: transformVenue(raw.venue),
     status: STATUS_MAP[(raw.status_short ?? 'ns').toLowerCase()] ?? 'scheduled',
     round_name: raw.round ?? '',
-    prediction: transformPredictions(predictions),
-    home_elo: null,
-    away_elo: null,
+    prediction,
+    home_elo: eloHome,
+    away_elo: eloAway,
+    has_new_prediction: hasNewPrediction,
   };
 }
