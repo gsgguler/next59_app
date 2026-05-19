@@ -4,7 +4,8 @@ import {
   ChevronDown, ChevronUp, AlertCircle, Play,
   BarChart2, Target, Activity, Database,
   Zap, Users, Link2, TrendingUp, Calendar, Clock, Search,
-  Info, CheckCheck, XCircle, HelpCircle, Armchair,
+  Info, CheckCheck, XCircle, HelpCircle, Armchair, Trophy,
+  Star, Flame, Wind, Swords,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -81,7 +82,7 @@ interface PoolSummary {
   by_conf: Record<string, number>;
 }
 
-type TabId = 'teams' | 'mac-senaryosu' | 'bench' | 'scenarios' | 'runs';
+type TabId = 'teams' | 'mac-senaryosu' | 'bench' | 'tournament-pressure' | 'scenarios' | 'runs';
 type ConfFilter = 'tumu' | 'high' | 'medium' | 'low' | 'none';
 
 // ─── Fixture scenario types ───────────────────────────────────────────────────
@@ -124,6 +125,28 @@ interface FixtureScenarioRow {
   away_calib_missing: boolean;
   // status
   fixture_status: 'tbd' | 'pending' | 'calibrated' | 'missing_teams';
+}
+
+// ─── Tournament pressure types ────────────────────────────────────────────────
+
+interface TournamentPressureRow {
+  api_football_team_id:        number;
+  team_name:                   string;
+  iso2:                        string;
+  confederation:               string;
+  tournament_pressure_index:   number;
+  historical_wc_matches:       number;
+  last_wc_year:                number | null;
+  tournament_experience_score: number;
+  fatigue_risk:                number;
+  chaos_probability:           number;
+  calibration_confidence:      string;
+  first_time_qualifier:        boolean;
+  pressure_tier:               'elite' | 'experienced' | 'returning' | 'debutant';
+  group_fixture_count:         number;
+  has_knockout_fixture:        boolean;
+  missing_data_warnings:       string[];
+  calibrated_at:               string | null;
 }
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
@@ -401,8 +424,9 @@ export default function WcCalibrationPage() {
           {([
             { id: 'teams'         as TabId, label: 'Takım Kalibrasyonları', icon: Globe },
             { id: 'mac-senaryosu' as TabId, label: 'Maç Senaryosu',         icon: Calendar },
-            { id: 'bench'         as TabId, label: 'Yedek Etki',            icon: Armchair },
-            { id: 'scenarios'     as TabId, label: 'Senaryo Detayları',     icon: Target },
+            { id: 'bench'               as TabId, label: 'Yedek Etki',         icon: Armchair },
+            { id: 'tournament-pressure' as TabId, label: 'Turnuva Baskısı',  icon: Trophy },
+            { id: 'scenarios'           as TabId, label: 'Senaryo Detayları', icon: Target },
             { id: 'runs'          as TabId, label: 'Kalibrasyon Geçmişi',   icon: Activity },
           ] as const).map(({ id, label, icon: Icon }) => (
             <button
@@ -420,11 +444,12 @@ export default function WcCalibrationPage() {
           ))}
         </div>
 
-        {tab === 'teams'         && <TeamsTab />}
-        {tab === 'mac-senaryosu' && <MatchScenarioDashboard />}
-        {tab === 'bench'         && <BenchImpactTab />}
-        {tab === 'scenarios'     && <ScenariosTab />}
-        {tab === 'runs'          && <RunsTab />}
+        {tab === 'teams'               && <TeamsTab />}
+        {tab === 'mac-senaryosu'       && <MatchScenarioDashboard />}
+        {tab === 'bench'               && <BenchImpactTab />}
+        {tab === 'tournament-pressure' && <TournamentPressureTab />}
+        {tab === 'scenarios'           && <ScenariosTab />}
+        {tab === 'runs'                && <RunsTab />}
       </div>
     </div>
   );
@@ -1868,6 +1893,400 @@ function SmallStat({ label, value, accent }: { label: string; value: number; acc
     </div>
   );
 }
+
+// ─── Tournament Pressure Tab ──────────────────────────────────────────────────
+
+const TIER_META: Record<string, { label: string; color: string; icon: React.FC<{ className?: string }> }> = {
+  elite:       { label: 'Elit',         color: 'bg-amber-500/15 text-amber-300 border border-amber-500/30',    icon: Star },
+  experienced: { label: 'Deneyimli',    color: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25', icon: Trophy },
+  returning:   { label: 'Geri Dönen',   color: 'bg-blue-500/15 text-blue-400 border border-blue-500/25',      icon: RefreshCw },
+  debutant:    { label: 'İlk Kez',      color: 'bg-red-500/15 text-red-400 border border-red-500/25',         icon: AlertTriangle },
+};
+
+const CONF_META: Record<string, string> = {
+  high:   'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25',
+  medium: 'bg-amber-500/15 text-amber-400 border border-amber-500/25',
+  low:    'bg-blue-500/15 text-blue-400 border border-blue-500/25',
+  none:   'bg-navy-700 text-navy-500 border border-navy-700',
+};
+
+function TierBadge({ tier }: { tier: string }) {
+  const meta = TIER_META[tier] ?? TIER_META.debutant;
+  const Icon = meta.icon;
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${meta.color}`}>
+      <Icon className="w-2.5 h-2.5" />
+      {meta.label}
+    </span>
+  );
+}
+
+function PressBadge({ level }: { level: string }) {
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${CONF_META[level] ?? CONF_META.none}`}>
+      {level === 'high' ? 'Yüksek' : level === 'medium' ? 'Orta' : level === 'low' ? 'Düşük' : 'Veri Yok'}
+    </span>
+  );
+}
+
+function RiskBar({ value, color = 'amber' }: { value: number; color?: string }) {
+  const pct = Math.round(value * 100);
+  const bar = color === 'red' ? 'bg-red-500' : color === 'amber' ? 'bg-amber-500' : 'bg-blue-500';
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className="w-16 h-1.5 bg-navy-800 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${bar}`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-[11px] font-mono text-navy-300 w-7 text-right">{pct}%</span>
+    </div>
+  );
+}
+
+function PressureBar({ value }: { value: number }) {
+  const pct = Math.round(value);
+  const bar = value >= 70 ? 'bg-red-500' : value >= 45 ? 'bg-amber-500' : 'bg-blue-500';
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className="flex-1 h-1.5 bg-navy-800 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${bar}`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-[11px] font-mono text-navy-300 w-8 text-right">{pct}</span>
+    </div>
+  );
+}
+
+type PressureFilter = 'tumu' | 'elite' | 'experienced' | 'returning' | 'debutant';
+
+function TournamentPressureDetail({ row, onClose }: { row: TournamentPressureRow; onClose: () => void }) {
+  const warnings: string[] = Array.isArray(row.missing_data_warnings) ? row.missing_data_warnings : [];
+  return (
+    <div className="bg-navy-900 border border-navy-700 rounded-xl p-5 mt-2">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          {row.iso2 && (
+            <span className={`fi fi-${row.iso2.toLowerCase()} w-5 h-4 rounded-sm overflow-hidden`} />
+          )}
+          <span className="font-semibold text-white text-sm">{row.team_name}</span>
+          <TierBadge tier={row.pressure_tier} />
+          {row.first_time_qualifier && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30">
+              <AlertTriangle className="w-2.5 h-2.5" /> İlk Kez
+            </span>
+          )}
+        </div>
+        <button onClick={onClose} className="text-navy-500 hover:text-white transition-colors text-xs px-2 py-1 rounded hover:bg-navy-800">
+          <XCircle className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-x-6 gap-y-2 mb-4 text-[11px]">
+        <div>
+          <p className="text-navy-500 mb-0.5">Turnuva Baskısı (0-100)</p>
+          <PressureBar value={row.tournament_pressure_index} />
+        </div>
+        <div>
+          <p className="text-navy-500 mb-0.5">Dünya Kupası Deneyimi (maç)</p>
+          <div className="flex items-center gap-2">
+            <span className="text-white font-mono font-semibold">{row.historical_wc_matches}</span>
+            {row.last_wc_year && (
+              <span className="text-navy-400">Son: {row.last_wc_year}</span>
+            )}
+          </div>
+        </div>
+        <div>
+          <p className="text-navy-500 mb-0.5">Yorgunluk Riski</p>
+          <RiskBar value={row.fatigue_risk} color="amber" />
+        </div>
+        <div>
+          <p className="text-navy-500 mb-0.5">Kaos Olasılığı</p>
+          <RiskBar value={row.chaos_probability} color="red" />
+        </div>
+        <div>
+          <p className="text-navy-500 mb-0.5">Deneyim Skoru (0-1)</p>
+          <RiskBar value={row.tournament_experience_score} color="blue" />
+        </div>
+        <div>
+          <p className="text-navy-500 mb-0.5">Güven Seviyesi</p>
+          <PressBadge level={row.calibration_confidence} />
+        </div>
+        <div>
+          <p className="text-navy-500 mb-0.5">Grup Baskısı (fikstür)</p>
+          <span className="text-white font-mono">{row.group_fixture_count} maç</span>
+        </div>
+        <div>
+          <p className="text-navy-500 mb-0.5">Eleme Aşaması</p>
+          <span className={`font-medium ${row.has_knockout_fixture ? 'text-amber-400' : 'text-navy-500'}`}>
+            {row.has_knockout_fixture ? 'Eleme fikstürü var' : 'Henüz belirsiz'}
+          </span>
+        </div>
+      </div>
+
+      {warnings.length > 0 && (
+        <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg p-3">
+          <p className="text-[10px] text-amber-400 font-medium mb-1 flex items-center gap-1">
+            <AlertTriangle className="w-3 h-3" /> Eksik Veri Uyarıları
+          </p>
+          <ul className="space-y-0.5">
+            {warnings.map((w, i) => (
+              <li key={i} className="text-[10px] text-navy-400 font-mono">• {w}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {row.calibration_confidence === 'none' && (
+        <div className="mt-3 bg-navy-800 border border-navy-700 rounded-lg p-3 text-[11px] text-navy-400">
+          <Info className="w-3 h-3 inline mr-1 text-navy-500" />
+          Bu takım için henüz kalibrasyon çalıştırılmamış. Baskı indeksi varsayılan değerle (50) gösterilmektedir.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TournamentPressureTab() {
+  const [rows, setRows]               = useState<TournamentPressureRow[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState<string | null>(null);
+  const [expanded, setExpanded]       = useState<number | null>(null);
+  const [filter, setFilter]           = useState<PressureFilter>('tumu');
+  const [confFilter, setConfFilter]   = useState<ConfFilter>('tumu');
+  const [search, setSearch]           = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error: err } = await supabase.rpc('wc2026_get_tournament_pressure_profile');
+      if (err) throw err;
+      setRows((data ?? []) as TournamentPressureRow[]);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const filtered = rows.filter(r => {
+    if (filter !== 'tumu' && r.pressure_tier !== filter) return false;
+    if (confFilter !== 'tumu' && r.calibration_confidence !== confFilter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      if (!r.team_name.toLowerCase().includes(q) && !r.confederation.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+
+  const totalTeams        = rows.length;
+  const debutants         = rows.filter(r => r.first_time_qualifier).length;
+  const highPressure      = rows.filter(r => r.tournament_pressure_index >= 70).length;
+  const highFatigue       = rows.filter(r => r.fatigue_risk >= 0.6).length;
+  const calibrated        = rows.filter(r => r.calibration_confidence !== 'none').length;
+
+  const confCounts = (['elite', 'experienced', 'returning', 'debutant'] as const).reduce(
+    (acc, t) => ({ ...acc, [t]: rows.filter(r => r.pressure_tier === t).length }),
+    {} as Record<string, number>,
+  );
+
+  return (
+    <div className="space-y-4">
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        {[
+          { label: 'Toplam Takım',     value: totalTeams,   color: 'text-white',       icon: Globe },
+          { label: 'İlk Kez Katılan',  value: debutants,    color: 'text-red-400',     icon: AlertTriangle },
+          { label: 'Yüksek Baskı (≥70)', value: highPressure, color: 'text-amber-400', icon: Flame },
+          { label: 'Yorgunluk Riski (≥60%)', value: highFatigue, color: 'text-orange-400', icon: Wind },
+          { label: 'Kalibre Edildi',   value: calibrated,   color: 'text-emerald-400', icon: CheckCircle2 },
+        ].map(({ label, value, color, icon: Icon }) => (
+          <div key={label} className="bg-navy-900 border border-navy-800 rounded-xl p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Icon className={`w-3.5 h-3.5 ${color}`} />
+              <span className="text-[10px] text-navy-500">{label}</span>
+            </div>
+            <p className={`text-xl font-bold ${color}`}>{value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Tier distribution */}
+      <div className="grid grid-cols-4 gap-2">
+        {(['elite', 'experienced', 'returning', 'debutant'] as const).map(tier => {
+          const meta = TIER_META[tier];
+          const Icon = meta.icon;
+          return (
+            <button
+              key={tier}
+              onClick={() => setFilter(filter === tier ? 'tumu' : tier)}
+              className={`flex items-center gap-2 p-2.5 rounded-lg border transition-all ${
+                filter === tier ? meta.color : 'bg-navy-900 border-navy-800 text-navy-400 hover:border-navy-700'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5 shrink-0" />
+              <div className="text-left min-w-0">
+                <p className="text-[10px] font-medium truncate">{meta.label}</p>
+                <p className="text-base font-bold">{confCounts[tier] ?? 0}</p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Filters row */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[180px] max-w-xs">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-navy-500" />
+          <input
+            type="text"
+            placeholder="Takım adı..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full bg-navy-900 border border-navy-800 rounded-lg pl-8 pr-3 py-2 text-xs text-white placeholder-navy-600 focus:outline-none focus:border-navy-600"
+          />
+        </div>
+        <select
+          value={confFilter}
+          onChange={e => setConfFilter(e.target.value as ConfFilter)}
+          className="bg-navy-900 border border-navy-800 rounded-lg px-3 py-2 text-xs text-navy-300 focus:outline-none focus:border-navy-600"
+        >
+          <option value="tumu">Tüm Güven</option>
+          <option value="high">Yüksek</option>
+          <option value="medium">Orta</option>
+          <option value="low">Düşük</option>
+          <option value="none">Veri Yok</option>
+        </select>
+        <button
+          onClick={load}
+          disabled={loading}
+          className="flex items-center gap-1.5 px-3 py-2 bg-navy-800 hover:bg-navy-700 text-navy-300 rounded-lg text-xs transition-all disabled:opacity-50"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          Yenile
+        </button>
+        <span className="text-xs text-navy-500">{filtered.length} takım</span>
+      </div>
+
+      {error && <ErrorBanner message={error} />}
+
+      {loading ? (
+        <LoadingSkeleton rows={12} />
+      ) : filtered.length === 0 ? (
+        <EmptyCalibState
+          title="Turnuva baskısı verisi bulunamadı"
+          desc="wc2026_team_calibration_profiles tablosunda kalibrasyon kaydı yok. Önce takım kalibrasyonu çalıştırın."
+        />
+      ) : (
+        <div className="bg-navy-950 border border-navy-800 rounded-xl overflow-hidden">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-navy-800 bg-navy-900/60">
+                <th className="px-3 py-2.5 text-left text-navy-500 font-medium w-8">#</th>
+                <th className="px-3 py-2.5 text-left text-navy-500 font-medium">Takım</th>
+                <th className="px-3 py-2.5 text-left text-navy-500 font-medium hidden sm:table-cell w-24">Konfederasyon</th>
+                <th className="px-3 py-2.5 text-left text-navy-500 font-medium w-28">Turnuva Baskısı</th>
+                <th className="px-3 py-2.5 text-left text-navy-500 font-medium hidden md:table-cell w-32">DK Deneyimi</th>
+                <th className="px-3 py-2.5 text-left text-navy-500 font-medium hidden lg:table-cell w-28">Yorgunluk</th>
+                <th className="px-3 py-2.5 text-left text-navy-500 font-medium hidden lg:table-cell w-28">Kaos</th>
+                <th className="px-3 py-2.5 text-left text-navy-500 font-medium hidden xl:table-cell w-28">Güven</th>
+                <th className="px-3 py-2.5 w-8" />
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((row, idx) => (
+                <React.Fragment key={row.api_football_team_id}>
+                  <tr
+                    className={`border-b border-navy-800/60 cursor-pointer transition-colors ${
+                      expanded === row.api_football_team_id
+                        ? 'bg-navy-800/40'
+                        : 'hover:bg-navy-900/60'
+                    } ${row.first_time_qualifier ? 'border-l-2 border-l-red-500/50' : ''}`}
+                    onClick={() => setExpanded(expanded === row.api_football_team_id ? null : row.api_football_team_id)}
+                  >
+                    <td className="px-3 py-2.5 text-navy-600 font-mono text-[10px]">{idx + 1}</td>
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center gap-2">
+                        {row.iso2 && (
+                          <span className={`fi fi-${row.iso2.toLowerCase()} w-4 h-3 rounded-sm overflow-hidden shrink-0`} />
+                        )}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-white font-medium truncate">{row.team_name}</span>
+                            <TierBadge tier={row.pressure_tier} />
+                            {row.first_time_qualifier && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-red-500/15 text-red-400">
+                                <AlertTriangle className="w-2 h-2" /> İlk Kez
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5 hidden sm:table-cell">
+                      <span className="text-navy-400">{row.confederation}</span>
+                    </td>
+                    <td className="px-3 py-2.5 w-28">
+                      <PressureBar value={row.tournament_pressure_index} />
+                    </td>
+                    <td className="px-3 py-2.5 hidden md:table-cell">
+                      <div className="flex items-center gap-1.5">
+                        <Swords className="w-3 h-3 text-navy-500 shrink-0" />
+                        <span className="font-mono text-white">{row.historical_wc_matches}</span>
+                        <span className="text-navy-600">maç</span>
+                        {row.last_wc_year && (
+                          <span className="text-navy-500 text-[10px]">({row.last_wc_year})</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5 hidden lg:table-cell">
+                      <RiskBar value={row.fatigue_risk} color="amber" />
+                    </td>
+                    <td className="px-3 py-2.5 hidden lg:table-cell">
+                      <RiskBar value={row.chaos_probability} color="red" />
+                    </td>
+                    <td className="px-3 py-2.5 hidden xl:table-cell">
+                      <PressBadge level={row.calibration_confidence} />
+                    </td>
+                    <td className="px-3 py-2.5 text-right">
+                      {expanded === row.api_football_team_id
+                        ? <ChevronUp className="w-3.5 h-3.5 text-navy-500 ml-auto" />
+                        : <ChevronDown className="w-3.5 h-3.5 text-navy-600 ml-auto" />
+                      }
+                    </td>
+                  </tr>
+                  {expanded === row.api_football_team_id && (
+                    <tr className="bg-navy-900/30">
+                      <td colSpan={9} className="px-3 pb-3">
+                        <TournamentPressureDetail
+                          row={row}
+                          onClose={() => setExpanded(null)}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Legend */}
+      <div className="bg-navy-900/40 border border-navy-800 rounded-xl p-4 text-[10px] text-navy-500">
+        <p className="font-medium text-navy-400 mb-2 flex items-center gap-1.5"><Info className="w-3 h-3" /> Veri Kaynağı</p>
+        <ul className="space-y-1">
+          <li>• <span className="text-navy-400">Dünya Kupası Deneyimi</span> — <code className="font-mono">wc2026_team_calibration_profiles.historical_wc_matches</code> (kalibrasyon motorunun hesapladığı, tarihsel WC maç sayısı)</li>
+          <li>• <span className="text-navy-400">Turnuva Baskısı</span> — <code className="font-mono">wc2026_tournament_pressure_index</code> (0=düşük baskı, 100=yüksek baskı)</li>
+          <li>• <span className="text-navy-400">İlk Kez Katılıyor</span> — <code className="font-mono">historical_wc_matches = 0</code> olduğunda işaretlenir</li>
+          <li>• <span className="text-navy-400">Tier sınıflandırması:</span> Elite ≥10 maç, Deneyimli ≥5, Geri Dönen ≥1, Debutant = 0</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
