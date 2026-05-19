@@ -3,7 +3,8 @@ import {
   RefreshCw, AlertTriangle, CheckCircle2, Shield, Globe,
   ChevronDown, ChevronUp, AlertCircle, Play,
   BarChart2, Target, Activity, Database,
-  Zap, Users, Link2, TrendingUp,
+  Zap, Users, Link2, TrendingUp, Calendar, Clock, Search,
+  Info, CheckCheck, XCircle, HelpCircle,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -80,8 +81,50 @@ interface PoolSummary {
   by_conf: Record<string, number>;
 }
 
-type TabId = 'teams' | 'scenarios' | 'runs';
+type TabId = 'teams' | 'mac-senaryosu' | 'scenarios' | 'runs';
 type ConfFilter = 'tumu' | 'high' | 'medium' | 'low' | 'none';
+
+// ─── Fixture scenario types ───────────────────────────────────────────────────
+
+interface FixtureScenarioRow {
+  api_football_fixture_id: number;
+  match_date: string | null;
+  stage_code: string | null;
+  group_label: string | null;
+  home_team_name: string | null;
+  away_team_name: string | null;
+  home_team_placeholder: string | null;
+  away_team_placeholder: string | null;
+  home_api_team_id: number | null;
+  away_api_team_id: number | null;
+  is_tbd: boolean;
+  // scenario
+  scenario_id: string | null;
+  home_win_probability: number | null;
+  draw_probability: number | null;
+  away_win_probability: number | null;
+  predicted_score_home: number | null;
+  predicted_score_away: number | null;
+  first_15_tempo: string | null;
+  first_half_pressure: number | null;
+  second_half_fatigue: number | null;
+  late_goal_probability: number | null;
+  comeback_probability: number | null;
+  wc2026_late_goal_risk: number | null;
+  wc2026_chaos_probability: number | null;
+  wc2026_fatigue_risk: number | null;
+  wc2026_scenario_confidence: number | null;
+  scenario_confidence: string | null;
+  missing_data_warnings: string[] | null;
+  calibrated_at: string | null;
+  // team calib
+  home_calib_confidence: string | null;
+  away_calib_confidence: string | null;
+  home_calib_missing: boolean;
+  away_calib_missing: boolean;
+  // status
+  fixture_status: 'tbd' | 'pending' | 'calibrated' | 'missing_teams';
+}
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -354,16 +397,17 @@ export default function WcCalibrationPage() {
 
         <CoverageHeader />
 
-        <div className="flex items-center gap-1 mb-6 border-b border-navy-800">
+        <div className="flex items-center gap-1 mb-6 border-b border-navy-800 overflow-x-auto">
           {([
-            { id: 'teams'     as TabId, label: 'Takım Kalibrasyonları', icon: Globe },
-            { id: 'scenarios' as TabId, label: 'Maç Senaryoları',       icon: Target },
-            { id: 'runs'      as TabId, label: 'Kalibrasyon Geçmişi',   icon: Activity },
+            { id: 'teams'         as TabId, label: 'Takım Kalibrasyonları', icon: Globe },
+            { id: 'mac-senaryosu' as TabId, label: 'Maç Senaryosu',         icon: Calendar },
+            { id: 'scenarios'     as TabId, label: 'Senaryo Detayları',     icon: Target },
+            { id: 'runs'          as TabId, label: 'Kalibrasyon Geçmişi',   icon: Activity },
           ] as const).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setTab(id)}
-              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all -mb-px ${
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all -mb-px whitespace-nowrap ${
                 tab === id
                   ? 'border-emerald-400 text-emerald-400'
                   : 'border-transparent text-navy-400 hover:text-white'
@@ -375,9 +419,10 @@ export default function WcCalibrationPage() {
           ))}
         </div>
 
-        {tab === 'teams'     && <TeamsTab />}
-        {tab === 'scenarios' && <ScenariosTab />}
-        {tab === 'runs'      && <RunsTab />}
+        {tab === 'teams'         && <TeamsTab />}
+        {tab === 'mac-senaryosu' && <MatchScenarioDashboard />}
+        {tab === 'scenarios'     && <ScenariosTab />}
+        {tab === 'runs'          && <RunsTab />}
       </div>
     </div>
   );
@@ -672,6 +717,458 @@ function TeamCalibDetail({ row }: { row: CalibRow }) {
           <span className="text-[10px] text-navy-600">Son kalibrasyon: {fmt(row.calibrated_at)}</span>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Match Scenario Dashboard ─────────────────────────────────────────────────
+
+const FIXTURE_STATUS_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+  calibrated:    { label: 'Kalibre Edildi',     color: 'text-emerald-400', icon: <CheckCheck className="w-3.5 h-3.5" /> },
+  pending:       { label: 'Bekliyor',            color: 'text-amber-400',   icon: <Clock className="w-3.5 h-3.5" /> },
+  missing_teams: { label: 'Takım Eksik',         color: 'text-red-400',     icon: <XCircle className="w-3.5 h-3.5" /> },
+  tbd:           { label: 'TBD (Kura Bekleniyor)', color: 'text-navy-500',  icon: <HelpCircle className="w-3.5 h-3.5" /> },
+};
+
+const TEMPO_TR_MAP: Record<string, string> = {
+  low: 'Yavaş', balanced: 'Dengeli', high: 'Yoğun',
+};
+
+function RiskPill({ value, label }: { value: number | null; label: string }) {
+  if (value == null) return <span className="text-navy-600 text-[10px]">–</span>;
+  const pct = value <= 1 ? value * 100 : value;
+  const color = pct > 50 ? 'text-red-400' : pct > 30 ? 'text-amber-400' : 'text-emerald-400';
+  return (
+    <div className="text-center">
+      <div className={`text-xs font-mono font-semibold ${color}`}>{pct.toFixed(0)}%</div>
+      <div className="text-[10px] text-navy-500 leading-tight">{label}</div>
+    </div>
+  );
+}
+
+function FixtureScenarioDetail({ row }: { row: FixtureScenarioRow }) {
+  if (!row.scenario_id) {
+    return (
+      <div className="px-5 py-4 bg-navy-900/30">
+        <div className="flex items-center gap-2 text-amber-400 text-xs">
+          <AlertCircle className="w-3.5 h-3.5" />
+          Bu maç için henüz senaryo hesaplanmamış.
+          {row.home_calib_missing && (
+            <span className="ml-2 text-red-400">· Ev takımı ({row.home_team_name}) kalibrasyonu eksik</span>
+          )}
+          {row.away_calib_missing && (
+            <span className="ml-2 text-red-400">· Deplasman takımı ({row.away_team_name}) kalibrasyonu eksik</span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-5 py-4 bg-navy-900/30">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        {/* Win probabilities */}
+        <div className="bg-navy-800/50 rounded-lg p-3">
+          <div className="text-[11px] font-semibold text-navy-400 uppercase tracking-wider mb-2">Maç Sonucu</div>
+          <div className="flex justify-between text-[11px] mb-1">
+            <span className="text-navy-500">Ev Galip</span>
+            <span className="text-blue-400 font-mono">{row.home_win_probability != null ? (row.home_win_probability * 100).toFixed(1) + '%' : '–'}</span>
+          </div>
+          <div className="flex justify-between text-[11px] mb-1">
+            <span className="text-navy-500">Beraberlik</span>
+            <span className="text-navy-300 font-mono">{row.draw_probability != null ? (row.draw_probability * 100).toFixed(1) + '%' : '–'}</span>
+          </div>
+          <div className="flex justify-between text-[11px]">
+            <span className="text-navy-500">Dep. Galip</span>
+            <span className="text-amber-400 font-mono">{row.away_win_probability != null ? (row.away_win_probability * 100).toFixed(1) + '%' : '–'}</span>
+          </div>
+          {row.predicted_score_home != null && (
+            <div className="mt-2 pt-2 border-t border-navy-700 text-center">
+              <span className="text-[11px] text-navy-500">Tahmin Skor: </span>
+              <span className="text-white font-mono font-bold">{row.predicted_score_home}–{row.predicted_score_away}</span>
+            </div>
+          )}
+        </div>
+
+        {/* İlk 15 Dakika */}
+        <div className="bg-navy-800/50 rounded-lg p-3">
+          <div className="text-[11px] font-semibold text-navy-400 uppercase tracking-wider mb-2">İlk 15 Dakika</div>
+          <div className="flex justify-between text-[11px] mb-1">
+            <span className="text-navy-500">Tempo</span>
+            <span className={`font-medium ${row.first_15_tempo === 'high' ? 'text-red-400' : row.first_15_tempo === 'balanced' ? 'text-amber-400' : 'text-navy-400'}`}>
+              {TEMPO_TR_MAP[row.first_15_tempo ?? ''] ?? (row.first_15_tempo ?? '–')}
+            </span>
+          </div>
+          <div className="flex justify-between text-[11px]">
+            <span className="text-navy-500">İlk Yarı Baskısı</span>
+            <span className="text-navy-300 font-mono">{row.first_half_pressure != null ? (row.first_half_pressure * 100).toFixed(0) + '%' : '–'}</span>
+          </div>
+        </div>
+
+        {/* İkinci Yarı */}
+        <div className="bg-navy-800/50 rounded-lg p-3">
+          <div className="text-[11px] font-semibold text-navy-400 uppercase tracking-wider mb-2">İkinci Yarı Yorgunluk</div>
+          <div className="flex justify-between text-[11px] mb-1">
+            <span className="text-navy-500">Yorgunluk</span>
+            <span className="text-navy-300 font-mono">{row.second_half_fatigue != null ? (row.second_half_fatigue * 100).toFixed(0) + '%' : '–'}</span>
+          </div>
+          <div className="flex justify-between text-[11px]">
+            <span className="text-navy-500">Veri Eksikliği</span>
+            <span className="text-navy-300 font-mono">
+              {(row.missing_data_warnings?.length ?? 0) > 0
+                ? <span className="text-amber-400">{row.missing_data_warnings!.length} uyarı</span>
+                : <span className="text-emerald-400">Yok</span>
+              }
+            </span>
+          </div>
+        </div>
+
+        {/* Riskler */}
+        <div className="bg-navy-800/50 rounded-lg p-3">
+          <div className="text-[11px] font-semibold text-navy-400 uppercase tracking-wider mb-2">Risk Profili</div>
+          <div className="flex justify-between text-[11px] mb-1">
+            <span className="text-navy-500">75+ Kaos Riski</span>
+            <span className={`font-mono ${(row.wc2026_chaos_probability ?? 0) > 0.5 ? 'text-red-400' : 'text-navy-300'}`}>
+              {row.wc2026_chaos_probability != null ? (row.wc2026_chaos_probability * 100).toFixed(0) + '%' : '–'}
+            </span>
+          </div>
+          <div className="flex justify-between text-[11px] mb-1">
+            <span className="text-navy-500">Geç Gol Riski</span>
+            <span className={`font-mono ${(row.wc2026_late_goal_risk ?? 0) > 0.4 ? 'text-amber-400' : 'text-navy-300'}`}>
+              {row.wc2026_late_goal_risk != null ? (row.wc2026_late_goal_risk * 100).toFixed(0) + '%' : '–'}
+            </span>
+          </div>
+          <div className="flex justify-between text-[11px]">
+            <span className="text-navy-500">Yorgunluk Riski</span>
+            <span className="text-navy-300 font-mono">
+              {row.wc2026_fatigue_risk != null ? (row.wc2026_fatigue_risk * 100).toFixed(0) + '%' : '–'}
+            </span>
+          </div>
+        </div>
+
+        {/* Geri Dönüş / Geç Gol */}
+        <div className="bg-navy-800/50 rounded-lg p-3">
+          <div className="text-[11px] font-semibold text-navy-400 uppercase tracking-wider mb-2">Özel İndeksler</div>
+          <div className="flex justify-between text-[11px] mb-1">
+            <span className="text-navy-500">Geç Gol İhtimali</span>
+            <span className="text-navy-300 font-mono">
+              {row.late_goal_probability != null ? (row.late_goal_probability * 100).toFixed(0) + '%' : '–'}
+            </span>
+          </div>
+          <div className="flex justify-between text-[11px]">
+            <span className="text-navy-500">Geri Dönüş İhtimali</span>
+            <span className={`font-mono ${(row.comeback_probability ?? 0) > 0.4 ? 'text-amber-400' : 'text-navy-300'}`}>
+              {row.comeback_probability != null ? (row.comeback_probability * 100).toFixed(0) + '%' : '–'}
+            </span>
+          </div>
+        </div>
+
+        {/* Senaryo Güveni */}
+        <div className="bg-navy-800/50 rounded-lg p-3">
+          <div className="text-[11px] font-semibold text-navy-400 uppercase tracking-wider mb-2">Senaryo Güveni</div>
+          <div className="flex justify-between text-[11px] mb-1">
+            <span className="text-navy-500">Güven Skoru</span>
+            <span className="text-navy-300 font-mono">
+              {row.wc2026_scenario_confidence != null ? (row.wc2026_scenario_confidence * 100).toFixed(0) + '%' : '–'}
+            </span>
+          </div>
+          <div className="flex justify-between text-[11px] mb-1">
+            <span className="text-navy-500">Seviye</span>
+            <ConfBadge level={row.scenario_confidence ?? 'none'} />
+          </div>
+          <div className="flex justify-between text-[11px]">
+            <span className="text-navy-500">Hesaplandı</span>
+            <span className="text-navy-500 text-[10px]">{fmt(row.calibrated_at)}</span>
+          </div>
+          {row.missing_data_warnings && row.missing_data_warnings.length > 0 && (
+            <div className="mt-2 pt-2 border-t border-navy-700 space-y-1">
+              {row.missing_data_warnings.slice(0, 2).map((w, i) => (
+                <div key={i} className="flex items-start gap-1 text-[10px] text-amber-400">
+                  <AlertTriangle className="w-2.5 h-2.5 shrink-0 mt-0.5" />
+                  {w}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MatchScenarioDashboard() {
+  const [rows, setRows]           = useState<FixtureScenarioRow[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [running, setRunning]     = useState(false);
+  const [error, setError]         = useState<string | null>(null);
+  const [runResult, setRunResult] = useState<string | null>(null);
+  const [search, setSearch]       = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'calibrated' | 'pending' | 'missing_teams' | 'tbd'>('all');
+  const [expanded, setExpanded]   = useState<number | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    const { data, error: err } = await supabase.rpc('wc2026_get_fixture_scenario_status');
+    if (err) { setError(err.message); setLoading(false); return; }
+    setRows((data as FixtureScenarioRow[]) ?? []);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const runTest = async (limit = 3) => {
+    setRunning(true);
+    setRunResult(null);
+    const { data, error: err } = await supabase.rpc('wc2026_run_batch_scenarios', {
+      p_limit: limit,
+      p_triggered_by: 'admin_ui',
+    });
+    if (err) {
+      setRunResult('Hata: ' + err.message);
+    } else {
+      const r = data as { processed: number; created: number; errors: number; status: string } | null;
+      if (r) {
+        setRunResult(`${r.status === 'completed' ? 'Tamamlandı' : r.status === 'partial' ? 'Kısmi' : 'Hata'}: ${r.created} senaryo oluşturuldu, ${r.errors} hata (${r.processed} maç işlendi)`);
+      }
+      await load();
+    }
+    setRunning(false);
+  };
+
+  const runAll = async () => runTest(999);
+
+  const filtered = rows.filter(r => {
+    if (statusFilter !== 'all' && r.fixture_status !== statusFilter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      const home = (r.home_team_name ?? r.home_team_placeholder ?? '').toLowerCase();
+      const away = (r.away_team_name ?? r.away_team_placeholder ?? '').toLowerCase();
+      if (!home.includes(q) && !away.includes(q)) return false;
+    }
+    return true;
+  });
+
+  const counts = {
+    total:        rows.length,
+    calibrated:   rows.filter(r => r.fixture_status === 'calibrated').length,
+    pending:      rows.filter(r => r.fixture_status === 'pending').length,
+    missing_teams: rows.filter(r => r.fixture_status === 'missing_teams').length,
+    tbd:          rows.filter(r => r.fixture_status === 'tbd').length,
+  };
+
+  return (
+    <div>
+      {/* Status summary */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+        <SmallStat label="Toplam Maç"       value={counts.total} />
+        <SmallStat label="Kalibre Edildi"   value={counts.calibrated}    accent="green" />
+        <SmallStat label="Bekliyor"         value={counts.pending}       accent="amber" />
+        <SmallStat label="Takım Eksik"      value={counts.missing_teams} accent="red" />
+        <SmallStat label="TBD (Kura)"       value={counts.tbd} />
+      </div>
+
+      {/* Legend */}
+      <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-4 mb-4">
+        <div className="flex flex-wrap gap-4 text-[11px] text-navy-400 mb-4">
+          <div className="flex items-center gap-1.5"><CheckCheck className="w-3.5 h-3.5 text-emerald-400" /> Maç Senaryosu hesaplandı</div>
+          <div className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-amber-400" /> Her iki takım kalibre, senaryo bekleniyor</div>
+          <div className="flex items-center gap-1.5"><XCircle className="w-3.5 h-3.5 text-red-400" /> Takım kalibrasyonu eksik</div>
+          <div className="flex items-center gap-1.5"><HelpCircle className="w-3.5 h-3.5 text-navy-500" /> TBD — Kura sonrası belli olacak</div>
+        </div>
+
+        {/* Controls */}
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="flex items-center gap-2 flex-1 min-w-[180px] bg-navy-800 border border-navy-700 rounded-lg px-3 py-1.5">
+            <Search className="w-3.5 h-3.5 text-navy-500 shrink-0" />
+            <input
+              type="text"
+              placeholder="Takım ara..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="bg-transparent text-xs text-white focus:outline-none placeholder-navy-600 w-full"
+            />
+          </div>
+
+          <div className="flex gap-1 flex-wrap">
+            {(['all', 'calibrated', 'pending', 'missing_teams', 'tbd'] as const).map(s => (
+              <button key={s} onClick={() => setStatusFilter(s)}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all whitespace-nowrap ${
+                  statusFilter === s
+                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                    : 'bg-navy-800 text-navy-400 border border-navy-700 hover:text-white'
+                }`}>
+                {s === 'all' ? 'Tümü' : s === 'calibrated' ? 'Kalibre' : s === 'pending' ? 'Bekliyor' : s === 'missing_teams' ? 'Eksik' : 'TBD'}
+              </button>
+            ))}
+          </div>
+
+          <button onClick={load} disabled={loading}
+            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-navy-800 border border-navy-700 text-navy-400 hover:text-white transition-all disabled:opacity-40">
+            <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+            Yenile
+          </button>
+
+          <button
+            onClick={() => runTest(3)}
+            disabled={running || counts.pending === 0}
+            title="3 maç için test çalıştırır"
+            className="flex items-center gap-1.5 text-xs px-3.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-400 hover:bg-amber-500/20 transition-all disabled:opacity-40 font-medium"
+          >
+            {running ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
+            Hesapla (3 Maç Test)
+          </button>
+
+          <button
+            onClick={runAll}
+            disabled={running || counts.pending === 0}
+            title="Tüm bekleyen maçlar için senaryo üretir"
+            className="flex items-center gap-1.5 text-xs px-3.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/20 transition-all disabled:opacity-40 font-medium"
+          >
+            {running ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+            Yenile / Tümünü Hesapla
+          </button>
+        </div>
+
+        {runResult && (
+          <div className={`mt-3 text-xs rounded-lg px-3 py-2 font-mono ${
+            runResult.startsWith('Hata')
+              ? 'bg-red-500/10 text-red-400'
+              : 'bg-emerald-500/10 text-emerald-400'
+          }`}>
+            {runResult}
+          </div>
+        )}
+      </div>
+
+      {error && <ErrorBanner message={error} />}
+
+      {!loading && rows.length === 0 && (
+        <EmptyCalibState
+          title="Fikstür verisi bulunamadı"
+          desc="wc2026_fixtures tablosuna veri girildiğinde maçlar burada görünecektir."
+        />
+      )}
+
+      {(loading || filtered.length > 0) && (
+        <div className="bg-navy-900/50 border border-navy-800 rounded-xl overflow-hidden">
+          <div className="px-5 py-3 border-b border-navy-800 flex items-center justify-between">
+            <span className="text-xs font-semibold text-readable-muted uppercase tracking-wider">
+              Maç Listesi ({filtered.length} / {rows.length})
+            </span>
+            <div className="flex items-center gap-2 text-[10px] text-navy-500">
+              <Info className="w-3 h-3" />
+              Satıra tıkla → senaryo detayı
+            </div>
+          </div>
+
+          {loading ? <LoadingSkeleton rows={8} /> : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-navy-800">
+                    <th className="text-left px-4 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Maç</th>
+                    <th className="text-center px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider hidden sm:table-cell">Aşama</th>
+                    <th className="text-center px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider hidden md:table-cell">Tarih</th>
+                    <th className="text-center px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Durum</th>
+                    <th className="text-center px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider hidden lg:table-cell">Geç Gol Riski</th>
+                    <th className="text-center px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider hidden lg:table-cell">75+ Kaos</th>
+                    <th className="text-center px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider hidden lg:table-cell">Geri Dönüş</th>
+                    <th className="text-center px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider hidden xl:table-cell">Senaryo Güveni</th>
+                    <th className="text-right px-4 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider hidden md:table-cell">Takım Kalib.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map(row => {
+                    const isExpanded = expanded === row.api_football_fixture_id;
+                    const meta = FIXTURE_STATUS_META[row.fixture_status] ?? FIXTURE_STATUS_META.pending;
+                    const homeName = row.home_team_name ?? row.home_team_placeholder ?? 'TBD';
+                    const awayName = row.away_team_name ?? row.away_team_placeholder ?? 'TBD';
+                    return (
+                      <React.Fragment key={row.api_football_fixture_id}>
+                        <tr
+                          className={`border-b border-navy-800/40 transition-colors cursor-pointer ${
+                            isExpanded ? 'bg-navy-800/30' : 'hover:bg-navy-800/20'
+                          }`}
+                          onClick={() => setExpanded(isExpanded ? null : row.api_football_fixture_id)}
+                        >
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-1.5">
+                              {row.is_tbd
+                                ? <HelpCircle className="w-3 h-3 text-navy-500 shrink-0" />
+                                : row.fixture_status === 'calibrated'
+                                  ? <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                                  : <AlertCircle className="w-3 h-3 text-amber-400 shrink-0" />
+                              }
+                              <span className={`font-medium ${row.is_tbd ? 'text-navy-500 italic' : 'text-white'}`}>
+                                {homeName}
+                              </span>
+                              <span className="text-navy-600 text-[10px] px-1">vs</span>
+                              <span className={`font-medium ${row.is_tbd ? 'text-navy-500 italic' : 'text-white'}`}>
+                                {awayName}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 text-center hidden sm:table-cell">
+                            <span className="text-[10px] text-navy-400 font-mono">{row.stage_code ?? '–'}</span>
+                          </td>
+                          <td className="px-3 py-3 text-center hidden md:table-cell">
+                            <span className="text-[10px] text-navy-500 tabular-nums">
+                              {row.match_date ? new Date(row.match_date).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' }) : '–'}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${meta.color}`}>
+                              {meta.icon}
+                              <span className="hidden sm:inline">{meta.label}</span>
+                            </span>
+                          </td>
+                          <td className="px-3 py-3 text-center hidden lg:table-cell">
+                            <RiskPill value={row.wc2026_late_goal_risk} label="Geç Gol" />
+                          </td>
+                          <td className="px-3 py-3 text-center hidden lg:table-cell">
+                            <RiskPill value={row.wc2026_chaos_probability} label="75+ Kaos" />
+                          </td>
+                          <td className="px-3 py-3 text-center hidden lg:table-cell">
+                            <RiskPill value={row.comeback_probability} label="Geri Dön." />
+                          </td>
+                          <td className="px-3 py-3 text-center hidden xl:table-cell">
+                            {row.wc2026_scenario_confidence != null
+                              ? <ConfBadge level={row.scenario_confidence ?? 'none'} />
+                              : <span className="text-navy-600 text-[10px]">–</span>
+                            }
+                          </td>
+                          <td className="px-4 py-3 text-right hidden md:table-cell">
+                            <div className="flex items-center justify-end gap-1">
+                              {!row.is_tbd && (
+                                <>
+                                  <span className={`w-2 h-2 rounded-full ${row.home_calib_missing ? 'bg-red-500' : 'bg-emerald-500'}`} title={`Ev: ${row.home_calib_confidence ?? 'eksik'}`} />
+                                  <span className={`w-2 h-2 rounded-full ${row.away_calib_missing ? 'bg-red-500' : 'bg-emerald-500'}`} title={`Dep: ${row.away_calib_confidence ?? 'eksik'}`} />
+                                </>
+                              )}
+                              {isExpanded
+                                ? <ChevronUp className="w-3.5 h-3.5 text-navy-500 ml-1" />
+                                : <ChevronDown className="w-3.5 h-3.5 text-navy-500 ml-1" />
+                              }
+                            </div>
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr key={`${row.api_football_fixture_id}-detail`}>
+                            <td colSpan={9}>
+                              <FixtureScenarioDetail row={row} />
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
