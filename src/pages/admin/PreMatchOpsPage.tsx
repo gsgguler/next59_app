@@ -991,7 +991,6 @@ function BrainInspectorTab() {
               return (
                 <SubBrainCard
                   key={brainName}
-                  brainName={brainName}
                   brain={brain}
                   meta={meta}
                   isActive={isActive}
@@ -1097,8 +1096,7 @@ function MasterBrainCard({ master, generatedAt }: {
   );
 }
 
-function SubBrainCard({ brainName, brain, meta, isActive, onToggle }: {
-  brainName: string;
+function SubBrainCard({ brain, meta, isActive, onToggle }: {
   brain: BrainOutput;
   meta: (typeof BRAIN_META)[string];
   isActive: boolean;
@@ -1158,8 +1156,8 @@ function SubBrainCard({ brainName, brain, meta, isActive, onToggle }: {
                     {typeof v === 'boolean' ? (v ? 'evet' : 'hayır') :
                      typeof v === 'number' ? v.toString() :
                      typeof v === 'string' ? v :
-                     Array.isArray(v) ? (v.length === 0 ? 'yok' : v.join(', ')) :
-                     JSON.stringify(v)}
+                     Array.isArray(v) ? (v.length === 0 ? 'yok' : (v as unknown[]).join(', ')) :
+                     (JSON.stringify(v) ?? '–')}
                   </span>
                 </div>
               );
