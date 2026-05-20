@@ -12,17 +12,15 @@ import {
   ChevronRight,
   ChevronDown,
   TrendingUp,
-  TestTube,
   Sliders,
   BarChart3,
-  Layers,
-  Cpu,
   Zap,
   Globe,
-  Wifi,
-  Rocket,
-  GitBranch,
+  Monitor,
   Brain,
+  Trophy,
+  History,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -44,53 +42,48 @@ const bottomNav = [
   { to: '/settings', icon: Settings, label: 'Ayarlar' },
 ];
 
-// Admin grupları — her grup genişleyip daralabilir
+// Admin grupları — 4 kategori, her grup genişleyip daralabilir
 const adminGroups = [
   {
-    key: 'sistem',
-    label: 'Sistem',
-    icon: ShieldCheck,
+    key: 'operasyon',
+    label: 'Günlük Operasyon',
+    icon: Activity,
     items: [
-      { to: '/admin', label: 'Yönetim Paneli', icon: ShieldCheck },
-      { to: '/admin/operasyonlar', label: 'Operasyonlar', icon: Activity },
-      { to: '/admin/operasyon-dongusu', label: 'Operasyon Döngüsü', icon: Cpu },
-      { to: '/admin/saglayici-sagligi', label: 'Sağlayıcı Sağlığı', icon: Wifi },
-      { to: '/admin/launch-hazirlik', label: 'Launch Hazırlık', icon: Rocket },
-      { to: '/admin/model-lab/daily-monitor', label: 'Günlük Monitor', icon: Activity },
+      { to: '/admin/model-lab/daily-monitor', label: 'Sistem Dashboard',      icon: LayoutDashboard },
+      { to: '/admin/saglayici-sagligi',       label: 'Sağlayıcı Sağlığı',     icon: Activity },
+      { to: '/admin/model-lab/prematch-ops',  label: 'Maç Öncesi (Pre-Match)', icon: Monitor },
+      { to: '/admin/tahmin-motoru/ne-dedik-ne-oldu', label: 'Ne Dedik / Ne Oldu?', icon: History },
     ],
   },
   {
-    key: 'kalibrasyon',
-    label: 'Kalibrasyon',
-    icon: Sliders,
-    items: [
-      { to: '/admin/kalibrasyon', label: 'Kalibrasyon Merkezi', icon: Sliders },
-      { to: '/admin/kalibrasyon/durum', label: 'Kalibrasyon Durumu', icon: BarChart3 },
-      { to: '/admin/model-lab', label: 'Model Lab', icon: Layers },
-      { to: '/admin/model-lab/canli-mikro-sim', label: 'Canlı Mikro Sim', icon: Zap },
-      { to: '/admin/model-lab/prematch-ops', label: 'Pre-Match Ops', icon: Zap },
-    ],
-  },
-  {
-    key: 'tahmin',
-    label: 'Tahmin Motoru',
+    key: 'ai',
+    label: 'Yapay Zeka',
     icon: Brain,
     items: [
-      { to: '/admin/tahmin-motoru/brain-orkestrasi', label: 'Brain Orkestrasyonu', icon: Brain },
-      { to: '/admin/tahmin-motoru/ne-dedik-ne-oldu', label: 'Ne Dedik / Ne Oldu', icon: TrendingUp },
-      { to: '/admin/tahmin-motoru/test-lab', label: 'Test Lab', icon: TestTube },
-      { to: '/admin/tahmin-motoru/model-karsilastirma', label: 'Model Karşılaştırma', icon: Layers },
-      { to: '/admin/tahmin-motoru/zeka-grafigi', label: 'Zeka Grafiği', icon: GitBranch },
+      { to: '/admin/tahmin-motoru/brain-orkestrasi', label: 'Brain Orkestrasyonu',  icon: Brain },
+      { to: '/admin/model-lab',                      label: 'Model Laboratuvarı',   icon: BarChart3 },
+      { to: '/admin/kalibrasyon',                    label: 'Kalibrasyon Merkezi',  icon: SlidersHorizontal },
+      { to: '/admin/model-lab/canli-mikro-sim',      label: 'Canlı Mikro Sim',      icon: Zap },
     ],
   },
   {
     key: 'wc2026',
     label: 'DK 2026',
-    icon: Globe,
+    icon: Trophy,
     items: [
-      { to: '/admin/wc2026/kadro-ops',    label: 'Kadro Operasyonları', icon: Globe },
-      { to: '/admin/wc2026/kalibrasyon',  label: 'DK Kalibrasyonu',     icon: BarChart3 },
-      { to: '/admin/wc2026/canli-motor',  label: 'Canlı Maç Motoru',    icon: Activity },
+      { to: '/admin/wc2026/kadro-ops',   label: 'Kadro Operasyonları', icon: UserCircle },
+      { to: '/admin/wc2026/kalibrasyon', label: 'DK Kalibrasyonu',     icon: Sliders },
+      { to: '/admin/wc2026/canli-motor', label: 'Canlı Maç Motoru',    icon: Monitor },
+    ],
+  },
+  {
+    key: 'sistem',
+    label: 'Sistem & Ayarlar',
+    icon: ShieldCheck,
+    items: [
+      { to: '/admin',           label: 'Yönetim Paneli', icon: ShieldCheck },
+      { to: '/admin/operasyonlar', label: 'Operasyonlar', icon: Globe },
+      { to: '/admin/launch-hazirlik', label: 'Launch Hazırlık', icon: TrendingUp },
     ],
   },
 ];
@@ -105,8 +98,8 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
     adminGroups.forEach(g => {
       init[g.key] = g.items.some(i => location.pathname.startsWith(i.to) && i.to !== '/admin');
     });
-    // Sistem grubunu her zaman açık başlat
-    init['sistem'] = true;
+    // Günlük Operasyon grubunu her zaman açık başlat
+    init['operasyon'] = true;
     return init;
   });
 
