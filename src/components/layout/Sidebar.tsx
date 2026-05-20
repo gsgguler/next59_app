@@ -22,6 +22,7 @@ import {
   Zap,
   Globe,
   Wifi,
+  Rocket,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -53,6 +54,7 @@ const adminGroups = [
       { to: '/admin', label: 'Yönetim Paneli', icon: ShieldCheck },
       { to: '/admin/operasyonlar', label: 'Operasyonlar', icon: Activity },
       { to: '/admin/saglayici-sagligi', label: 'Sağlayıcı Sağlığı', icon: Wifi },
+      { to: '/admin/launch-hazirlik', label: 'Launch Hazırlık', icon: Rocket },
     ],
   },
   {
