@@ -15,9 +15,9 @@ export interface UIPrediction {
   home_prob: number;
   draw_prob: number;
   away_prob: number;
-  ht_home_prob: number;
-  ht_draw_prob: number;
-  ht_away_prob: number;
+  ht_home_prob: number | null;
+  ht_draw_prob: number | null;
+  ht_away_prob: number | null;
   over_2_5: number;
   btts: number;
   confidence: number;

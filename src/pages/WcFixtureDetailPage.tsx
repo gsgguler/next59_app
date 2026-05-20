@@ -444,11 +444,14 @@ function WcPredictionPanel({ matchNo, isTBD }: { matchNo: number; isTBD: boolean
 
   const resultPred = predictions.find(p => p.prediction_type === 'match_result');
   const expl = resultPred?.explanation_json ?? null;
-  const homeProb = expl && 'home_prob' in expl ? expl.home_prob as number : resultPred?.confidence ?? null;
+  const homeProb = expl && 'home_prob' in expl ? expl.home_prob as number : null;
   const drawProb = expl && 'draw_prob' in expl ? expl.draw_prob as number : null;
   const awayProb = expl && 'away_prob' in expl ? expl.away_prob as number : null;
 
-  if (!resultPred || homeProb === null) {
+  // Only show probability bar when all three probs are present
+  const hasFullProbs = homeProb !== null && drawProb !== null && awayProb !== null;
+
+  if (!resultPred || !hasFullProbs) {
     return (
       <div className="bg-navy-900/40 border border-navy-800/60 rounded-xl p-5 mt-6">
         <div className="flex items-center gap-2.5 mb-3">
@@ -466,17 +469,12 @@ function WcPredictionPanel({ matchNo, isTBD }: { matchNo: number; isTBD: boolean
     );
   }
 
-  const dp = drawProb ?? 0.33;
-  const ap = awayProb ?? Math.max(0, 1 - homeProb - dp);
-
   return (
     <div className="bg-navy-900/40 border border-navy-800/60 rounded-xl p-5 mt-6">
       <div className="flex items-center gap-2 mb-4">
         <BarChart3 className="w-4 h-4 text-champagne shrink-0" />
         <h3 className="text-sm font-bold text-white">Maç Analizi</h3>
-        <span className="ml-auto text-[10px] text-navy-500 font-mono">
-          Güven: %{Math.round(resultPred.confidence * 100)}
-        </span>
+        <span className="ml-auto text-[10px] text-navy-500 font-mono">Tahmin Bekliyor</span>
       </div>
 
       {/* Probability bar */}
@@ -488,18 +486,18 @@ function WcPredictionPanel({ matchNo, isTBD }: { matchNo: number; isTBD: boolean
         </div>
         <div className="h-2.5 rounded-full overflow-hidden flex">
           <div className="bg-champagne/70" style={{ width: `${homeProb * 100}%` }} />
-          <div className="bg-navy-600" style={{ width: `${dp * 100}%` }} />
-          <div className="bg-navy-400" style={{ width: `${ap * 100}%` }} />
+          <div className="bg-navy-600" style={{ width: `${drawProb * 100}%` }} />
+          <div className="bg-navy-400" style={{ width: `${awayProb * 100}%` }} />
         </div>
         <div className="flex items-center justify-between text-xs font-mono font-semibold mt-1 tabular-nums">
           <span className="text-champagne">{(homeProb * 100).toFixed(0)}%</span>
-          <span className="text-navy-400">{(dp * 100).toFixed(0)}%</span>
-          <span className="text-navy-300">{(ap * 100).toFixed(0)}%</span>
+          <span className="text-navy-400">{(drawProb * 100).toFixed(0)}%</span>
+          <span className="text-navy-300">{(awayProb * 100).toFixed(0)}%</span>
         </div>
       </div>
 
       <p className="text-[10px] text-navy-500 leading-relaxed">
-        Bu olasılıklar istatistiksel modelden üretilmiştir. Kesin sonuç iddiası taşımaz.
+        Veri Senaryosu — Bu olasılıklar istatistiksel modelden üretilmiştir. Kesin sonuç iddiası taşımaz.
       </p>
     </div>
   );

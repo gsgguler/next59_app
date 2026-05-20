@@ -1,4 +1,4 @@
-import { Clock } from 'lucide-react';
+import { Clock, AlertTriangle, Radio } from 'lucide-react';
 import type { UIMatch } from '../../types/ui-models';
 import { predictionToNarrative } from '../../utils/predictionToNarrative';
 import type { FullPrediction } from '../../utils/predictionToNarrative';
@@ -36,16 +36,42 @@ export default function PreMatchOracle({ match }: { match: UIMatch }) {
   const eloDiff =
     match.home_elo && match.away_elo ? match.home_elo - match.away_elo : undefined;
 
-  const isLocked = match.status !== 'scheduled';
+  const isLive     = match.status === 'live';
+  const isFinished = match.status === 'finished';
+  const isLocked   = match.status !== 'scheduled';
 
   if (!p) {
+    // Live match with no prediction yet
+    if (isLive) {
+      return (
+        <div className="py-12 flex flex-col items-center justify-center text-center gap-4">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
+            </span>
+            <span className="text-sm font-semibold text-emerald-400">CANLI</span>
+          </div>
+          <div className="w-12 h-12 rounded-full bg-navy-800 border border-navy-700/60 flex items-center justify-center">
+            <Radio className="w-6 h-6 text-navy-400" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-white mb-1">Canlı Veri Bekleniyor</p>
+            <p className="text-xs text-navy-400 max-w-xs leading-relaxed">
+              Maç canlı devam ediyor. Bu maç için ön analiz yayınlanmamıştı.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="py-12 flex flex-col items-center justify-center text-center gap-4">
         <div className="w-12 h-12 rounded-full bg-navy-800 border border-navy-700/60 flex items-center justify-center">
           <Clock className="w-6 h-6 text-navy-400" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-white mb-1">Analiz henüz hazır değil</p>
+          <p className="text-sm font-semibold text-white mb-1">Analiz Henüz Hazır Değil</p>
           <p className="text-xs text-navy-400 max-w-xs leading-relaxed">
             Bu maç için veri analizi hazırlanıyor. Maç tarihine yakın tekrar kontrol edin.
           </p>
@@ -56,60 +82,90 @@ export default function PreMatchOracle({ match }: { match: UIMatch }) {
 
   return (
     <div>
-      {/* Probability bar */}
-      {p && (
-        <div className="mb-6 p-4 bg-navy-900/60 border border-navy-800 rounded-xl">
-          <div className="flex items-center justify-between text-xs text-navy-400 mb-2">
-            <span>{match.home_team.short_name}</span>
-            <span>Beraberlik</span>
-            <span>{match.away_team.short_name}</span>
-          </div>
-          <div className="h-3 rounded-full overflow-hidden flex">
-            <div
-              className="bg-champagne/70 transition-all"
-              style={{ width: `${p.home_prob * 100}%` }}
-              title={`${(p.home_prob * 100).toFixed(0)}%`}
-            />
-            <div
-              className="bg-navy-600 transition-all"
-              style={{ width: `${p.draw_prob * 100}%` }}
-              title={`${(p.draw_prob * 100).toFixed(0)}%`}
-            />
-            <div
-              className="bg-navy-400 transition-all"
-              style={{ width: `${p.away_prob * 100}%` }}
-              title={`${(p.away_prob * 100).toFixed(0)}%`}
-            />
-          </div>
-          <div className="flex items-center justify-between text-xs font-mono font-semibold mt-1.5 tabular-nums">
-            <span className="text-champagne">{(p.home_prob * 100).toFixed(0)}%</span>
-            <span className="text-readable-muted">{(p.draw_prob * 100).toFixed(0)}%</span>
-            <span className="text-navy-300">{(p.away_prob * 100).toFixed(0)}%</span>
-          </div>
+      {/* Disclaimer banner */}
+      <div className="mb-5 flex items-start gap-2.5 bg-navy-800/60 border border-navy-700/40 rounded-xl px-4 py-3">
+        <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+        <p className="text-[11px] text-navy-400 leading-relaxed">
+          <span className="font-semibold text-navy-300">Veri Senaryosu — Kesin Sonuç Değildir.</span>{' '}
+          Bu analiz istatistiksel modelden üretilmiştir; bahis tavsiyesi veya garanti niteliği taşımaz.
+        </p>
+      </div>
+
+      {/* Live-state notice */}
+      {isLive && (
+        <div className="mb-5 flex items-center gap-2.5 bg-emerald-500/8 border border-emerald-500/20 rounded-xl px-4 py-3">
+          <span className="relative flex h-2.5 w-2.5 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+          </span>
+          <p className="text-xs text-emerald-400 font-medium">
+            Maç başladı — aşağıdaki analizler maç öncesi tahmindir, gerçek zamanlı değildir.
+          </p>
         </div>
       )}
 
-      {/* Narrative sections */}
-      <div className="divide-y divide-navy-800/60">
-        {sections.map((s) => (
-          <NarrativeParagraph
-            key={s.type}
-            title={s.title}
-            text={predictionToNarrative(
-              fullPrediction,
-              s.type,
-              match.home_team.name,
-              match.away_team.name,
-              eloDiff,
-            )}
-            locked={isLocked}
-            validation={match.status === 'finished' ? 'pending' : undefined}
+      {/* Probability bar */}
+      <div className="mb-6 p-4 bg-navy-900/60 border border-navy-800 rounded-xl">
+        <div className="flex items-center justify-between text-xs text-navy-400 mb-2">
+          <span>{match.home_team.short_name}</span>
+          <span>Beraberlik</span>
+          <span>{match.away_team.short_name}</span>
+        </div>
+        <div className="h-3 rounded-full overflow-hidden flex">
+          <div
+            className="bg-champagne/70 transition-all"
+            style={{ width: `${p.home_prob * 100}%` }}
+            title={`${(p.home_prob * 100).toFixed(0)}%`}
           />
-        ))}
+          <div
+            className="bg-navy-600 transition-all"
+            style={{ width: `${p.draw_prob * 100}%` }}
+            title={`${(p.draw_prob * 100).toFixed(0)}%`}
+          />
+          <div
+            className="bg-navy-400 transition-all"
+            style={{ width: `${p.away_prob * 100}%` }}
+            title={`${(p.away_prob * 100).toFixed(0)}%`}
+          />
+        </div>
+        <div className="flex items-center justify-between text-xs font-mono font-semibold mt-1.5 tabular-nums">
+          <span className="text-champagne">{(p.home_prob * 100).toFixed(0)}%</span>
+          <span className="text-readable-muted">{(p.draw_prob * 100).toFixed(0)}%</span>
+          <span className="text-navy-300">{(p.away_prob * 100).toFixed(0)}%</span>
+        </div>
       </div>
 
+      {/* Narrative sections — blanked for live state */}
+      {isLive ? (
+        <div className="bg-navy-900/40 border border-navy-800/60 rounded-xl p-6 text-center">
+          <Radio className="w-6 h-6 text-navy-600 mx-auto mb-3" />
+          <p className="text-sm font-semibold text-navy-300 mb-1">Canlı Veri Bekleniyor</p>
+          <p className="text-xs text-navy-500 max-w-xs mx-auto leading-relaxed">
+            Maç devam ederken senaryolar kilitlidir. Maç bitince sonuçlar burada görünecek.
+          </p>
+        </div>
+      ) : (
+        <div className="divide-y divide-navy-800/60">
+          {sections.map((s) => (
+            <NarrativeParagraph
+              key={s.type}
+              title={s.title}
+              text={predictionToNarrative(
+                fullPrediction,
+                s.type,
+                match.home_team.name,
+                match.away_team.name,
+                eloDiff,
+              )}
+              locked={isLocked}
+              validation={isFinished ? 'pending' : undefined}
+            />
+          ))}
+        </div>
+      )}
+
       {/* Accuracy summary placeholder for finished matches */}
-      {match.status === 'finished' && (
+      {isFinished && (
         <div className="mt-6 p-4 bg-navy-900/60 border border-navy-800 rounded-xl">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-navy-400 uppercase tracking-wider">

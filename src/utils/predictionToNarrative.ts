@@ -2,9 +2,9 @@ export interface FullPrediction {
   home_prob: number;
   draw_prob: number;
   away_prob: number;
-  ht_home_prob: number;
-  ht_draw_prob: number;
-  ht_away_prob: number;
+  ht_home_prob: number | null;
+  ht_draw_prob: number | null;
+  ht_away_prob: number | null;
   over_2_5: number;
   btts: number;
   confidence: number;
@@ -79,6 +79,13 @@ export function predictionToNarrative(
     }
 
     case 'first_half': {
+      // HT probs may not be present in all model versions
+      if (p.ht_home_prob === null || p.ht_draw_prob === null || p.ht_away_prob === null) {
+        const htScore = p.predicted_score_ht ?? null;
+        const scoreRef = htScore ? ` Beklenen devre arası skor: ${htScore}.` : '';
+        return `İlk yarı verileri bu model versiyonunda mevcut değil.${scoreRef} Genel form ve Elo farkı ilk yarının gidişatını şekillendirebilir.${confCaveat}`;
+      }
+
       const htFav    = p.ht_home_prob > p.ht_away_prob ? homeName : awayName;
       const htMaxPct = Math.round(Math.max(p.ht_home_prob, p.ht_away_prob) * 100);
       const htDrawPct = Math.round(p.ht_draw_prob * 100);
