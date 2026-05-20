@@ -71,7 +71,10 @@ export default function TestLabPage() {
     setMatchesLoaded(true);
   }, [matchesLoaded]);
 
-  const effectiveMatchId = customMatchId.trim() || matchId;
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const customTrimmed = customMatchId.trim();
+  const customValid = customTrimmed === '' || UUID_RE.test(customTrimmed);
+  const effectiveMatchId = customTrimmed && customValid ? customTrimmed : matchId;
 
   function toggleBrain(key: string) {
     setSelectedBrains(prev => {
@@ -155,12 +158,19 @@ export default function TestLabPage() {
               </select>
               <input
                 type="text"
-                placeholder="veya UUID gir..."
+                placeholder="veya tam UUID gir (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)..."
                 value={customMatchId}
                 onChange={e => setCustomMatchId(e.target.value)}
-                className="w-full bg-navy-700 border border-navy-600 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-champagne/50 font-mono"
+                className={`w-full bg-navy-700 border text-white text-sm rounded-lg px-3 py-2 focus:outline-none font-mono transition-colors ${
+                  !customValid
+                    ? 'border-red-500 focus:border-red-400'
+                    : 'border-navy-600 focus:border-champagne/50'
+                }`}
               />
-              {effectiveMatchId && (
+              {!customValid && (
+                <p className="text-[10px] text-red-400 mt-1">Geçersiz UUID formatı — tam UUID giriniz</p>
+              )}
+              {customValid && effectiveMatchId && (
                 <p className="text-[10px] text-navy-500 mt-1 font-mono truncate">ID: {effectiveMatchId}</p>
               )}
             </div>
@@ -223,7 +233,7 @@ export default function TestLabPage() {
 
             <button
               onClick={handleRun}
-              disabled={running || !effectiveMatchId}
+              disabled={running || !effectiveMatchId || !customValid}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold border border-champagne/40 bg-champagne/10 hover:bg-champagne/20 text-champagne transition-colors disabled:opacity-40"
             >
               {running ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
