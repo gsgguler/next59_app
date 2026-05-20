@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Shield, RefreshCw, AlertCircle, CheckCircle2, XCircle,
-  AlertTriangle, Clock, Wifi, WifiOff, Activity, ChevronDown,
+  Shield, RefreshCw, AlertCircle,
+  AlertTriangle, Clock, Wifi, Activity, ChevronDown,
   ChevronUp, Info, Ban, Zap,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { getStatusConfig } from '../../lib/statusUtils';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -73,13 +74,13 @@ function deriveStatus(row: ProviderHealthRow): FeedStatus {
 }
 
 function statusConfig(s: FeedStatus) {
-  switch (s) {
-    case 'ok':      return { label: 'Aktif',        color: 'text-emerald-400', bg: 'bg-emerald-500/12 border-emerald-500/25', icon: <CheckCircle2 className="w-3.5 h-3.5" /> };
-    case 'stale':   return { label: 'Bayat Veri',   color: 'text-amber-400',   bg: 'bg-amber-500/12 border-amber-500/25',     icon: <Clock className="w-3.5 h-3.5" /> };
-    case 'error':   return { label: 'API Hatası',   color: 'text-red-400',     bg: 'bg-red-500/12 border-red-500/25',         icon: <WifiOff className="w-3.5 h-3.5" /> };
-    case 'dead':    return { label: 'Ölü Akış',     color: 'text-red-500',     bg: 'bg-red-500/15 border-red-500/30',         icon: <Ban className="w-3.5 h-3.5" /> };
-    case 'no_data': return { label: 'Veri Yok',     color: 'text-navy-400',    bg: 'bg-navy-700/50 border-navy-600/30',       icon: <XCircle className="w-3.5 h-3.5" /> };
-  }
+  const cfg = getStatusConfig(s);
+  return {
+    label: s === 'ok' ? 'Aktif' : s === 'stale' ? 'Bayat Veri' : s === 'error' ? 'API Hatası' : s === 'dead' ? 'Ölü Akış' : 'Veri Yok',
+    color: cfg.color,
+    bg: `${cfg.bg} ${cfg.border}`,
+    icon: <cfg.Icon className="w-3.5 h-3.5" />,
+  };
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

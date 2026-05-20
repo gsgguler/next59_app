@@ -3,6 +3,7 @@ import { Brain, Play, Zap, StopCircle, RefreshCw, CheckCircle2, XCircle, Clock, 
 import { supabase } from '../../../lib/supabase';
 import BrainStatusCard, { type BrainConfig, type BrainPerf } from '../../../components/tahmin-motoru/BrainStatusCard';
 import MetaLearnerPanel from '../../../components/tahmin-motoru/MetaLearnerPanel';
+import { getStatusConfig } from '../../../lib/statusUtils';
 
 interface OrchestraRun {
   id: string;
@@ -26,20 +27,6 @@ interface MetaLearnerModel {
   notes: string | null;
   learned_weights: Record<string, number>;
 }
-
-const STATUS_STYLES: Record<string, string> = {
-  completed: 'text-emerald-400 bg-emerald-900/30 border-emerald-700/40',
-  running:   'text-yellow-400 bg-yellow-900/30 border-yellow-700/40',
-  partial:   'text-orange-400 bg-orange-900/30 border-orange-700/40',
-  failed:    'text-red-400 bg-red-900/30 border-red-700/40',
-};
-
-const STATUS_ICON: Record<string, typeof CheckCircle2> = {
-  completed: CheckCircle2,
-  running:   Clock,
-  partial:   AlertTriangle,
-  failed:    XCircle,
-};
 
 const CONFIRM_WORD = 'DURDUR';
 
@@ -287,7 +274,7 @@ export default function BrainOrkestrasiPage() {
               </thead>
               <tbody>
                 {recentRuns.map((run) => {
-                  const StatusIcon = STATUS_ICON[run.status] ?? Clock;
+                  const { color, bg, border, Icon: StatusIcon, label: statusLabel } = getStatusConfig(run.status);
                   const duration = run.completed_at
                     ? Math.round((new Date(run.completed_at).getTime() - new Date(run.started_at).getTime()) / 1000)
                     : null;
@@ -300,9 +287,9 @@ export default function BrainOrkestrasiPage() {
                         <span className="text-navy-200 font-medium">{run.run_type}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold ${STATUS_STYLES[run.status] ?? STATUS_STYLES.failed}`}>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold ${color} ${bg} ${border}`}>
                           <StatusIcon className="w-3 h-3" />
-                          {run.status.toUpperCase()}
+                          {statusLabel}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-navy-400 font-mono text-[10px]">{run.match_id.slice(0, 8)}…</td>
@@ -426,3 +413,6 @@ export default function BrainOrkestrasiPage() {
     </div>
   );
 }
+
+
+export default BrainOrkestrasiPage
