@@ -33,6 +33,8 @@ export default function MacTahminPage() {
   const [loading, setLoading] = useState(true);
   const [lastFetch, setLastFetch] = useState<Date | null>(null);
   const [countdown, setCountdown] = useState(30);
+  const [liveState, setLiveState] = useState<Record<string, unknown> | null>(null);
+  const [lastLiveUpdate, setLastLiveUpdate] = useState<Date | null>(null);
 
   const fetchAll = useCallback(async () => {
     if (!matchId) return;
@@ -84,6 +86,41 @@ export default function MacTahminPage() {
     }, 1000);
     return () => clearInterval(timer);
   }, [fetchAll]);
+
+  // Realtime subscription for live match state inserts
+  useEffect(() => {
+    if (!matchId) return;
+    const channel = supabase
+      .channel(`live-match-${matchId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'model_lab',
+          table: 'live_match_states',
+          filter: `match_id=eq.${matchId}`,
+        },
+        (payload) => {
+          setLiveState(payload.new as Record<string, unknown>);
+          setLastLiveUpdate(new Date());
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'ensemble_prediction_snapshots',
+          filter: `match_id=eq.${matchId}`,
+        },
+        () => {
+          // New snapshot inserted — re-fetch to show latest
+          fetchAll();
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [matchId, fetchAll]);
 
   const latestSnap = snapshots.length > 0 ? snapshots[snapshots.length - 1] : null;
   const ensembleProbs = latestSnap
@@ -184,6 +221,9 @@ export default function MacTahminPage() {
                 <span className="inline-flex items-center gap-1 text-navy-500">
                   <Minus className="w-3.5 h-3.5" /> Sonuç bekleniyor
                 </span>
+              )}
+              {lastLiveUpdate && (
+                <span className="text-yellow-400">Realtime: {lastLiveUpdate.toLocaleTimeString('tr-TR')}</span>
               )}
               {lastFetch && (
                 <span className="ml-auto">Son güncelleme: {lastFetch.toLocaleTimeString('tr-TR')}</span>

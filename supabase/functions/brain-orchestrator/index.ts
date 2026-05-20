@@ -307,7 +307,7 @@ Deno.serve(async (req: Request) => {
     const { data: match } = await supabase
       .from("matches")
       .select(`
-        id, kickoff_at, status,
+        id, timestamp, status_short,
         home_team:teams!matches_home_team_id_fkey(id, name),
         away_team:teams!matches_away_team_id_fkey(id, name),
         venue:venues(name, city),
@@ -337,7 +337,8 @@ Deno.serve(async (req: Request) => {
       away_team: match.away_team,
       venue: match.venue,
       competition: match.competition_season,
-      kickoff_at: match.kickoff_at,
+      kickoff_at: match.timestamp,
+      status: match.status_short,
       match_minute,
       is_live: run_type === "live_revision",
       elo_ratings: eloData ?? [],
@@ -432,7 +433,6 @@ Deno.serve(async (req: Request) => {
         snapshot_type: snapshotType,
         match_minute,
         weight_profile_key: profile_key,
-        orchestra_run_id: runId,
         brain_outputs: brainOutputsMap,
         effective_weights: weights,
         home_prob: fused.home,
