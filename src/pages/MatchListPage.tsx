@@ -1,24 +1,14 @@
-import { useEffect, useState, useCallback } from 'react';
-import { Trophy, Calendar, Filter, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Trophy, Calendar, Filter, Loader2, RefreshCw, ChevronDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import MatchCard from '../components/matches/MatchCard';
 import MatchFilter from '../components/matches/MatchFilter';
+import { MatchCardSkeletonGrid } from '../components/ui/MatchCardSkeleton';
+import { useHomeMatchesLoadMore, type HomeMatch } from '../hooks/useHomeMatches';
 
-export interface Match {
-  id: string;
-  match_date: string;
-  match_time: string | null;
-  status_short: string;
-  round: string | null;
-  home_score_ft: number | null;
-  away_score_ft: number | null;
-  home_team: { name: string; short_name: string | null; code: string | null; logo_url: string | null } | null;
-  away_team: { name: string; short_name: string | null; code: string | null; logo_url: string | null } | null;
-  competition_season: {
-    season_code: string;
-    competition: { name: string; short_name: string | null; code: string } | null;
-  } | null;
-}
+// Re-export for MatchCard compatibility
+export type { HomeMatch as Match };
+export type Match = HomeMatch;
 
 export interface Filters {
   status: string;
@@ -26,13 +16,7 @@ export interface Filters {
   search: string;
 }
 
-const PAGE_SIZE = 12;
-
 export default function MatchListPage() {
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(0);
-  const [total, setTotal] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
   const [competitions, setCompetitions] = useState<{ code: string; name: string }[]>([]);
   const [filters, setFilters] = useState<Filters>({
@@ -41,79 +25,61 @@ export default function MatchListPage() {
     search: '',
   });
 
+  const {
+    matches,
+    total,
+    loading,
+    loadingMore,
+    error,
+    empty,
+    hasMore,
+    loadMore,
+  } = useHomeMatchesLoadMore(20, filters.status);
+
   useEffect(() => {
-    async function fetchCompetitions() {
-      const { data } = await supabase
-        .from('competitions')
-        .select('code, name')
-        .order('name');
-      setCompetitions(data ?? []);
-    }
-    fetchCompetitions();
+    supabase
+      .from('competitions')
+      .select('code, name')
+      .order('name')
+      .then(({ data }) => setCompetitions(data ?? []));
   }, []);
 
-  const fetchMatches = useCallback(async () => {
-    setLoading(true);
-    let query = supabase
-      .from('matches')
-      .select(`
-        id, match_date, match_time, status_short, round, home_score_ft, away_score_ft,
-        home_team:teams!matches_home_team_id_fkey(name, short_name, code, logo_url),
-        away_team:teams!matches_away_team_id_fkey(name, short_name, code, logo_url),
-        competition_season:competition_seasons!matches_competition_season_id_fkey(season_code, competition:competitions(name, short_name, code))
-      `, { count: 'exact' })
-      .order('match_date', { ascending: true })
-      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-
-    if (filters.status !== 'all') {
-      query = query.eq('status_short', filters.status);
-    }
-
-    const { data, count } = await query;
-    setMatches((data as unknown as Match[]) ?? []);
-    setTotal(count ?? 0);
-    setLoading(false);
-  }, [page, filters.status]);
-
-  useEffect(() => {
-    fetchMatches();
-  }, [fetchMatches]);
-
-  const filteredMatches = matches.filter((m) => {
+  // Client-side competition + search filter (no extra DB round-trip)
+  const visible = matches.filter((m) => {
     if (filters.competition !== 'all') {
       if (m.competition_season?.competition?.code !== filters.competition) return false;
     }
     if (filters.search) {
       const s = filters.search.toLowerCase();
-      const homeName = m.home_team?.name?.toLowerCase() ?? '';
-      const awayName = m.away_team?.name?.toLowerCase() ?? '';
-      if (!homeName.includes(s) && !awayName.includes(s)) return false;
+      const home = m.home_team?.name?.toLowerCase() ?? '';
+      const away = m.away_team?.name?.toLowerCase() ?? '';
+      if (!home.includes(s) && !away.includes(s)) return false;
     }
     return true;
   });
 
-  const totalPages = Math.ceil(total / PAGE_SIZE);
-
   return (
     <div className="space-y-6">
+
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Trophy className="w-6 h-6 text-gold-500" />
             Maçlar
           </h1>
-          <p className="text-gray-500 mt-1">{total} maç listeleniyor</p>
+          <p className="text-gray-500 mt-1">
+            {loading ? 'Yükleniyor…' : `${total} maç listeleniyor`}
+          </p>
         </div>
 
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`
-            inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all
+          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all
             ${showFilters
               ? 'bg-navy-700 text-white'
               : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
-            }
-          `}
+            }`}
         >
           <Filter className="w-4 h-4" />
           Filtreler
@@ -128,65 +94,69 @@ export default function MatchListPage() {
         />
       )}
 
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 text-navy-500 animate-spin" />
+      {/* Error state */}
+      {error && (
+        <div className="flex flex-col items-center justify-center py-12 gap-3 text-red-400">
+          <p className="text-sm">Maçlar yüklenemedi. Lütfen tekrar deneyin.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="inline-flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 transition-colors"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Yenile
+          </button>
         </div>
-      ) : filteredMatches.length === 0 ? (
+      )}
+
+      {/* Initial loading skeleton */}
+      {loading && !error && (
+        <MatchCardSkeletonGrid count={6} />
+      )}
+
+      {/* Empty state */}
+      {!loading && !error && empty && (
         <div className="flex flex-col items-center justify-center py-20 text-gray-400">
           <Calendar className="w-12 h-12 mb-3" />
           <p className="text-lg font-medium">Maç bulunamadı</p>
           <p className="text-sm mt-1">Filtreleri değiştirmeyi deneyin</p>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filteredMatches.map((match) => (
-            <MatchCard key={match.id} match={match} />
-          ))}
-        </div>
       )}
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 pt-4">
-          <button
-            onClick={() => setPage(Math.max(0, page - 1))}
-            disabled={page === 0}
-            className="p-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <div className="flex items-center gap-1">
-            {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-              let pageNum = i;
-              if (totalPages > 7) {
-                if (page < 4) pageNum = i;
-                else if (page > totalPages - 5) pageNum = totalPages - 7 + i;
-                else pageNum = page - 3 + i;
-              }
-              return (
-                <button
-                  key={pageNum}
-                  onClick={() => setPage(pageNum)}
-                  className={`w-10 h-10 sm:w-9 sm:h-9 rounded-lg text-sm font-medium transition-colors
-                    ${page === pageNum
-                      ? 'bg-navy-700 text-white'
-                      : 'text-gray-600 hover:bg-gray-100'
-                    }`}
-                >
-                  {pageNum + 1}
-                </button>
-              );
-            })}
+      {/* Match grid */}
+      {!loading && !error && visible.length > 0 && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {visible.map((match) => (
+              <MatchCard key={match.id} match={match} />
+            ))}
           </div>
-          <button
-            onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
-            disabled={page >= totalPages - 1}
-            className="p-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
+
+          {/* Load more */}
+          {hasMore && (
+            <div className="flex flex-col items-center gap-2 pt-4">
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="inline-flex items-center gap-2 bg-white border border-gray-200 hover:border-navy-400 text-gray-700 hover:text-navy-700 text-sm font-medium px-6 py-2.5 rounded-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {loadingMore
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Yükleniyor…</>
+                  : <><ChevronDown className="w-4 h-4" /> Daha Fazla Yükle</>
+                }
+              </button>
+              <p className="text-xs text-gray-400">
+                {matches.length} / {total} maç gösteriliyor
+              </p>
+            </div>
+          )}
+
+          {/* Loading-more skeleton rows */}
+          {loadingMore && (
+            <MatchCardSkeletonGrid count={3} />
+          )}
+        </>
       )}
+
     </div>
   );
 }

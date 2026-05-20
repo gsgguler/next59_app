@@ -1,82 +1,165 @@
-import { useEffect, useState, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import useSWR from 'swr';
 import { supabase } from '../lib/supabase';
-import { transformMatch } from '../lib/transformers';
-import type { UIMatch } from '../types/ui-models';
-import type { DbMatch } from '../types/schema';
 
-const MATCH_LIMIT = 50;
+const DEFAULT_PAGE_SIZE = 20;
 
-interface UseHomeMatchesResult {
-  matches: UIMatch[];
-  loading: boolean;
-  error: string | null;
-  empty: boolean;
+export interface HomeMatch {
+  id: string;
+  match_date: string;
+  match_time: string | null;
+  status_short: string;
+  round: string | null;
+  home_score_ft: number | null;
+  away_score_ft: number | null;
+  home_team: { name: string; short_name: string | null; code: string | null; logo_url: string | null } | null;
+  away_team: { name: string; short_name: string | null; code: string | null; logo_url: string | null } | null;
+  competition_season: {
+    season_code: string;
+    competition: { name: string; short_name: string | null; code: string } | null;
+  } | null;
 }
 
-export function useHomeMatches(): UseHomeMatchesResult {
-  const [matches, setMatches] = useState<UIMatch[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+type FetchKey = [tag: string, page: number, limit: number, status: string];
 
-  useEffect(() => {
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
+async function fetchMatchPage([, page, limit, statusFilter]: FetchKey): Promise<{ rows: HomeMatch[]; total: number }> {
+  const from = page * limit;
+  const to   = from + limit - 1;
 
-    async function load() {
-      setLoading(true);
-      setError(null);
+  let query = supabase
+    .from('matches')
+    .select(
+      `id, match_date, match_time, status_short, round, home_score_ft, away_score_ft,
+       home_team:teams!matches_home_team_id_fkey(name, short_name, code, logo_url),
+       away_team:teams!matches_away_team_id_fkey(name, short_name, code, logo_url),
+       competition_season:competition_seasons!matches_competition_season_id_fkey(
+         season_code, competition:competitions(name, short_name, code)
+       )`,
+      { count: 'exact' },
+    )
+    .order('match_date', { ascending: true })
+    .range(from, to);
 
-      const { data: rawMatches, error: matchErr } = await supabase
-        .from('matches')
-        .select(`
-          id, competition_season_id,
-          home_team_id, away_team_id, venue_id,
-          match_date, match_time, timezone, timestamp,
-          status_short, status_long, status_elapsed,
-          home_score_ft, away_score_ft, round, result,
-          home_team:teams!matches_home_team_id_fkey(id, name, short_name, code, logo_url),
-          away_team:teams!matches_away_team_id_fkey(id, name, short_name, code, logo_url),
-          venue:venues!matches_venue_id_fkey(id, name, city, capacity)
-        `)
-        .order('match_date', { ascending: true })
-        .limit(MATCH_LIMIT)
-        .abortSignal(controller.signal);
+  if (statusFilter && statusFilter !== 'all') {
+    query = query.eq('status_short', statusFilter);
+  }
 
-      if (controller.signal.aborted) return;
+  const { data, count, error } = await query;
+  if (error) throw error;
 
-      if (matchErr) {
-        setError(matchErr.message);
-        setLoading(false);
-        return;
-      }
+  return { rows: (data as unknown as HomeMatch[]) ?? [], total: count ?? 0 };
+}
 
-      if (!rawMatches || rawMatches.length === 0) {
-        setMatches([]);
-        setLoading(false);
-        return;
-      }
+// ── Single-page hook (used for offset/page-number style pagination) ──────────
 
-      const uiMatches = (rawMatches as unknown as DbMatch[]).map((raw) =>
-        transformMatch(raw, null),
-      );
+export interface UseHomeMatchesResult {
+  matches: HomeMatch[];
+  total: number;
+  loading: boolean;
+  error: Error | undefined;
+  empty: boolean;
+  hasMore: boolean;
+  mutate: () => void;
+}
 
-      setMatches(uiMatches);
-      setLoading(false);
-    }
+export function useHomeMatches(
+  page       = 0,
+  limit      = DEFAULT_PAGE_SIZE,
+  statusFilter = 'all',
+): UseHomeMatchesResult {
+  const { data, error, isLoading, mutate } = useSWR<{ rows: HomeMatch[]; total: number }>(
+    ['homeMatches', page, limit, statusFilter] as FetchKey,
+    fetchMatchPage,
+    {
+      revalidateOnFocus: false,
+      errorRetryCount: 3,
+      errorRetryInterval: 2000,
+      keepPreviousData: true,
+    },
+  );
 
-    load();
-
-    return () => {
-      controller.abort();
-    };
-  }, []);
+  const matches = data?.rows ?? [];
+  const total   = data?.total ?? 0;
 
   return {
     matches,
-    loading,
+    total,
+    loading: isLoading,
     error,
-    empty: !loading && !error && matches.length === 0,
+    empty:   !isLoading && !error && matches.length === 0,
+    hasMore: (page + 1) * limit < total,
+    mutate,
+  };
+}
+
+// ── Load-more hook (accumulates pages; each page is independently cached) ────
+
+export interface UseHomeMatchesLoadMoreResult {
+  matches:     HomeMatch[];
+  total:       number;
+  loading:     boolean;
+  loadingMore: boolean;
+  error:       Error | undefined;
+  empty:       boolean;
+  hasMore:     boolean;
+  loadMore:    () => void;
+}
+
+export function useHomeMatchesLoadMore(
+  limit        = DEFAULT_PAGE_SIZE,
+  statusFilter = 'all',
+): UseHomeMatchesLoadMoreResult {
+  const [currentPage, setCurrentPage] = useState(0);
+  const [accumulated, setAccumulated] = useState<HomeMatch[]>([]);
+  const [total, setTotal]             = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const seenIds = useRef<Set<string>>(new Set());
+
+  // Reset when filter changes
+  useEffect(() => {
+    setCurrentPage(0);
+    setAccumulated([]);
+    setTotal(0);
+    setLoadingMore(false);
+    seenIds.current = new Set();
+  }, [statusFilter, limit]);
+
+  const { data, error, isLoading } = useSWR<{ rows: HomeMatch[]; total: number }>(
+    ['homeMatches', currentPage, limit, statusFilter] as FetchKey,
+    fetchMatchPage,
+    {
+      revalidateOnFocus: false,
+      errorRetryCount: 3,
+      errorRetryInterval: 2000,
+    },
+  );
+
+  // Merge new page into accumulated list (dedup by id)
+  useEffect(() => {
+    if (!data || isLoading) return;
+    const fresh = data.rows.filter((r) => !seenIds.current.has(r.id));
+    if (fresh.length === 0) { setLoadingMore(false); return; }
+    fresh.forEach((r) => seenIds.current.add(r.id));
+    setAccumulated((prev) => [...prev, ...fresh]);
+    setTotal(data.total);
+    setLoadingMore(false);
+  }, [data, isLoading]);
+
+  const loadMore = useCallback(() => {
+    setLoadingMore(true);
+    setCurrentPage((p) => p + 1);
+  }, []);
+
+  const allMatches = accumulated;
+
+  return {
+    matches:     allMatches,
+    total,
+    loading:     isLoading && accumulated.length === 0,
+    loadingMore,
+    error,
+    empty:       !isLoading && !error && allMatches.length === 0,
+    hasMore:     allMatches.length < total,
+    loadMore,
   };
 }
