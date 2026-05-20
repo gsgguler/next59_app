@@ -25,6 +25,7 @@ const OUTCOME_LABELS: Record<string, { label: string; color: string }> = {
 
 export default function MacTahminPage() {
   const { matchId } = useParams<{ matchId: string }>();
+  const [resolvedId, setResolvedId] = useState<string | null>(null);
   const [matchInfo, setMatchInfo] = useState<MatchInfo | null>(null);
   const [snapshots, setSnapshots] = useState<SnapshotEntry[]>([]);
   const [lastRun, setLastRun] = useState<{
@@ -40,6 +41,16 @@ export default function MacTahminPage() {
   const fetchAll = useCallback(async () => {
     if (!matchId) return;
 
+    // UUID format check: full UUID has dashes at positions 8,13,18,23
+    const isFullUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(matchId);
+
+    // Resolve the real full UUID if we received a short prefix
+    let resolvedMatchId = matchId;
+    if (!isFullUuid) {
+      const { data: found } = await supabase.rpc('find_match_by_prefix', { prefix: matchId });
+      if (found) resolvedMatchId = found;
+    }
+
     const [matchRes, snapRes, runRes] = await Promise.all([
       supabase
         .from('matches')
@@ -53,18 +64,17 @@ export default function MacTahminPage() {
             competition:competitions!competition_seasons_competition_id_fkey(name)
           )
         `)
-        .or(`id.eq.${matchId},id.like.${matchId}%`)
-        .limit(1)
+        .eq('id', resolvedMatchId)
         .maybeSingle(),
       supabase
         .from('ensemble_prediction_snapshots')
         .select('id, match_id, snapshot_version, snapshot_type, match_minute, home_prob, draw_prob, away_prob, predicted_outcome, ensemble_confidence, actual_outcome, brier_score, was_correct, is_locked, created_at, explanation_json')
-        .eq('match_id', matchId)
+        .eq('match_id', resolvedMatchId)
         .order('snapshot_version', { ascending: true }),
       supabase
         .from('brain_orchestra_runs')
         .select('brain_results, effective_weights')
-        .eq('match_id', matchId)
+        .eq('match_id', resolvedMatchId)
         .eq('status', 'completed')
         .order('started_at', { ascending: false })
         .limit(1)
@@ -74,6 +84,7 @@ export default function MacTahminPage() {
     if (matchRes.data) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const raw = matchRes.data as any;
+      setResolvedId(raw.id);
       setMatchInfo({
         id: raw.id,
         home_team: raw.home_team?.name ?? 'Ev Sahibi',
@@ -111,16 +122,17 @@ export default function MacTahminPage() {
   }, [fetchAll]);
 
   useEffect(() => {
-    if (!matchId) return;
+    const effectiveId = resolvedId ?? matchId;
+    if (!effectiveId) return;
     const channel = supabase
-      .channel(`live-match-${matchId}`)
+      .channel(`live-match-${effectiveId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'model_lab',
           table: 'live_match_states',
-          filter: `match_id=eq.${matchId}`,
+          filter: `match_id=eq.${effectiveId}`,
         },
         (payload) => {
           setLiveState(payload.new as Record<string, unknown>);
@@ -133,7 +145,7 @@ export default function MacTahminPage() {
           event: 'INSERT',
           schema: 'public',
           table: 'ensemble_prediction_snapshots',
-          filter: `match_id=eq.${matchId}`,
+          filter: `match_id=eq.${effectiveId}`,
         },
         () => {
           fetchAll();
@@ -141,7 +153,7 @@ export default function MacTahminPage() {
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [matchId, fetchAll]);
+  }, [matchId, resolvedId, fetchAll]);
 
   const latestSnap = snapshots.length > 0 ? snapshots[snapshots.length - 1] : null;
   const ensembleProbs = latestSnap
