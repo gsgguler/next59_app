@@ -53,6 +53,7 @@ const adminGroups = [
     items: [
       { to: '/admin', label: 'Yönetim Paneli', icon: ShieldCheck },
       { to: '/admin/operasyonlar', label: 'Operasyonlar', icon: Activity },
+      { to: '/admin/operasyon-dongusu', label: 'Operasyon Döngüsü', icon: Cpu },
       { to: '/admin/saglayici-sagligi', label: 'Sağlayıcı Sağlığı', icon: Wifi },
       { to: '/admin/launch-hazirlik', label: 'Launch Hazırlık', icon: Rocket },
     ],

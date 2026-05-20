@@ -91,6 +91,7 @@ import WcCalibrationPage from './pages/admin/WcCalibrationPage';
 import WcLiveEnginePage from './pages/admin/WcLiveEnginePage';
 import ProviderHealthPage from './pages/admin/ProviderHealthPage';
 import LaunchReadinessPage from './pages/admin/LaunchReadinessPage';
+import OperasyonDongusuPage from './pages/admin/OperasyonDongusuPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import PlaceholderPage from './pages/PlaceholderPage';
@@ -195,6 +196,7 @@ export default function App() {
                 <Route path="sistem-sagligi" element={<PlaceholderPage title="Sistem Sağlığı" />} />
                 {/* Operations */}
                 <Route path="operasyonlar" element={<OperationsPage />} />
+                <Route path="operasyon-dongusu" element={<OperasyonDongusuPage />} />
                 {/* Kalibrasyon */}
                 <Route path="kalibrasyon" element={<KalibrasyonMerkeziPage />} />
                 <Route path="kalibrasyon/durum" element={<KalibrasyonDurumuPage />} />
