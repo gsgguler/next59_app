@@ -89,6 +89,7 @@ import DailyMonitorPage from './pages/admin/DailyMonitorPage';
 import WcSquadOpsPage from './pages/admin/WcSquadOpsPage';
 import WcCalibrationPage from './pages/admin/WcCalibrationPage';
 import WcLiveEnginePage from './pages/admin/WcLiveEnginePage';
+import ProviderHealthPage from './pages/admin/ProviderHealthPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import PlaceholderPage from './pages/PlaceholderPage';
@@ -211,6 +212,7 @@ export default function App() {
                 <Route path="wc2026/kadro-ops"    element={<WcSquadOpsPage />} />
                 <Route path="wc2026/kalibrasyon" element={<WcCalibrationPage />} />
                 <Route path="wc2026/canli-motor" element={<WcLiveEnginePage />} />
+                <Route path="saglayici-sagligi"  element={<ProviderHealthPage />} />
                 <Route path="auth-debug" element={<AuthDebugPage />} />
               </Route>
 

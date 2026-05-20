@@ -17,7 +17,6 @@ import {
   Filter,
   BarChart3,
   Wifi,
-  WifiOff,
   ShieldAlert,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -1056,178 +1055,32 @@ export default function OperationsPage() {
   );
 }
 
-// ─── Provider Health Center ────────────────────────────────────────────────────
-
-const PROVIDER_DEFS = [
-  { key: 'af_fixtures',    label: 'AF Fixtures',        staleHours: 6 },
-  { key: 'af_statistics',  label: 'AF Statistics',       staleHours: 12 },
-  { key: 'af_lineups',     label: 'AF Lineups',          staleHours: 12 },
-  { key: 'af_events',      label: 'AF Events',           staleHours: 12 },
-  { key: 'af_uefa',        label: 'AF UEFA',             staleHours: 24 },
-  { key: 'understat_xg',   label: 'Understat xG',        staleHours: 48 },
-  { key: 'wc2026_import',  label: 'WC 2026 Import',      staleHours: 168 },
-] as const;
-
-type ProviderKey = typeof PROVIDER_DEFS[number]['key'];
-
-type ProviderStatus = 'ok' | 'stale' | 'error' | 'no_data';
-
-interface ProviderRow {
-  key: ProviderKey;
-  label: string;
-  staleHours: number;
-  lastRun: string | null;
-  status: string;
-  recordsInserted: number | null;
-  providerStatus: ProviderStatus;
-}
-
-function getProviderStatus(row: { lastRun: string | null; status: string; staleHours: number }): ProviderStatus {
-  if (!row.lastRun) return 'no_data';
-  if (row.status === 'failed' || row.status === 'error') return 'error';
-  const hoursAgo = (Date.now() - new Date(row.lastRun).getTime()) / 3600000;
-  if (hoursAgo > row.staleHours) return 'stale';
-  return 'ok';
-}
-
-function ProviderStatusBadge({ status }: { status: ProviderStatus }) {
-  if (status === 'ok')
-    return (
-      <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-        <Wifi className="w-3 h-3" /> Aktif
-      </span>
-    );
-  if (status === 'stale')
-    return (
-      <span className="inline-flex items-center gap-1 text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full">
-        <Clock className="w-3 h-3" /> Bayat
-      </span>
-    );
-  if (status === 'error')
-    return (
-      <span className="inline-flex items-center gap-1 text-xs font-semibold bg-red-500/15 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full">
-        <WifiOff className="w-3 h-3" /> Hata
-      </span>
-    );
-  return (
-    <span className="inline-flex items-center gap-1 text-xs font-semibold bg-navy-700/50 text-navy-400 border border-navy-600/30 px-2 py-0.5 rounded-full">
-      <Minus className="w-3 h-3" /> Veri Yok
-    </span>
-  );
-}
+// ─── Provider Health Center (redirect panel) ──────────────────────────────────
 
 function ProviderHealthCenter() {
-  const [rows, setRows] = useState<ProviderRow[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    const { data: ingestions } = await supabase
-      .from('ingestion_runs')
-      .select('run_type, status, started_at, completed_at, records_inserted')
-      .order('started_at', { ascending: false })
-      .limit(300);
-
-    const byType = new Map<string, { status: string; lastRun: string | null; recordsInserted: number | null }>();
-    for (const r of (ingestions ?? []) as { run_type: string; status: string; started_at: string; completed_at: string | null; records_inserted: number | null }[]) {
-      if (!byType.has(r.run_type)) {
-        byType.set(r.run_type, {
-          status: r.status,
-          lastRun: r.completed_at ?? r.started_at,
-          recordsInserted: r.records_inserted,
-        });
-      }
-    }
-
-    const built: ProviderRow[] = PROVIDER_DEFS.map((def) => {
-      const match = Array.from(byType.entries()).find(([k]) => k.includes(def.key));
-      const run = match?.[1] ?? null;
-      const providerStatus = getProviderStatus({
-        lastRun: run?.lastRun ?? null,
-        status: run?.status ?? '',
-        staleHours: def.staleHours,
-      });
-      return {
-        key: def.key,
-        label: def.label,
-        staleHours: def.staleHours,
-        lastRun: run?.lastRun ?? null,
-        status: run?.status ?? 'no_data',
-        recordsInserted: run?.recordsInserted ?? null,
-        providerStatus,
-      };
-    });
-
-    setRows(built);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
-
-  const alertCount = rows.filter((r) => r.providerStatus === 'error' || r.providerStatus === 'stale').length;
-
   return (
-    <Section
-      title="Provider Sağlık Merkezi"
-      icon={ShieldAlert}
-      count={rows.length}
-      alertCount={alertCount}
-      defaultOpen={false}
-    >
-      <div className="p-4 space-y-3">
-        <div className="flex justify-end">
-          <button
-            onClick={fetchData}
-            className="text-xs px-3 py-1.5 rounded-lg border border-navy-700/50 bg-navy-800/50 text-navy-400 hover:text-white transition-colors flex items-center gap-1"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            Yenile
-          </button>
-        </div>
-        {loading ? (
-          <div className="py-8 text-center text-sm text-navy-400">Yükleniyor…</div>
-        ) : (
-          <div className="overflow-x-auto rounded-lg border border-navy-700/40">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-navy-700/40 bg-navy-800/40">
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-navy-400">Provider</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-navy-400">Son Çalışma</th>
-                  <th className="px-4 py-2.5 text-center text-xs font-medium text-navy-400">Eklenen</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-navy-400">Bayat Eşiği</th>
-                  <th className="px-4 py-2.5 text-center text-xs font-medium text-navy-400">Durum</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row, i) => (
-                  <tr
-                    key={row.key}
-                    className={`border-b border-navy-700/30 hover:bg-navy-800/30 transition-colors ${
-                      i % 2 === 0 ? '' : 'bg-navy-800/20'
-                    }`}
-                  >
-                    <td className="px-4 py-2.5 text-xs font-medium text-white">{row.label}</td>
-                    <td className={`px-4 py-2.5 text-xs ${row.providerStatus === 'stale' ? 'text-amber-400' : 'text-navy-300'}`}>
-                      {formatRelative(row.lastRun)}
-                    </td>
-                    <td className="px-4 py-2.5 text-center text-xs text-navy-400">
-                      {row.recordsInserted ?? '—'}
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-navy-500">
-                      {row.staleHours < 24 ? `${row.staleHours}s` : `${row.staleHours / 24}g`}
-                    </td>
-                    <td className="px-4 py-2.5 text-center">
-                      <ProviderStatusBadge status={row.providerStatus} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+    <Section title="Sağlayıcı Sağlığı" icon={ShieldAlert} defaultOpen={false}>
+      <div className="p-5">
+        <div className="flex items-start gap-3 bg-navy-800/40 border border-navy-700/50 rounded-xl p-4">
+          <Wifi className="w-5 h-5 text-champagne shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-white mb-1">Sağlayıcı sağlık takibi taşındı</p>
+            <p className="text-xs text-navy-400 mb-3">
+              API çağrı durumu, bayatlık tespiti ve hata logları artık ayrı bir sayfada.
+              Gerçek zamanlı feed durumu, pipeline hataları ve bayat veri uyarıları için
+              Sağlayıcı Sağlığı sayfasını kullanın.
+            </p>
+            <a
+              href="/admin/saglayici-sagligi"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-champagne hover:text-white transition-colors border border-champagne/30 hover:border-champagne/60 rounded-lg px-3 py-1.5 bg-champagne/5 hover:bg-champagne/10"
+            >
+              <Activity className="w-3.5 h-3.5" />
+              Sağlayıcı Sağlığı sayfasına git
+            </a>
           </div>
-        )}
+        </div>
       </div>
     </Section>
   );
 }
-
 
