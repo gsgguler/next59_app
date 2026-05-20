@@ -93,6 +93,7 @@ import ProviderHealthPage from './pages/admin/ProviderHealthPage';
 import LaunchReadinessPage from './pages/admin/LaunchReadinessPage';
 import OperasyonDongusuPage from './pages/admin/OperasyonDongusuPage';
 import IntelligenceGraphPage from './pages/admin/IntelligenceGraphPage';
+import LiveMicroSimPage from './pages/admin/LiveMicroSimPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import PlaceholderPage from './pages/PlaceholderPage';
@@ -213,6 +214,7 @@ export default function App() {
                 <Route path="model-lab/publishing-queue" element={<MatchPublishingQueuePage />} />
                 <Route path="model-lab/prematch-ops" element={<PreMatchOpsPage />} />
                 <Route path="model-lab/daily-monitor" element={<DailyMonitorPage />} />
+                <Route path="model-lab/canli-mikro-sim" element={<LiveMicroSimPage />} />
                 <Route path="wc2026/kadro-ops"    element={<WcSquadOpsPage />} />
                 <Route path="wc2026/kalibrasyon" element={<WcCalibrationPage />} />
                 <Route path="wc2026/canli-motor" element={<WcLiveEnginePage />} />

@@ -84,6 +84,7 @@ const adminGroups = [
     icon: FileText,
     items: [
       { to: '/admin/model-lab/daily-monitor', label: 'Günlük Monitor', icon: Activity },
+      { to: '/admin/model-lab/canli-mikro-sim', label: 'Canlı Mikro Sim', icon: Zap },
       { to: '/admin/model-lab/story-generator', label: 'Hikaye Üretici', icon: FileText },
       { to: '/admin/model-lab/publishing-queue', label: 'Yayın Kuyruğu', icon: Send },
       { to: '/admin/model-lab/prematch-ops', label: 'Pre-Match Ops', icon: Zap },
