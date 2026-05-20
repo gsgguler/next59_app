@@ -92,6 +92,7 @@ import WcLiveEnginePage from './pages/admin/WcLiveEnginePage';
 import ProviderHealthPage from './pages/admin/ProviderHealthPage';
 import LaunchReadinessPage from './pages/admin/LaunchReadinessPage';
 import OperasyonDongusuPage from './pages/admin/OperasyonDongusuPage';
+import IntelligenceGraphPage from './pages/admin/IntelligenceGraphPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import PlaceholderPage from './pages/PlaceholderPage';
@@ -218,6 +219,7 @@ export default function App() {
                 <Route path="saglayici-sagligi"  element={<ProviderHealthPage />} />
                 <Route path="launch-hazirlik"    element={<LaunchReadinessPage />} />
                 <Route path="auth-debug" element={<AuthDebugPage />} />
+                <Route path="intelligence-graph" element={<IntelligenceGraphPage />} />
               </Route>
 
               <Route path="*" element={<NotFoundPage />} />

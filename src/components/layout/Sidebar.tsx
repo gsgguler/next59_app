@@ -23,6 +23,7 @@ import {
   Globe,
   Wifi,
   Rocket,
+  GitBranch,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -86,6 +87,7 @@ const adminGroups = [
       { to: '/admin/model-lab/story-generator', label: 'Hikaye Üretici', icon: FileText },
       { to: '/admin/model-lab/publishing-queue', label: 'Yayın Kuyruğu', icon: Send },
       { to: '/admin/model-lab/prematch-ops', label: 'Pre-Match Ops', icon: Zap },
+      { to: '/admin/intelligence-graph', label: 'Zekâ Grafiği', icon: GitBranch },
     ],
   },
   {
