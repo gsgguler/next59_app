@@ -309,4 +309,6 @@ export default function MacTahminPage() {
 }
 
 
+
+
 export default MacTahminPage
