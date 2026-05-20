@@ -81,6 +81,42 @@ export default function BrainOrkestrasiPage() {
     fetchData();
   }, [fetchData]);
 
+  async function handleEmergencyStop() {
+    setActionLoading('stop');
+    setActionResult(null);
+    try {
+      const { error } = await supabase
+        .from('brain_configs')
+        .update({ is_active: false })
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      if (error) throw error;
+      setActionResult({ type: 'success', msg: 'Tüm brain\'ler durduruldu' });
+      await fetchData();
+    } catch (e) {
+      setActionResult({ type: 'error', msg: `Emergency stop hatası: ${String(e)}` });
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleResume() {
+    setActionLoading('resume');
+    setActionResult(null);
+    try {
+      const { error } = await supabase
+        .from('brain_configs')
+        .update({ is_active: true })
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      if (error) throw error;
+      setActionResult({ type: 'success', msg: 'Tüm brain\'ler aktif edildi' });
+      await fetchData();
+    } catch (e) {
+      setActionResult({ type: 'error', msg: `Resume hatası: ${String(e)}` });
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
   async function invokeAction(action: string, label: string) {
     setActionLoading(action);
     setActionResult(null);
@@ -251,12 +287,26 @@ export default function BrainOrkestrasiPage() {
 
         {/* Stop/Resume Controls */}
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border border-red-700/40 bg-red-900/20 text-red-400 hover:bg-red-900/40 transition-colors">
-            <StopCircle className="w-4 h-4" />
+          <button
+            onClick={handleEmergencyStop}
+            disabled={actionLoading !== null}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border border-red-700/40 bg-red-900/20 text-red-400 hover:bg-red-900/40 transition-colors disabled:opacity-50"
+          >
+            {actionLoading === 'stop'
+              ? <RefreshCw className="w-4 h-4 animate-spin" />
+              : <StopCircle className="w-4 h-4" />
+            }
             EMERGENCY STOP
           </button>
-          <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border border-emerald-700/40 bg-emerald-900/20 text-emerald-400 hover:bg-emerald-900/40 transition-colors">
-            <Play className="w-4 h-4" />
+          <button
+            onClick={handleResume}
+            disabled={actionLoading !== null}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border border-emerald-700/40 bg-emerald-900/20 text-emerald-400 hover:bg-emerald-900/40 transition-colors disabled:opacity-50"
+          >
+            {actionLoading === 'resume'
+              ? <RefreshCw className="w-4 h-4 animate-spin" />
+              : <Play className="w-4 h-4" />
+            }
             RESUME
           </button>
         </div>
