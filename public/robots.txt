@@ -1,17 +1,4 @@
 User-agent: *
 Allow: /
 
-# Auth & private routes
-Disallow: /giris
-Disallow: /kayit
-Disallow: /dashboard
-Disallow: /dashboard/
-Disallow: /admin
-Disallow: /admin/
-Disallow: /profile
-Disallow: /settings
-Disallow: /matches
-Disallow: /predictions
-Disallow: /debates
-
 Sitemap: https://www.next59.com/sitemap.xml
