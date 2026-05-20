@@ -14,6 +14,7 @@ interface MatchInfo {
   status: string;
   kickoff_utc: string | null;
   competition_name: string | null;
+  timestamp: number | null;
 }
 
 const OUTCOME_LABELS: Record<string, { label: string; color: string }> = {
@@ -42,7 +43,16 @@ export default function MacTahminPage() {
     const [matchRes, snapRes, runRes] = await Promise.all([
       supabase
         .from('matches')
-        .select('id, home_team, away_team, status, kickoff_utc, competition_name')
+        .select(`
+          id,
+          status_short,
+          timestamp,
+          home_team:teams!matches_home_team_id_fkey(name),
+          away_team:teams!matches_away_team_id_fkey(name),
+          competition_season:competition_seasons!matches_competition_season_id_fkey(
+            competition:competitions!competition_seasons_competition_id_fkey(name)
+          )
+        `)
         .eq('id', matchId)
         .maybeSingle(),
       supabase
@@ -60,7 +70,19 @@ export default function MacTahminPage() {
         .maybeSingle(),
     ]);
 
-    if (matchRes.data) setMatchInfo(matchRes.data as MatchInfo);
+    if (matchRes.data) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const raw = matchRes.data as any;
+      setMatchInfo({
+        id: raw.id,
+        home_team: raw.home_team?.name ?? 'Ev Sahibi',
+        away_team: raw.away_team?.name ?? 'Deplasman',
+        status: raw.status_short ?? '',
+        kickoff_utc: raw.timestamp ? new Date(raw.timestamp * 1000).toISOString() : null,
+        competition_name: raw.competition_season?.competition?.name ?? null,
+        timestamp: raw.timestamp ?? null,
+      });
+    }
     if (snapRes.data) setSnapshots(snapRes.data as SnapshotEntry[]);
     if (runRes.data) {
       setLastRun({
@@ -285,3 +307,6 @@ export default function MacTahminPage() {
     </div>
   );
 }
+
+
+export default MacTahminPage
