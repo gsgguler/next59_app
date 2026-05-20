@@ -83,30 +83,42 @@ type CoverageGapRow = {
 type ReadinessLevel = 'ready' | 'partial' | 'blocked';
 
 function getReadiness(row: MatchReadinessRow): ReadinessLevel {
-  // has_elo is always false (ELO columns don't exist on matches); exclude from score
-  const score = [row.has_prediction, row.has_narrative, row.has_events, row.has_lineup, row.has_stats]
-    .filter(Boolean).length;
-  if (score === 5) return 'ready';
-  if (score >= 2) return 'partial';
+  // Operational criteria: prediction + at least 2 of events/lineup/stats
+  // has_narrative is informational (not yet auto-generated) — excluded from operational score
+  // has_elo excluded (column doesn't exist on matches table)
+  if (!row.has_prediction) return 'blocked';
+  const dataScore = [row.has_events, row.has_lineup, row.has_stats].filter(Boolean).length;
+  if (dataScore === 3) return 'ready';
+  if (dataScore >= 1) return 'partial';
   return 'blocked';
 }
 
-function ReadinessBadge({ level }: { level: ReadinessLevel }) {
+function getReadinessDetail(row: MatchReadinessRow): string {
+  if (!row.has_prediction) return 'Tahmin eksik — üretim engellidir';
+  const missing: string[] = [];
+  if (!row.has_events) missing.push('Olaylar');
+  if (!row.has_lineup) missing.push('Kadro');
+  if (!row.has_stats) missing.push('İstatistik');
+  if (missing.length === 0) return 'Tüm operasyonel veriler mevcut';
+  return `Eksik: ${missing.join(', ')}`;
+}
+
+function ReadinessBadge({ level, detail }: { level: ReadinessLevel; detail?: string }) {
   if (level === 'ready')
     return (
-      <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-        <CheckCircle2 className="w-3 h-3" /> READY
+      <span title={detail} className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full cursor-default">
+        <CheckCircle2 className="w-3 h-3" /> Hazır
       </span>
     );
   if (level === 'partial')
     return (
-      <span className="inline-flex items-center gap-1 text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full">
-        <Clock className="w-3 h-3" /> PARTIAL
+      <span title={detail} className="inline-flex items-center gap-1 text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full cursor-default">
+        <Clock className="w-3 h-3" /> Kısmi Hazır
       </span>
     );
   return (
-    <span className="inline-flex items-center gap-1 text-xs font-semibold bg-red-500/15 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full">
-      <XCircle className="w-3 h-3" /> BLOCKED
+    <span title={detail} className="inline-flex items-center gap-1 text-xs font-semibold bg-red-500/15 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full cursor-default">
+      <XCircle className="w-3 h-3" /> Engelli
     </span>
   );
 }
@@ -336,8 +348,8 @@ function MatchPublishingQueue() {
         <div className="grid grid-cols-3 gap-3">
           {[
             { label: 'Hazır', count: readyCnt, color: 'text-emerald-400' },
-            { label: 'Kısmi', count: partialCnt, color: 'text-amber-400' },
-            { label: 'Eksik', count: blockedCnt, color: 'text-red-400' },
+            { label: 'Kısmi Hazır', count: partialCnt, color: 'text-amber-400' },
+            { label: 'Engelli', count: blockedCnt, color: 'text-red-400' },
           ].map((s) => (
             <div key={s.label} className="bg-navy-800/50 border border-navy-700/40 rounded-lg px-4 py-3 text-center">
               <p className={`text-xl font-bold ${s.color}`}>{s.count}</p>
@@ -359,11 +371,11 @@ function MatchPublishingQueue() {
                   <th className="px-4 py-2.5 text-left text-xs font-medium text-navy-400">Maç</th>
                   <th className="px-4 py-2.5 text-left text-xs font-medium text-navy-400">Lig</th>
                   <th className="px-4 py-2.5 text-center text-xs font-medium text-navy-400">Tahmin</th>
-                  <th className="px-4 py-2.5 text-center text-xs font-medium text-navy-400">Anlatı</th>
+                  <th className="px-4 py-2.5 text-center text-xs font-medium text-navy-400" title="İçerik Hazır — operasyonel hazırlığı etkilemez">Anlatı ⓘ</th>
                   <th className="px-4 py-2.5 text-center text-xs font-medium text-navy-400">Olaylar</th>
                   <th className="px-4 py-2.5 text-center text-xs font-medium text-navy-400">Kadro</th>
                   <th className="px-4 py-2.5 text-center text-xs font-medium text-navy-400">İstat</th>
-                  <th className="px-4 py-2.5 text-center text-xs font-medium text-navy-400">Durum</th>
+                  <th className="px-4 py-2.5 text-center text-xs font-medium text-navy-400" title="Hazır = tahmin + tüm veriler. Kısmi = tahmin + bazı veriler. Engelli = tahmin yok.">Durum ⓘ</th>
                 </tr>
               </thead>
               <tbody>
@@ -394,7 +406,7 @@ function MatchPublishingQueue() {
                     <td className="px-4 py-2.5 text-center"><StatusDot ok={row.has_lineup} /></td>
                     <td className="px-4 py-2.5 text-center"><StatusDot ok={row.has_stats} /></td>
                     <td className="px-4 py-2.5 text-center">
-                      <ReadinessBadge level={getReadiness(row)} />
+                      <ReadinessBadge level={getReadiness(row)} detail={getReadinessDetail(row)} />
                     </td>
                   </tr>
                 ))}

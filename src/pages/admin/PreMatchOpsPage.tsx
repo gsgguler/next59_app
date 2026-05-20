@@ -290,7 +290,7 @@ function ReadinessQueueTab() {
                     : 'bg-navy-800 text-navy-400 border border-navy-700 hover:text-white'
                 }`}
               >
-                {f === 'all' ? 'Tümü' : f === 'ready' ? 'Hazır' : f === 'partial' ? 'Kısmi' : 'Bloke'}
+                {f === 'all' ? 'Tümü' : f === 'ready' ? 'Hazır' : f === 'partial' ? 'Kısmi Hazır' : 'Engelli'}
               </button>
             ))}
           </div>
@@ -339,8 +339,8 @@ function ReadinessQueueTab() {
                   <th className="text-center px-2 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Öznitelik</th>
                   <th className="text-center px-2 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Kal.</th>
                   <th className="text-center px-2 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Tahmin</th>
-                  <th className="text-center px-2 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Senaryo</th>
-                  <th className="text-center px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">Durum</th>
+                  <th className="text-center px-2 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider" title="İçerik hazırlığı — operasyonel durumu etkilemez">Senaryo ⓘ</th>
+                  <th className="text-center px-3 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider" title="ELO + Öznitelik + Kalibrasyon temel alınarak hesaplanır. Senaryo hazırlığı dahil değildir.">Durum ⓘ</th>
                   <th className="text-right px-5 py-3 text-[11px] font-semibold text-navy-400 uppercase tracking-wider">İşlemler</th>
                 </tr>
               </thead>
@@ -1301,8 +1301,8 @@ function ReadinessDetail({ row }: { row: ReadinessRow }) {
             <span className="text-navy-400">Tahmin Taslağı</span>
             <ReadinessDot ok={row.prediction_readiness} withLabel />
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-navy-400">Senaryo Taslağı</span>
+          <div className="flex items-center justify-between pt-1 border-t border-navy-700/30">
+            <span className="text-navy-500 italic text-[10px]">Senaryo Taslağı (bilgi)</span>
             <ReadinessDot ok={row.scenario_readiness} withLabel />
           </div>
         </div>
@@ -1339,7 +1339,7 @@ function ReadinessDetail({ row }: { row: ReadinessRow }) {
             </div>
           ) : row.overall_status === 'blocked' ? (
             <div className="flex items-center gap-1.5 text-red-400 text-xs">
-              <Ban className="w-3.5 h-3.5" />Yayına Hazır Değil — Blokaj Var
+              <Ban className="w-3.5 h-3.5" />Yayına Hazır Değil — Engel Var
             </div>
           ) : (
             <div className="flex items-center gap-1.5 text-amber-400 text-xs">
@@ -1391,9 +1391,9 @@ function ReadinessDot({ ok, withLabel }: { ok: boolean; withLabel?: boolean }) {
 
 function OverallStatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; color: string }> = {
-    ready:   { label: 'Hazır',       color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' },
-    partial: { label: 'Kısmi',       color: 'bg-amber-500/15 text-amber-400 border-amber-500/25' },
-    blocked: { label: 'Bloke',       color: 'bg-red-500/15 text-red-400 border-red-500/25' },
+    ready:   { label: 'Hazır',        color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' },
+    partial: { label: 'Kısmi Hazır', color: 'bg-amber-500/15 text-amber-400 border-amber-500/25' },
+    blocked: { label: 'Engelli',     color: 'bg-red-500/15 text-red-400 border-red-500/25' },
   };
   const cfg = map[status] ?? { label: status, color: 'bg-navy-800 text-navy-400 border-navy-700' };
   return (

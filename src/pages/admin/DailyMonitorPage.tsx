@@ -1116,9 +1116,18 @@ function StatusBadge({ status }: { status: string | null }) {
     critical: 'bg-red-900/50 text-red-400 border border-red-700',
   };
   const cls = map[status] ?? 'bg-navy-700 text-navy-300 border border-navy-600';
+  const labelMap: Record<string, string> = {
+    ready:          'Hazır',
+    partial:        'Kısmi Hazır',
+    blocked:        'Engelli',
+    publish_safe:   'Yayına Hazır',
+    review_required:'İnceleme Gerekli',
+    do_not_publish: 'Yayınlama',
+  };
+  const label = labelMap[status] ?? status.replace(/_/g, ' ');
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>
-      {status.replace(/_/g, ' ')}
+      {label}
     </span>
   );
 }
@@ -1380,7 +1389,7 @@ function OverviewTab({
                           icon={Target}
                           loading={loading === 'prediction'}
                           disabled={isBlocked}
-                          disabledReason={isBlocked ? (row.blocking_reasons?.[0] ?? 'Bloke') : undefined}
+                          disabledReason={isBlocked ? (row.blocking_reasons?.[0] ?? 'Engel var') : undefined}
                           onClick={() => onAction('prediction', row.match_id)}
                         />
                         <ActionBtn
@@ -1388,7 +1397,7 @@ function OverviewTab({
                           icon={Brain}
                           loading={loading === 'brain'}
                           disabled={isBlocked}
-                          disabledReason={isBlocked ? (row.blocking_reasons?.[0] ?? 'Bloke') : undefined}
+                          disabledReason={isBlocked ? (row.blocking_reasons?.[0] ?? 'Engel var') : undefined}
                           onClick={() => onAction('brain', row.match_id)}
                         />
                         <ActionBtn
@@ -1396,7 +1405,7 @@ function OverviewTab({
                           icon={Zap}
                           loading={loading === 'scenario'}
                           disabled={isBlocked}
-                          disabledReason={isBlocked ? (row.blocking_reasons?.[0] ?? 'Bloke') : undefined}
+                          disabledReason={isBlocked ? (row.blocking_reasons?.[0] ?? 'Engel var') : undefined}
                           onClick={() => onAction('scenario', row.match_id)}
                         />
                       </div>
@@ -1427,10 +1436,10 @@ function BlockedTab({ readiness }: { readiness: ReadinessRow[] }) {
   );
   return (
     <div>
-      <SectionHeader title="Bloke & Eksik Maclar" count={blocked.length} />
+      <SectionHeader title="Engelli & Eksik Maçlar" count={blocked.length} />
       {blocked.length === 0 && (
         <div className="text-navy-500 text-sm py-8 text-center">
-          Bloke ya da eksik mac yok.
+          Engelli ya da eksik maç yok.
         </div>
       )}
       <div className="space-y-4">
@@ -1969,7 +1978,7 @@ function CalibrationTab({ calibration }: { calibration: CalibrationRow[] }) {
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'overview', label: 'Genel Bakis', icon: LayoutDashboardIcon },
-  { id: 'blocked', label: 'Bloke & Eksik', icon: XCircle },
+  { id: 'blocked', label: 'Engelli & Eksik', icon: XCircle },
   { id: 'confidence', label: 'Dusuk Guven', icon: TrendingDown },
   { id: 'brains', label: 'Brain Ozeti', icon: Brain },
   { id: 'reality', label: 'Tahmin vs Gercek', icon: Target },
