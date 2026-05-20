@@ -96,8 +96,6 @@ import IntelligenceGraphPage from './pages/admin/IntelligenceGraphPage';
 import LiveMicroSimPage from './pages/admin/LiveMicroSimPage';
 import BrainOrkestrasiPage from './pages/admin/tahmin-motoru/BrainOrkestrasiPage';
 import NeDedikNeOlduPage from './pages/admin/tahmin-motoru/NeDedikNeOlduPage';
-import TestLabPage from './pages/admin/tahmin-motoru/TestLabPage';
-import ModelKarsilastirmaPage from './pages/admin/tahmin-motoru/ModelKarsilastirmaPage';
 import ZekaGrafigiPage from './pages/admin/tahmin-motoru/ZekaGrafigiPage';
 import MacTahminPage from './pages/public/MacTahminPage';
 import ProfilePage from './pages/ProfilePage';
@@ -225,8 +223,6 @@ export default function App() {
                 {/* Tahmin Motoru */}
                 <Route path="tahmin-motoru/brain-orkestrasi" element={<BrainOrkestrasiPage />} />
                 <Route path="tahmin-motoru/ne-dedik-ne-oldu" element={<NeDedikNeOlduPage />} />
-                <Route path="tahmin-motoru/test-lab" element={<TestLabPage />} />
-                <Route path="tahmin-motoru/model-karsilastirma" element={<ModelKarsilastirmaPage />} />
                 <Route path="tahmin-motoru/zeka-grafigi" element={<ZekaGrafigiPage />} />
                 <Route path="wc2026/kadro-ops"    element={<WcSquadOpsPage />} />
                 <Route path="wc2026/kalibrasyon" element={<WcCalibrationPage />} />

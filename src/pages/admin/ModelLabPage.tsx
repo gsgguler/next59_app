@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
 import {
   FlaskConical, Database, Shield, ChevronRight, Activity,
   RefreshCw, CheckCircle, AlertCircle, Clock, Trash2,
+  Beaker, GitCompare,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import TestLabPage from './tahmin-motoru/TestLabPage';
+import ModelKarsilastirmaPage from './tahmin-motoru/ModelKarsilastirmaPage';
 
 interface ModelVersion {
   id: string;
@@ -42,7 +45,16 @@ interface DashboardData {
   archive_count: number;
 }
 
+type Tab = 'lab' | 'test' | 'compare';
+
+const TABS: { key: Tab; label: string; icon: typeof Beaker; activeColor: string }[] = [
+  { key: 'lab',     label: 'Ana Laboratuvar',    icon: FlaskConical, activeColor: 'text-champagne border-champagne' },
+  { key: 'test',    label: 'Test Lab',            icon: Beaker,       activeColor: 'text-blue-400 border-blue-400' },
+  { key: 'compare', label: 'Model Karşılaştırma', icon: GitCompare,   activeColor: 'text-emerald-400 border-emerald-400' },
+];
+
 export default function ModelLabPage() {
+  const [activeTab, setActiveTab] = useState<Tab>('lab');
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -98,186 +110,180 @@ export default function ModelLabPage() {
   const hasStaleRunning = runningRuns > 0;
 
   return (
-    <div className="min-h-screen bg-navy-950 p-6">
-      <div className="max-w-5xl mx-auto">
-        {/* Admin warning */}
-        <div className="bg-amber-500/10 border border-amber-500/25 rounded-xl px-5 py-3 mb-8 flex items-start gap-3">
+    <div className="min-h-screen bg-navy-950">
+      {/* Page header — always visible */}
+      <div className="px-6 pt-6 pb-0 max-w-5xl mx-auto">
+        <div className="bg-amber-500/10 border border-amber-500/25 rounded-xl px-5 py-3 mb-6 flex items-start gap-3">
           <Shield className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
           <p className="text-sm text-amber-300">
-            <strong>Model Lab — Admin Only.</strong> Bu alan yalnızca model araştırma ve kalibrasyon içindir. Public kullanıcıya gösterilmez. Model çıktıları public sayfalara yansıtılmaz.
+            <strong>Model Lab — Admin Only.</strong> Model araştırma ve kalibrasyon merkezi. Public kullanıcıya gösterilmez.
           </p>
         </div>
 
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 mb-8">
+        <div className="flex items-start justify-between gap-4 mb-6">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-xl bg-champagne/10 border border-champagne/20 flex items-center justify-center shrink-0">
               <FlaskConical className="w-6 h-6 text-champagne" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white font-display">Model Lab</h1>
+              <h1 className="text-2xl font-bold text-white font-display">Model Laboratuvarı</h1>
               <p className="text-sm text-readable-muted mt-1">
                 B3 Historical Backbone — Deterministik futbol modeli araştırma merkezi
               </p>
             </div>
           </div>
-          <button
-            onClick={load}
-            disabled={loading}
-            className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg bg-navy-800 border border-navy-700 text-navy-400 hover:text-white transition-all disabled:opacity-40 shrink-0"
-          >
-            <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-            Yenile
-          </button>
-        </div>
-
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/25 rounded-xl px-4 py-3 mb-6 text-xs text-red-400 font-mono">
-            RPC Hatası: {error}
-          </div>
-        )}
-
-        {/* Stale running warning */}
-        {!loading && hasStaleRunning && (
-          <div className="bg-amber-500/10 border border-amber-500/25 rounded-xl px-4 py-3 mb-6 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-amber-400 shrink-0" />
-              <p className="text-xs text-amber-300">
-                <strong>{runningRuns}</strong> çalışma hâlâ "running" durumunda. 30 dakikadan eskiyse takılı kalmış olabilir.
-              </p>
-            </div>
+          {activeTab === 'lab' && (
             <button
-              onClick={runCleanup}
-              disabled={cleanupLoading}
-              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/15 transition-all disabled:opacity-40 shrink-0"
+              onClick={load}
+              disabled={loading}
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg bg-navy-800 border border-navy-700 text-navy-400 hover:text-white transition-all disabled:opacity-40 shrink-0"
             >
-              {cleanupLoading
-                ? <RefreshCw className="w-3 h-3 animate-spin" />
-                : <Trash2 className="w-3 h-3" />}
-              Stale Temizle
+              <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+              Yenile
             </button>
-          </div>
-        )}
-
-        {/* Cleanup result log */}
-        {!hasStaleRunning && (
-          <div className="mb-4 flex justify-end">
-            <button
-              onClick={runCleanup}
-              disabled={cleanupLoading}
-              className="flex items-center gap-1.5 text-xs text-readable-muted hover:text-white transition-colors disabled:opacity-40"
-            >
-              {cleanupLoading ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-              Stale Temizle
-            </button>
-          </div>
-        )}
-
-        {cleanupLog && (
-          <div className="bg-navy-900/60 border border-navy-700 rounded-xl px-4 py-2.5 mb-5 text-xs text-navy-300 font-mono">
-            {cleanupLog}
-          </div>
-        )}
-
-        {/* Stat cards — 2×3 grid */}
-        {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-20 bg-navy-900/50 rounded-xl animate-pulse" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
-            <StatCard
-              label="Arşiv Kaydı"
-              value={data?.archive_count != null ? Number(data.archive_count).toLocaleString('tr-TR') : '–'}
-            />
-            <StatCard
-              label="Aktif Model"
-              value={activeModel?.version_key?.split('_v')[0]?.replace(/_/g, ' ') ?? '–'}
-              small
-            />
-            <StatCard label="Toplam Backtest" value={totalRuns > 0 ? String(totalRuns) : '–'} small />
-            <StatCard
-              label="Tamamlanan"
-              value={String(completedRuns)}
-              small
-              accent="green"
-            />
-            <StatCard
-              label="Başarısız"
-              value={String(failedRuns)}
-              small
-              accent={failedRuns > 0 ? 'red' : undefined}
-            />
-            <StatCard
-              label="Çalışıyor"
-              value={String(runningRuns)}
-              small
-              accent={runningRuns > 0 ? 'amber' : undefined}
-            />
-          </div>
-        )}
-
-        {/* Active model version */}
-        {!loading && activeModel && (
-          <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-5 mb-6">
-            <h2 className="text-xs font-semibold text-readable-muted uppercase tracking-wider mb-3">
-              Aktif Model Versiyonu
-            </h2>
-            <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-              <Field label="Version Key" value={activeModel.version_key} mono />
-              <Field label="Model Ailesi" value={activeModel.model_family} />
-              <Field label="Eğitim Dönemi" value={`${activeModel.training_start_date} → ${activeModel.training_end_date}`} />
-              <Field label="Validasyon" value={`${activeModel.validation_start_date} → ${activeModel.validation_end_date}`} />
-            </div>
-          </div>
-        )}
-
-        {/* Quick links */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
-          {quickLinks.map((q) => (
-            <Link
-              key={q.to}
-              to={q.to}
-              className="flex items-start gap-4 bg-navy-900/50 hover:bg-navy-900 border border-navy-800/60 hover:border-navy-700 rounded-xl p-4 transition-all group"
-            >
-              <div className="w-9 h-9 rounded-lg bg-navy-800 flex items-center justify-center shrink-0 group-hover:bg-champagne/10 transition-all">
-                <q.icon className="w-4 h-4 text-navy-400 group-hover:text-champagne transition-colors" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white group-hover:text-champagne transition-colors">
-                  {q.label}
-                </p>
-                <p className="text-xs text-readable-muted mt-0.5">{q.desc}</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-navy-700 group-hover:text-navy-400 shrink-0 mt-0.5" />
-            </Link>
-          ))}
-        </div>
-
-        {/* Latest runs */}
-        <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-5">
-          <h2 className="text-xs font-semibold text-readable-muted uppercase tracking-wider mb-4">
-            Son Backtest Çalışmaları
-          </h2>
-          {loading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-9 bg-navy-800/40 rounded animate-pulse" />
-              ))}
-            </div>
-          ) : latestRuns.length === 0 ? (
-            <p className="text-sm text-readable-muted">Henüz backtest çalışması oluşturulmadı.</p>
-          ) : (
-            <div className="space-y-1.5">
-              {latestRuns.map((run) => (
-                <RunRow key={run.id} run={run} />
-              ))}
-            </div>
           )}
         </div>
+
+        {/* Tab bar */}
+        <div className="flex gap-1 border-b border-navy-700 mb-0">
+          {TABS.map(({ key, label, icon: Icon, activeColor }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={`flex items-center gap-2 px-5 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-all ${
+                activeTab === key
+                  ? `${activeColor} bg-transparent`
+                  : 'text-navy-400 border-transparent hover:text-navy-200'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* Tab content */}
+      {activeTab === 'lab' && (
+        <div className="p-6 max-w-5xl mx-auto">
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/25 rounded-xl px-4 py-3 mb-6 text-xs text-red-400 font-mono">
+              RPC Hatası: {error}
+            </div>
+          )}
+
+          {!loading && hasStaleRunning && (
+            <div className="bg-amber-500/10 border border-amber-500/25 rounded-xl px-4 py-3 mb-6 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                <p className="text-xs text-amber-300">
+                  <strong>{runningRuns}</strong> çalışma hâlâ "running" durumunda. 30 dakikadan eskiyse takılı kalmış olabilir.
+                </p>
+              </div>
+              <button
+                onClick={runCleanup}
+                disabled={cleanupLoading}
+                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/15 transition-all disabled:opacity-40 shrink-0"
+              >
+                {cleanupLoading ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                Stale Temizle
+              </button>
+            </div>
+          )}
+
+          {!hasStaleRunning && (
+            <div className="mb-4 flex justify-end">
+              <button
+                onClick={runCleanup}
+                disabled={cleanupLoading}
+                className="flex items-center gap-1.5 text-xs text-readable-muted hover:text-white transition-colors disabled:opacity-40"
+              >
+                {cleanupLoading ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                Stale Temizle
+              </button>
+            </div>
+          )}
+
+          {cleanupLog && (
+            <div className="bg-navy-900/60 border border-navy-700 rounded-xl px-4 py-2.5 mb-5 text-xs text-navy-300 font-mono">
+              {cleanupLog}
+            </div>
+          )}
+
+          {/* Stat cards */}
+          {loading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-20 bg-navy-900/50 rounded-xl animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
+              <StatCard label="Arşiv Kaydı" value={data?.archive_count != null ? Number(data.archive_count).toLocaleString('tr-TR') : '–'} />
+              <StatCard label="Aktif Model" value={activeModel?.version_key?.split('_v')[0]?.replace(/_/g, ' ') ?? '–'} small />
+              <StatCard label="Toplam Backtest" value={totalRuns > 0 ? String(totalRuns) : '–'} small />
+              <StatCard label="Tamamlanan" value={String(completedRuns)} small accent="green" />
+              <StatCard label="Başarısız" value={String(failedRuns)} small accent={failedRuns > 0 ? 'red' : undefined} />
+              <StatCard label="Çalışıyor" value={String(runningRuns)} small accent={runningRuns > 0 ? 'amber' : undefined} />
+            </div>
+          )}
+
+          {!loading && activeModel && (
+            <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-5 mb-6">
+              <h2 className="text-xs font-semibold text-readable-muted uppercase tracking-wider mb-3">
+                Aktif Model Versiyonu
+              </h2>
+              <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                <Field label="Version Key" value={activeModel.version_key} mono />
+                <Field label="Model Ailesi" value={activeModel.model_family} />
+                <Field label="Eğitim Dönemi" value={`${activeModel.training_start_date} → ${activeModel.training_end_date}`} />
+                <Field label="Validasyon" value={`${activeModel.validation_start_date} → ${activeModel.validation_end_date}`} />
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+            {quickLinks.map((q) => (
+              <Link
+                key={q.to}
+                to={q.to}
+                className="flex items-start gap-4 bg-navy-900/50 hover:bg-navy-900 border border-navy-800/60 hover:border-navy-700 rounded-xl p-4 transition-all group"
+              >
+                <div className="w-9 h-9 rounded-lg bg-navy-800 flex items-center justify-center shrink-0 group-hover:bg-champagne/10 transition-all">
+                  <q.icon className="w-4 h-4 text-navy-400 group-hover:text-champagne transition-colors" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white group-hover:text-champagne transition-colors">{q.label}</p>
+                  <p className="text-xs text-readable-muted mt-0.5">{q.desc}</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-navy-700 group-hover:text-navy-400 shrink-0 mt-0.5" />
+              </Link>
+            ))}
+          </div>
+
+          <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-5">
+            <h2 className="text-xs font-semibold text-readable-muted uppercase tracking-wider mb-4">
+              Son Backtest Çalışmaları
+            </h2>
+            {loading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="h-9 bg-navy-800/40 rounded animate-pulse" />
+                ))}
+              </div>
+            ) : latestRuns.length === 0 ? (
+              <p className="text-sm text-readable-muted">Henüz backtest çalışması oluşturulmadı.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {latestRuns.map((run) => <RunRow key={run.id} run={run} />)}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'test' && <TestLabPage />}
+      {activeTab === 'compare' && <ModelKarsilastirmaPage />}
     </div>
   );
 }
@@ -297,18 +303,14 @@ function RunRow({ run }: { run: BacktestRun }) {
     }`}>
       <StatusIcon status={run.run_status} />
       <span className="text-white font-medium shrink-0">{run.run_scope}</span>
-      <span className="text-readable-muted tabular-nums shrink-0">
-        {run.processed_matches}/{run.total_matches}
-      </span>
+      <span className="text-readable-muted tabular-nums shrink-0">{run.processed_matches}/{run.total_matches}</span>
       {run.average_brier_1x2 !== null && run.run_status === 'completed' && (
         <span className="text-readable-muted tabular-nums shrink-0">
           Brier <span className="text-readable-subtle">{Number(run.average_brier_1x2).toFixed(4)}</span>
         </span>
       )}
       {run.run_status === 'failed' && run.error_message && (
-        <span className="text-red-500/70 truncate flex-1 font-mono" title={run.error_message}>
-          {run.error_message}
-        </span>
+        <span className="text-red-500/70 truncate flex-1 font-mono" title={run.error_message}>{run.error_message}</span>
       )}
       <span className="text-readable-muted shrink-0 ml-auto tabular-nums">{date}</span>
     </div>
@@ -322,25 +324,15 @@ function StatusIcon({ status }: { status: string }) {
   return <Clock className="w-3.5 h-3.5 text-navy-400 shrink-0" />;
 }
 
-function StatCard({
-  label, value, small, accent,
-}: {
-  label: string;
-  value: string;
-  small?: boolean;
-  accent?: 'green' | 'red' | 'amber';
-}) {
+function StatCard({ label, value, small, accent }: { label: string; value: string; small?: boolean; accent?: 'green' | 'red' | 'amber' }) {
   const valueColor =
     accent === 'green' ? 'text-emerald-400' :
     accent === 'red'   ? 'text-red-400' :
     accent === 'amber' ? 'text-amber-400' :
     'text-white';
-
   return (
     <div className="bg-navy-900/50 border border-navy-800 rounded-xl px-4 py-3">
-      <div className={`font-bold tabular-nums ${valueColor} ${small ? 'text-lg' : 'text-xl'}`}>
-        {value}
-      </div>
+      <div className={`font-bold tabular-nums ${valueColor} ${small ? 'text-lg' : 'text-xl'}`}>{value}</div>
       <div className="text-[11px] text-readable-muted mt-0.5">{label}</div>
     </div>
   );

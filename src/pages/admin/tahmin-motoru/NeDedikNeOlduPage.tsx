@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Search, RefreshCw, Filter, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { supabase } from '../../../lib/supabase';
 import BrierScoreBadge from '../../../components/tahmin-motoru/BrierScoreBadge';
 import TahminTimeline, { type SnapshotEntry } from '../../../components/tahmin-motoru/TahminTimeline';
@@ -128,6 +129,8 @@ export default function NeDedikNeOlduPage() {
     })(),
   };
 
+  // ─── Analytics Dashboard ──────────────────────────────────────────────────
+
   function outcomeIcon(snap: SnapshotEntry | null) {
     if (!snap || snap.was_correct == null) return <Minus className="w-4 h-4 text-navy-500" />;
     return snap.was_correct
@@ -160,6 +163,11 @@ export default function NeDedikNeOlduPage() {
             </div>
           ))}
         </div>
+
+        {/* Analytics Charts */}
+        {!loading && matchGroups.length > 0 && (
+          <AnalyticsDashboard stats={stats} matchGroups={matchGroups} />
+        )}
 
         {/* Filters */}
         <div className="flex flex-wrap gap-3 items-center">
@@ -314,6 +322,121 @@ export default function NeDedikNeOlduPage() {
         )}
 
       </div>
+    </div>
+  );
+}
+
+// ─── Analytics Dashboard Component ──────────────────────────────────────────
+
+interface AnalyticsDashboardProps {
+  stats: {
+    total: number;
+    correct: number;
+    wrong: number;
+    pending: number;
+    avgBrier: number | null;
+  };
+  matchGroups: MatchSnapshot[];
+}
+
+function AnalyticsDashboard({ stats, matchGroups }: AnalyticsDashboardProps) {
+  const evaluated = stats.correct + stats.wrong;
+  const winRate = evaluated > 0 ? Math.round((stats.correct / evaluated) * 100) : 0;
+
+  // Bar chart: outcome distribution
+  const outcomeData = [
+    { name: 'Doğru', value: stats.correct,  fill: '#10b981' },
+    { name: 'Yanlış', value: stats.wrong,   fill: '#ef4444' },
+    { name: 'Bekliyor', value: stats.pending, fill: '#f59e0b' },
+  ];
+
+  // Brier score buckets — group matches into quality tiers
+  const brierBuckets = [
+    { name: '< 0.15', label: 'Mükemmel', count: 0, fill: '#10b981' },
+    { name: '0.15–0.20', label: 'İyi', count: 0, fill: '#3b82f6' },
+    { name: '0.20–0.25', label: 'Orta', count: 0, fill: '#f59e0b' },
+    { name: '> 0.25', label: 'Zayıf', count: 0, fill: '#ef4444' },
+  ];
+  for (const g of matchGroups) {
+    if (g.avg_brier == null) continue;
+    if (g.avg_brier < 0.15)      brierBuckets[0].count++;
+    else if (g.avg_brier < 0.20) brierBuckets[1].count++;
+    else if (g.avg_brier < 0.25) brierBuckets[2].count++;
+    else                          brierBuckets[3].count++;
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      {/* Win Rate Chart */}
+      <div className="rounded-xl border border-navy-600 bg-navy-800/40 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-sm font-semibold text-white">Tahmin Doğruluğu</h3>
+            <p className="text-[11px] text-navy-400 mt-0.5">Değerlendirilen maçlar üzerinden</p>
+          </div>
+          <div className="text-right">
+            <span className={`text-2xl font-bold tabular-nums ${winRate >= 60 ? 'text-emerald-400' : winRate >= 45 ? 'text-yellow-400' : 'text-red-400'}`}>
+              {winRate}%
+            </span>
+            <p className="text-[10px] text-navy-500">{evaluated} maç</p>
+          </div>
+        </div>
+        <ResponsiveContainer width="100%" height={160}>
+          <BarChart data={outcomeData} barCategoryGap="30%">
+            <CartesianGrid strokeDasharray="3 3" stroke="#1e2f3f" vertical={false} />
+            <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} width={28} />
+            <Tooltip
+              contentStyle={{ background: '#0f1d2a', border: '1px solid #1e3a4c', borderRadius: 8, fontSize: 12 }}
+              labelStyle={{ color: '#94a3b8' }}
+              itemStyle={{ color: '#e2e8f0' }}
+            />
+            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+              {outcomeData.map((entry, i) => (
+                <Cell key={i} fill={entry.fill} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Brier Score Distribution */}
+      <div className="rounded-xl border border-navy-600 bg-navy-800/40 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-sm font-semibold text-white">Brier Skor Dağılımı</h3>
+            <p className="text-[11px] text-navy-400 mt-0.5">Model kalitesi — düşük = iyi</p>
+          </div>
+          {stats.avgBrier != null && (
+            <div className="text-right">
+              <span className={`text-2xl font-bold tabular-nums ${stats.avgBrier < 0.20 ? 'text-emerald-400' : stats.avgBrier < 0.25 ? 'text-yellow-400' : 'text-red-400'}`}>
+                {stats.avgBrier.toFixed(3)}
+              </span>
+              <p className="text-[10px] text-navy-500">ortalama</p>
+            </div>
+          )}
+        </div>
+        <ResponsiveContainer width="100%" height={160}>
+          <BarChart data={brierBuckets} barCategoryGap="30%">
+            <CartesianGrid strokeDasharray="3 3" stroke="#1e2f3f" vertical={false} />
+            <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} width={28} />
+            <Tooltip
+              contentStyle={{ background: '#0f1d2a', border: '1px solid #1e3a4c', borderRadius: 8, fontSize: 12 }}
+              labelStyle={{ color: '#94a3b8' }}
+              itemStyle={{ color: '#e2e8f0' }}
+              formatter={(value: number, _: string, entry: { payload?: { label?: string } }) => [value, entry.payload?.label ?? '']}
+            />
+            <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+              {brierBuckets.map((entry, i) => (
+                <Cell key={i} fill={entry.fill} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
     </div>
   );
 }
