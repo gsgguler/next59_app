@@ -3,19 +3,24 @@ import {
   FileText, Shield, RefreshCw, AlertCircle, CheckCircle2,
   ChevronDown, ChevronUp, Eye, ThumbsUp, ThumbsDown, Send,
   XCircle, AlertTriangle, Ban, BookOpen, Link2, Clock, Info,
+  Lock, Activity, Archive,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-// Matches model_lab.match_story_drafts.status values
 type StoryStatus =
   | 'draft_generated'
   | 'pending_review'
+  | 'review_required'
   | 'approved_internal'
+  | 'approved_public'
   | 'rejected'
-  | 'published';
+  | 'archived'
+  | 'do_not_publish'
+  | 'published'
+  | 'hidden';
 
 interface StoryDraft {
   id: string;
@@ -62,7 +67,6 @@ interface LinkedPrediction {
   generated_at: string;
 }
 
-// Return shape of ml_admin_get_matches_without_stories
 interface PendingMatch {
   match_id: string;
   match_date: string;
@@ -76,24 +80,33 @@ interface PendingMatch {
 const STATUS_LABELS: Record<StoryStatus, string> = {
   draft_generated:   'Taslak',
   pending_review:    'İnceleme Bekliyor',
-  approved_internal: 'İç Onay',
+  review_required:   'İnsan Onayı Gerekli',
+  approved_internal: 'İç İnceleme',
+  approved_public:   'Kamuya Açık Onay',
   rejected:          'Reddedildi',
+  archived:          'Arşivlendi',
+  do_not_publish:    'Yayın Engeli',
   published:         'Yayınlandı',
+  hidden:            'Gizlendi',
 };
 
 const STATUS_COLORS: Record<StoryStatus, string> = {
   draft_generated:   'bg-navy-700/60 text-navy-300 border-navy-600',
   pending_review:    'bg-amber-500/15 text-amber-400 border-amber-500/25',
+  review_required:   'bg-orange-500/15 text-orange-400 border-orange-500/25',
   approved_internal: 'bg-blue-500/15 text-blue-400 border-blue-500/25',
+  approved_public:   'bg-teal-500/15 text-teal-400 border-teal-500/25',
   rejected:          'bg-red-500/15 text-red-400 border-red-500/25',
+  archived:          'bg-navy-600/60 text-navy-400 border-navy-500',
+  do_not_publish:    'bg-red-900/40 text-red-300 border-red-700/50',
   published:         'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
+  hidden:            'bg-navy-700/40 text-navy-500 border-navy-600',
 };
 
-// Derived publish recommendation labels (not a DB column — derived from status)
 const PUB_REC_LABELS: Record<string, string> = {
-  publish_safe:    'Yayına Güvenli',
-  review_required: 'İnceleme Gerekli',
-  do_not_publish:  'Yayınlama',
+  publish_safe:    'Yayına Uygun',
+  review_required: 'Yayın Riski',
+  do_not_publish:  'Yayın Engeli',
 };
 
 const PUB_REC_COLORS: Record<string, string> = {
@@ -117,14 +130,112 @@ const STORY_SECTIONS: Array<{ key: keyof StoryDraft; label: string }> = [
 
 type StatusFilter = StoryStatus | 'all';
 
-// Derive publish recommendation from status (no column in DB)
+// Compute publish recommendation from status
 function publishRec(d: StoryDraft): string {
-  if (d.status === 'rejected') return 'do_not_publish';
-  if (d.status === 'published' || d.status === 'approved_internal') return 'publish_safe';
+  if (d.status === 'rejected' || d.status === 'do_not_publish') return 'do_not_publish';
+  if (d.status === 'published' || d.status === 'approved_internal' || d.status === 'approved_public') return 'publish_safe';
   return 'review_required';
 }
 
+// Compute risk level for display
+function computeRiskLevel(d: StoryDraft): 'low' | 'medium' | 'high' | 'blocked' {
+  if (d.status === 'do_not_publish' || d.status === 'rejected') return 'blocked';
+  if (!d.prediction_draft_id) return 'high';
+  if (d.confidence_tier === 'low' || d.confidence_tier === 'very_low') return 'medium';
+  return 'low';
+}
+
+// ─── Confirmation Modal ───────────────────────────────────────────────────────
+
+interface ConfirmModalProps {
+  title: string;
+  description: string;
+  warning?: string;
+  confirmLabel: string;
+  confirmColor: 'red' | 'amber' | 'blue';
+  moderationNote: string;
+  onModerationNoteChange: (v: string) => void;
+  onConfirm: () => void;
+  onCancel: () => void;
+  loading: boolean;
+}
+
+function ConfirmModal({
+  title, description, warning, confirmLabel, confirmColor,
+  moderationNote, onModerationNoteChange, onConfirm, onCancel, loading,
+}: ConfirmModalProps) {
+  const btnColor = {
+    red:   'bg-red-500/15 border-red-500/30 text-red-400 hover:bg-red-500/25',
+    amber: 'bg-amber-500/15 border-amber-500/30 text-amber-400 hover:bg-amber-500/25',
+    blue:  'bg-blue-500/15 border-blue-500/30 text-blue-400 hover:bg-blue-500/25',
+  }[confirmColor];
+
+  return (
+    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+      <div className="bg-navy-900 border border-navy-700 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+        <div className="flex items-start gap-3 mb-4">
+          <div className="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-5 h-5 text-amber-400" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-white">{title}</h3>
+            <p className="text-sm text-navy-400 mt-1">{description}</p>
+          </div>
+        </div>
+
+        {warning && (
+          <div className="bg-red-500/10 border border-red-500/25 rounded-lg px-3 py-2.5 mb-4 flex items-start gap-2">
+            <Lock className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-red-300">{warning}</p>
+          </div>
+        )}
+
+        <div className="mb-4">
+          <label className="block text-xs text-navy-400 mb-1.5">
+            Moderasyon Notu <span className="text-navy-600">(İsteğe bağlı)</span>
+          </label>
+          <textarea
+            value={moderationNote}
+            onChange={e => onModerationNoteChange(e.target.value)}
+            rows={2}
+            placeholder="Bu kararın nedeni..."
+            className="w-full bg-navy-800 border border-navy-700 rounded-lg px-3 py-2 text-xs text-white placeholder-navy-600 focus:outline-none resize-none"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 justify-end">
+          <button
+            onClick={onCancel}
+            disabled={loading}
+            className="px-4 py-2 rounded-lg text-sm border bg-navy-800 border-navy-700 text-navy-400 hover:text-white transition-all disabled:opacity-40"
+          >
+            İptal
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border transition-all disabled:opacity-40 ${btnColor}`}
+          >
+            {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : null}
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
+
+interface ConfirmState {
+  draftId: string;
+  targetStatus: StoryStatus;
+  title: string;
+  description: string;
+  warning?: string;
+  confirmLabel: string;
+  confirmColor: 'red' | 'amber' | 'blue';
+}
 
 export default function StoryGeneratorPage() {
   const { user } = useAuth();
@@ -141,6 +252,8 @@ export default function StoryGeneratorPage() {
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [filterStatus, setFilterStatus] = useState<StatusFilter>('all');
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
+  const [confirmNote, setConfirmNote] = useState('');
 
   const setActionError = (id: string, msg: string) => {
     setActionErrors(prev => ({ ...prev, [id]: msg }));
@@ -203,11 +316,62 @@ export default function StoryGeneratorPage() {
     setGenerating(false);
   };
 
-  const updateStatus = async (draftId: string, newStatus: StoryStatus) => {
+  // Request confirmation for destructive/irreversible actions
+  const requestConfirm = (draft: StoryDraft, targetStatus: StoryStatus) => {
+    const configs: Record<string, Omit<ConfirmState, 'draftId' | 'targetStatus'>> = {
+      rejected: {
+        title: 'Senaryo Reddedilsin mi?',
+        description: `"${draft.home_team_name} vs ${draft.away_team_name}" senaryosu reddedilecek.`,
+        confirmLabel: 'Reddet',
+        confirmColor: 'red',
+      },
+      archived: {
+        title: 'Senaryo Arşivlensin mi?',
+        description: 'Bu senaryo arşive taşınacak. Yayın kuyruğundan kaldırılır.',
+        confirmLabel: 'Arşivle',
+        confirmColor: 'amber',
+      },
+      do_not_publish: {
+        title: 'Yayın Engeli Koy',
+        description: 'Bu senaryo için kalıcı yayın engeli uygulanacak.',
+        warning: 'Yayın engeli kaldırılamaz. Bu içerik hiçbir zaman kamuya açık olmayacak.',
+        confirmLabel: 'Yayın Engeli Koy',
+        confirmColor: 'red',
+      },
+      approved_internal: {
+        title: 'İç Onay Ver',
+        description: 'Bu senaryo iç inceleme için onaylanacak. Yayın kuyruğuna geçer.',
+        confirmLabel: 'Onayla',
+        confirmColor: 'blue',
+      },
+    };
+
+    const cfg = configs[targetStatus];
+    if (!cfg) {
+      // Non-destructive transitions (pending_review, draft_generated) — no modal
+      executeStatusChange(draft.id, targetStatus, reviewNotes[draft.id] ?? '', null);
+      return;
+    }
+
+    setConfirmNote(reviewNotes[draft.id] ?? '');
+    setConfirmState({ draftId: draft.id, targetStatus, ...cfg });
+  };
+
+  const executeStatusChange = async (
+    draftId: string,
+    newStatus: StoryStatus,
+    note: string,
+    moderationNote: string | null,
+  ) => {
     setActioning(draftId);
+    setConfirmState(null);
+
+    const draft = drafts.find(d => d.id === draftId);
+    const previousStatus = draft?.status ?? null;
+
     const update: Record<string, unknown> = { status: newStatus };
-    const note = reviewNotes[draftId];
     if (note) update.review_note = note;
+    if (moderationNote) update.review_note = moderationNote || note;
     if (newStatus === 'approved_internal') update.approved_at = new Date().toISOString();
     if (newStatus === 'published') update.published_at = new Date().toISOString();
 
@@ -217,15 +381,46 @@ export default function StoryGeneratorPage() {
       .update(update)
       .eq('id', draftId);
 
-    if (error) setActionError(draftId, 'Durum güncellenemedi: ' + error.message);
-    else await loadDrafts();
+    if (error) {
+      setActionError(draftId, 'Durum güncellenemedi: ' + error.message);
+    } else {
+      // Log governance event
+      if (previousStatus !== newStatus) {
+        const riskLevel = draft ? computeRiskLevel(draft) : 'medium';
+        supabase.rpc('admin_log_governance_event', {
+          p_entity_type:     'story_draft',
+          p_entity_id:       draftId,
+          p_previous_state:  previousStatus,
+          p_new_state:       newStatus,
+          p_reason:          'admin_status_change',
+          p_moderation_note: moderationNote || note || null,
+          p_publish_risk_level: riskLevel,
+        }).then(() => {/* non-fatal */});
+      }
+      await loadDrafts();
+    }
     setActioning(null);
+  };
+
+  const handleConfirm = () => {
+    if (!confirmState) return;
+    executeStatusChange(
+      confirmState.draftId,
+      confirmState.targetStatus,
+      reviewNotes[confirmState.draftId] ?? '',
+      confirmNote || null,
+    );
   };
 
   const stateCounts = drafts.reduce<Record<string, number>>((acc, d) => {
     acc[d.status] = (acc[d.status] ?? 0) + 1;
     return acc;
   }, {});
+
+  const filterTabs: StatusFilter[] = [
+    'all', 'draft_generated', 'pending_review', 'review_required',
+    'approved_internal', 'rejected', 'do_not_publish', 'archived', 'published',
+  ];
 
   return (
     <div className="min-h-screen bg-navy-950 p-6">
@@ -234,11 +429,13 @@ export default function StoryGeneratorPage() {
         {/* Safety banner */}
         <div className="bg-amber-500/10 border border-amber-500/25 rounded-xl px-5 py-3 mb-8 flex items-start gap-3">
           <Shield className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-          <p className="text-sm text-amber-300">
-            <strong>Hikaye Üretici — Yalnızca Admin.</strong>{' '}
-            Senaryo taslakları üretilir, incelenir, onaylanır. Hiçbir içerik otomatik yayınlanmaz.{' '}
-            <em>Bu veri senaryosudur; kesin sonuç değildir.</em>
-          </p>
+          <div>
+            <p className="text-sm text-amber-300 font-medium">İnsan Onayı Gerekli — Yayın Yönetim Katmanı Aktif</p>
+            <p className="text-xs text-amber-400/80 mt-0.5">
+              Senaryo taslakları üretilir, incelenir, onaylanır. Hiçbir içerik otomatik yayınlanmaz.
+              Yayın kuyruğu ve İç Onay durumu zorunludur. Bu veri senaryosudur; kesin sonuç değildir.
+            </p>
+          </div>
         </div>
 
         {/* Page header */}
@@ -249,14 +446,16 @@ export default function StoryGeneratorPage() {
           <div>
             <h1 className="text-2xl font-bold text-white font-display">Hikaye Üretici</h1>
             <p className="text-sm text-readable-muted mt-1">
-              Senaryo Taslağı · Kaynak Tahmin Bağlantısı · İnceleme · Onay · Yayın
+              Senaryo Taslağı · Kaynak Tahmin · İnsan Onayı · Yayın Yönetimi
             </p>
           </div>
         </div>
 
+        {/* Governance state legend */}
+        <GovernanceLegend />
+
         {fetchError && <ErrorBanner message={fetchError} />}
 
-        {/* Generate panel */}
         <GeneratePanel
           pendingMatches={pendingMatches}
           loadingPending={loadingPending}
@@ -268,8 +467,8 @@ export default function StoryGeneratorPage() {
         />
 
         {/* Status filter tabs */}
-        <div className="flex items-center gap-2 mb-4 flex-wrap">
-          {(['all', 'draft_generated', 'pending_review', 'approved_internal', 'rejected', 'published'] as StatusFilter[]).map(s => (
+        <div className="flex items-center gap-1.5 mb-4 flex-wrap">
+          {filterTabs.map(s => (
             <button key={s} onClick={() => setFilterStatus(s)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
                 filterStatus === s
@@ -296,7 +495,7 @@ export default function StoryGeneratorPage() {
             <span className="text-xs font-semibold text-readable-muted uppercase tracking-wider">
               Senaryo Taslakları ({drafts.length})
             </span>
-            <span className="text-[11px] text-navy-600">Satıra tıkla → önizleme + kaynak tahmin + işlemler</span>
+            <span className="text-[11px] text-navy-600">Satıra tıkla → önizleme + risk + işlemler</span>
           </div>
 
           {loadingDrafts ? (
@@ -311,7 +510,7 @@ export default function StoryGeneratorPage() {
                   draft={draft}
                   expanded={expandedId === draft.id}
                   onToggle={() => setExpandedId(expandedId === draft.id ? null : draft.id)}
-                  onStatusChange={updateStatus}
+                  onRequestConfirm={requestConfirm}
                   actioning={actioning === draft.id}
                   reviewNote={reviewNotes[draft.id] ?? ''}
                   onReviewNoteChange={note => setReviewNotes(prev => ({ ...prev, [draft.id]: note }))}
@@ -321,6 +520,50 @@ export default function StoryGeneratorPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Confirmation modal */}
+      {confirmState && (
+        <ConfirmModal
+          title={confirmState.title}
+          description={confirmState.description}
+          warning={confirmState.warning}
+          confirmLabel={confirmState.confirmLabel}
+          confirmColor={confirmState.confirmColor}
+          moderationNote={confirmNote}
+          onModerationNoteChange={setConfirmNote}
+          onConfirm={handleConfirm}
+          onCancel={() => setConfirmState(null)}
+          loading={actioning === confirmState.draftId}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Governance State Legend ──────────────────────────────────────────────────
+
+function GovernanceLegend() {
+  return (
+    <div className="bg-navy-900/40 border border-navy-800 rounded-xl p-4 mb-6">
+      <div className="text-[11px] font-semibold text-navy-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+        <Activity className="w-3.5 h-3.5" />
+        Yayın Durumu Yönetimi
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {([
+          ['pending_review',    'İnceleme Bekliyor', 'Henüz gözden geçirilmedi'],
+          ['review_required',   'İnsan Onayı Gerekli', 'Otomatik geçiş yasak'],
+          ['approved_internal', 'İç İnceleme', 'Yayın kuyruğuna geçebilir'],
+          ['do_not_publish',    'Yayın Engeli', 'Kalıcı blok — geri alınamaz'],
+        ] as [StoryStatus, string, string][]).map(([s, label, desc]) => (
+          <div key={s} className="flex items-start gap-2">
+            <span className={`mt-0.5 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border shrink-0 ${STATUS_COLORS[s]}`}>
+              {label}
+            </span>
+            <span className="text-[10px] text-navy-600 leading-tight">{desc}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -345,14 +588,13 @@ function GeneratePanel({
         Yeni Senaryo Taslağı Üret
       </div>
 
-      {/* Disclaimer + rules */}
       <div className="bg-navy-800/60 border border-navy-700 rounded-lg px-4 py-2.5 mb-4 flex items-start gap-2">
         <Info className="w-3.5 h-3.5 text-navy-400 shrink-0 mt-0.5" />
         <p className="text-[11px] text-navy-400 leading-relaxed">
           Üretim mevcut tahmin taslağını temel alır.{' '}
           <strong className="text-amber-400">Tahmin yoksa senaryo üretilemez.</strong>{' '}
-          Her taslak &quot;Bu veri senaryosudur; kesin sonuç değildir.&quot; uyarısını taşır.
-          Hiçbir içerik otomatik yayınlanmaz.
+          Üretilen taslak <span className="text-amber-400 font-mono">draft_generated</span> durumunda kalır.
+          İnsan onayı olmadan yayına giremez.
         </p>
       </div>
 
@@ -372,11 +614,9 @@ function GeneratePanel({
               className="w-full appearance-none bg-navy-800 border border-navy-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-champagne/50 pr-8 disabled:opacity-50"
             >
               <option value="">
-                {loadingPending
-                  ? 'Yükleniyor...'
-                  : pendingMatches.length === 0
-                  ? 'Tüm maçların senaryosu mevcut'
-                  : 'Maç seçin...'}
+                {loadingPending ? 'Yükleniyor...' :
+                 pendingMatches.length === 0 ? 'Tüm maçların senaryosu mevcut' :
+                 'Maç seçin...'}
               </option>
               {pendingMatches.map(m => (
                 <option key={m.match_id} value={m.match_id}>
@@ -400,7 +640,6 @@ function GeneratePanel({
         </button>
       </div>
 
-      {/* Üretim Hatası */}
       {error && (
         <div className="mt-3 flex items-start gap-2 bg-red-500/10 border border-red-500/25 rounded-lg px-3 py-2.5">
           <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
@@ -417,13 +656,13 @@ function GeneratePanel({
 // ─── Draft Row ────────────────────────────────────────────────────────────────
 
 function DraftRow({
-  draft, expanded, onToggle, onStatusChange, actioning,
+  draft, expanded, onToggle, onRequestConfirm, actioning,
   reviewNote, onReviewNoteChange, actionError,
 }: {
   draft: StoryDraft;
   expanded: boolean;
   onToggle: () => void;
-  onStatusChange: (id: string, status: StoryStatus) => void;
+  onRequestConfirm: (draft: StoryDraft, status: StoryStatus) => void;
   actioning: boolean;
   reviewNote: string;
   onReviewNoteChange: (note: string) => void;
@@ -431,10 +670,10 @@ function DraftRow({
 }) {
   const hasContent = !!(draft.headline || draft.full_narrative_text);
   const rec = publishRec(draft);
+  const riskLevel = computeRiskLevel(draft);
 
   return (
     <div>
-      {/* Summary row */}
       <div
         className="flex items-center gap-3 px-5 py-3.5 cursor-pointer hover:bg-navy-800/20 transition-colors"
         onClick={onToggle}
@@ -462,6 +701,7 @@ function DraftRow({
                 <AlertTriangle className="w-2.5 h-2.5" />İçerik boş
               </span>
             )}
+            <RiskBadge level={riskLevel} />
           </div>
         </div>
 
@@ -477,14 +717,10 @@ function DraftRow({
           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${STATUS_COLORS[draft.status]}`}>
             {STATUS_LABELS[draft.status]}
           </span>
-          {expanded
-            ? <ChevronUp className="w-4 h-4 text-navy-500" />
-            : <ChevronDown className="w-4 h-4 text-navy-500" />
-          }
+          {expanded ? <ChevronUp className="w-4 h-4 text-navy-500" /> : <ChevronDown className="w-4 h-4 text-navy-500" />}
         </div>
       </div>
 
-      {/* Expanded detail */}
       {expanded && (
         <div className="px-5 pb-5 border-t border-navy-800/50 bg-navy-900/30">
           <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -492,28 +728,53 @@ function DraftRow({
             {/* Left column: content */}
             <div className="lg:col-span-2 space-y-3">
 
-              {/* Veri Eksikliği — no linked prediction */}
-              {!draft.prediction_draft_id && (
-                <div className="bg-red-500/10 border border-red-500/25 rounded-lg px-4 py-3 flex items-start gap-2">
-                  <Ban className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+              {/* do_not_publish hard block banner */}
+              {draft.status === 'do_not_publish' && (
+                <div className="bg-red-900/30 border border-red-700/50 rounded-lg px-4 py-3 flex items-start gap-2">
+                  <Lock className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
                   <div>
-                    <div className="text-xs font-semibold text-red-400 mb-0.5">Veri Eksikliği — Kaynak Tahmin Yok</div>
-                    <div className="text-[11px] text-red-300">
-                      Önce tahmin üretin: <em>PreMatch Ops → Üret</em>
+                    <div className="text-xs font-semibold text-red-300">Yayın Engeli Aktif</div>
+                    <div className="text-[11px] text-red-400 mt-0.5">
+                      Bu içerik hiçbir zaman kamuya açık olmayacak. Sitemap, ana sayfa ve öne çıkan bloklar dahil.
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Disclaimer always visible */}
+              {/* review_required lock banner */}
+              {draft.status === 'review_required' && (
+                <div className="bg-orange-500/10 border border-orange-500/25 rounded-lg px-4 py-3 flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="text-xs font-semibold text-orange-400">İnsan Onayı Gerekli</div>
+                    <div className="text-[11px] text-orange-300 mt-0.5">
+                      Bu durum otomatik geçiş yapamaz. Admin manuel onay veya ret vermeli.
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Missing prediction */}
+              {!draft.prediction_draft_id && (
+                <div className="bg-red-500/10 border border-red-500/25 rounded-lg px-4 py-3 flex items-start gap-2">
+                  <Ban className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="text-xs font-semibold text-red-400 mb-0.5">Veri Eksikliği — Kaynak Tahmin Yok</div>
+                    <div className="text-[11px] text-red-300">Önce tahmin üretin: PreMatch Ops → Üret</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Disclaimer */}
               <div className="bg-navy-800/40 border border-navy-700/50 rounded-lg px-4 py-2.5 flex items-center gap-2">
                 <Info className="w-3.5 h-3.5 text-navy-400 shrink-0" />
-                <span className="text-[11px] text-navy-400 italic">
-                  Bu veri senaryosudur; kesin sonuç değildir.
-                </span>
+                <span className="text-[11px] text-navy-400 italic">Bu veri senaryosudur; kesin sonuç değildir.</span>
               </div>
 
-              {/* Story content or empty state */}
+              {/* Risk panel */}
+              <RiskPanel draft={draft} />
+
+              {/* Story content */}
               {hasContent ? (
                 <>
                   {STORY_SECTIONS.map(({ key, label }) => {
@@ -542,17 +803,15 @@ function DraftRow({
                   <div>
                     <div className="text-xs font-semibold text-amber-400 mb-0.5">İçerik Boş</div>
                     <div className="text-[11px] text-amber-300">
-                      Taslak henüz senaryo içeriği içermiyor. Üretim RPC bir iskelet oluşturur; içerik pipeline henüz çalışmamış olabilir.
+                      Taslak henüz senaryo içeriği içermiyor. Pipeline henüz çalışmamış olabilir.
                     </div>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Right column: source prediction + actions */}
+            {/* Right column */}
             <div className="space-y-4">
-
-              {/* Kaynak Tahmin panel */}
               <SourcePredictionPanel predictionDraftId={draft.prediction_draft_id} />
 
               {/* Model info */}
@@ -564,8 +823,8 @@ function DraftRow({
                   <DetailRow label="Kalibrasyon" value={draft.calibration_version} />
                   {draft.confidence_tier && <DetailRow label="Güven Tieri" value={draft.confidence_tier} />}
                   {draft.feature_quality_tier && <DetailRow label="Kalite Tieri" value={draft.feature_quality_tier} />}
-                  <DetailRow label="Versiyon" value={`v${draft.version}`} />
-                  <DetailRow label="Son Üretim" value={new Date(draft.generated_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} />
+                  <DetailRow label="Versiyon"    value={`v${draft.version}`} />
+                  <DetailRow label="Son Üretim"  value={new Date(draft.generated_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} />
                 </div>
               </div>
 
@@ -581,7 +840,7 @@ function DraftRow({
                   </span>
                 </div>
 
-                {/* Review note */}
+                {/* Review note (quick) */}
                 <div className="text-[11px] text-navy-500 mb-1.5">İnceleme Notu</div>
                 <textarea
                   value={reviewNote}
@@ -594,12 +853,11 @@ function DraftRow({
                   <p className="text-[10px] text-navy-500 italic mb-3">Kayıtlı not: {draft.review_note}</p>
                 )}
 
-                {/* Workflow buttons */}
                 <div className="flex flex-col gap-2">
                   <WorkflowButtons
                     draft={draft}
                     actioning={actioning}
-                    onStatusChange={onStatusChange}
+                    onRequestConfirm={onRequestConfirm}
                   />
                 </div>
 
@@ -614,6 +872,55 @@ function DraftRow({
         </div>
       )}
     </div>
+  );
+}
+
+// ─── Risk Panel ───────────────────────────────────────────────────────────────
+
+function RiskPanel({ draft }: { draft: StoryDraft }) {
+  const risks: { label: string; ok: boolean; warn: boolean }[] = [
+    { label: 'Kaynak Tahmin Bağlantısı', ok: !!draft.prediction_draft_id, warn: false },
+    { label: 'Senaryo İçeriği', ok: !!(draft.headline || draft.full_narrative_text), warn: false },
+    { label: 'Güven Seviyesi', ok: !['low', 'very_low'].includes(draft.confidence_tier ?? ''), warn: ['low', 'very_low'].includes(draft.confidence_tier ?? '') },
+    { label: 'Yayın Engeli Yok', ok: draft.status !== 'do_not_publish', warn: false },
+    { label: 'İnsan Onayı Durumu', ok: ['approved_internal', 'approved_public', 'published'].includes(draft.status), warn: draft.status === 'review_required' },
+  ];
+
+  return (
+    <div className="bg-navy-800/30 rounded-lg p-3">
+      <div className="text-[11px] font-semibold text-navy-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+        <Activity className="w-3.5 h-3.5" />Yayın Riski Kontrolü
+      </div>
+      <div className="space-y-1.5">
+        {risks.map(r => (
+          <div key={r.label} className="flex items-center justify-between text-[11px]">
+            <span className="text-navy-400">{r.label}</span>
+            {r.ok
+              ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              : r.warn
+              ? <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+              : <XCircle className="w-3.5 h-3.5 text-red-400" />
+            }
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Risk Badge ───────────────────────────────────────────────────────────────
+
+function RiskBadge({ level }: { level: 'low' | 'medium' | 'high' | 'blocked' }) {
+  if (level === 'low') return null;
+  const cfg = {
+    medium:  { cls: 'text-amber-400', label: 'Orta Risk' },
+    high:    { cls: 'text-red-400',   label: 'Yüksek Risk' },
+    blocked: { cls: 'text-red-500',   label: 'Yayın Riski' },
+  }[level];
+  return (
+    <span className={`inline-flex items-center gap-1 text-[10px] font-medium ${cfg.cls}`}>
+      <AlertTriangle className="w-2.5 h-2.5" />{cfg.label}
+    </span>
   );
 }
 
@@ -687,54 +994,19 @@ function SourcePredictionPanel({ predictionDraftId }: { predictionDraftId: strin
 // ─── Workflow Buttons ─────────────────────────────────────────────────────────
 
 function WorkflowButtons({
-  draft, actioning, onStatusChange,
+  draft, actioning, onRequestConfirm,
 }: {
   draft: StoryDraft;
   actioning: boolean;
-  onStatusChange: (id: string, status: StoryStatus) => void;
+  onRequestConfirm: (draft: StoryDraft, status: StoryStatus) => void;
 }) {
   const s = draft.status;
 
-  if (s === 'draft_generated') {
+  if (s === 'do_not_publish') {
     return (
-      <>
-        <ActionButton label="İncelemeye Al" icon={<Eye className="w-3.5 h-3.5" />}
-          onClick={() => onStatusChange(draft.id, 'pending_review')} loading={actioning} color="amber" />
-        <ActionButton label="Onayla" icon={<ThumbsUp className="w-3.5 h-3.5" />}
-          onClick={() => onStatusChange(draft.id, 'approved_internal')} loading={actioning} color="green" />
-        <ActionButton label="Reddet" icon={<ThumbsDown className="w-3.5 h-3.5" />}
-          onClick={() => onStatusChange(draft.id, 'rejected')} loading={actioning} color="red" />
-      </>
-    );
-  }
-
-  if (s === 'pending_review') {
-    return (
-      <>
-        <ActionButton label="Onayla" icon={<ThumbsUp className="w-3.5 h-3.5" />}
-          onClick={() => onStatusChange(draft.id, 'approved_internal')} loading={actioning} color="green" />
-        <ActionButton label="Reddet" icon={<ThumbsDown className="w-3.5 h-3.5" />}
-          onClick={() => onStatusChange(draft.id, 'rejected')} loading={actioning} color="red" />
-      </>
-    );
-  }
-
-  if (s === 'approved_internal') {
-    // Block publish if no linked prediction — no fake stories ever
-    const canPublish = !!draft.prediction_draft_id;
-    return (
-      <>
-        {canPublish ? (
-          <ActionButton label="Yayınla" icon={<Send className="w-3.5 h-3.5" />}
-            onClick={() => onStatusChange(draft.id, 'published')} loading={actioning} color="blue" />
-        ) : (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] border bg-red-500/10 border-red-500/25 text-red-400">
-            <Ban className="w-3.5 h-3.5" />Önce tahmin üretin
-          </div>
-        )}
-        <ActionButton label="Reddet" icon={<ThumbsDown className="w-3.5 h-3.5" />}
-          onClick={() => onStatusChange(draft.id, 'rejected')} loading={actioning} color="red" />
-      </>
+      <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] bg-red-900/20 border border-red-700/40 text-red-400">
+        <Lock className="w-3.5 h-3.5" />Yayın Engeli — kalıcı blok
+      </div>
     );
   }
 
@@ -746,10 +1018,70 @@ function WorkflowButtons({
     );
   }
 
+  if (s === 'archived') {
+    return (
+      <div className="flex items-center gap-1.5 text-[11px] text-navy-400">
+        <Archive className="w-3.5 h-3.5" />Arşivlendi
+      </div>
+    );
+  }
+
+  if (s === 'draft_generated') {
+    return (
+      <>
+        <ActionButton label="İncelemeye Al" icon={<Eye className="w-3.5 h-3.5" />}
+          onClick={() => onRequestConfirm(draft, 'pending_review')} loading={actioning} color="amber" />
+        <ActionButton label="Onayla" icon={<ThumbsUp className="w-3.5 h-3.5" />}
+          onClick={() => onRequestConfirm(draft, 'approved_internal')} loading={actioning} color="green" />
+        <ActionButton label="Reddet" icon={<ThumbsDown className="w-3.5 h-3.5" />}
+          onClick={() => onRequestConfirm(draft, 'rejected')} loading={actioning} color="red" />
+        <ActionButton label="Arşivle" icon={<Archive className="w-3.5 h-3.5" />}
+          onClick={() => onRequestConfirm(draft, 'archived')} loading={actioning} color="gray" />
+      </>
+    );
+  }
+
+  if (s === 'pending_review' || s === 'review_required') {
+    return (
+      <>
+        <ActionButton label="İç Onay Ver" icon={<ThumbsUp className="w-3.5 h-3.5" />}
+          onClick={() => onRequestConfirm(draft, 'approved_internal')} loading={actioning} color="green" />
+        <ActionButton label="Reddet" icon={<ThumbsDown className="w-3.5 h-3.5" />}
+          onClick={() => onRequestConfirm(draft, 'rejected')} loading={actioning} color="red" />
+        <ActionButton label="Yayın Engeli Koy" icon={<Lock className="w-3.5 h-3.5" />}
+          onClick={() => onRequestConfirm(draft, 'do_not_publish')} loading={actioning} color="red" />
+      </>
+    );
+  }
+
+  if (s === 'approved_internal') {
+    const canPublish = !!draft.prediction_draft_id;
+    return (
+      <>
+        {canPublish ? (
+          <ActionButton label="Yayın Kuyruğu'na Gönder" icon={<Send className="w-3.5 h-3.5" />}
+            onClick={() => onRequestConfirm(draft, 'published')} loading={actioning} color="blue" />
+        ) : (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] border bg-red-500/10 border-red-500/25 text-red-400">
+            <Ban className="w-3.5 h-3.5" />Önce tahmin üretin
+          </div>
+        )}
+        <ActionButton label="Reddet" icon={<ThumbsDown className="w-3.5 h-3.5" />}
+          onClick={() => onRequestConfirm(draft, 'rejected')} loading={actioning} color="red" />
+        <ActionButton label="Arşivle" icon={<Archive className="w-3.5 h-3.5" />}
+          onClick={() => onRequestConfirm(draft, 'archived')} loading={actioning} color="gray" />
+      </>
+    );
+  }
+
   if (s === 'rejected') {
     return (
-      <ActionButton label="Taslağa Geri Al" icon={<RefreshCw className="w-3.5 h-3.5" />}
-        onClick={() => onStatusChange(draft.id, 'draft_generated')} loading={actioning} color="gray" />
+      <>
+        <ActionButton label="Taslağa Geri Al" icon={<RefreshCw className="w-3.5 h-3.5" />}
+          onClick={() => onRequestConfirm(draft, 'draft_generated')} loading={actioning} color="gray" />
+        <ActionButton label="Yayın Engeli Koy" icon={<Lock className="w-3.5 h-3.5" />}
+          onClick={() => onRequestConfirm(draft, 'do_not_publish')} loading={actioning} color="red" />
+      </>
     );
   }
 
@@ -820,8 +1152,14 @@ function EmptyState() {
 
 function predStatusLabel(s: string): string {
   const m: Record<string, string> = {
-    pending_review: 'İnceleme Bekliyor', approved_internal: 'İç Onay',
-    rejected: 'Reddedildi', published: 'Yayınlandı', hidden: 'Gizlendi',
+    pending_review:    'İnceleme Bekliyor',
+    review_required:   'İnsan Onayı Gerekli',
+    approved_internal: 'İç İnceleme',
+    approved_public:   'Kamuya Açık Onay',
+    rejected:          'Reddedildi',
+    published:         'Yayınlandı',
+    do_not_publish:    'Yayın Engeli',
+    hidden:            'Gizlendi',
   };
   return m[s] ?? s;
 }

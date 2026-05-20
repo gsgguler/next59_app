@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Send, Shield, RefreshCw, AlertCircle, CheckCircle2,
   FileText, BarChart2, Clock, Filter, XCircle, AlertTriangle,
-  Ban, Eye, ChevronDown, ChevronUp, Info,
+  Ban, Eye, ChevronDown, ChevronUp, Info, Lock, Activity,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -55,9 +55,14 @@ const COMPETITION_OPTIONS = [
 ];
 
 const PRED_STATUS_LABELS: Record<string, string> = {
+  draft_generated:   'Taslak',
   pending_review:    'İnceleme Bekliyor',
-  approved_internal: 'İç Onay',
+  review_required:   'İnsan Onayı Gerekli',
+  approved_internal: 'İç İnceleme',
+  approved_public:   'Kamuya Açık Onay',
   rejected:          'Reddedildi',
+  archived:          'Arşivlendi',
+  do_not_publish:    'Yayın Engeli',
   published:         'Yayınlandı',
   hidden:            'Gizlendi',
 };
@@ -65,8 +70,12 @@ const PRED_STATUS_LABELS: Record<string, string> = {
 const STORY_STATUS_LABELS: Record<string, string> = {
   draft_generated:   'Taslak',
   pending_review:    'İnceleme Bekliyor',
-  approved_internal: 'İç Onay',
+  review_required:   'İnsan Onayı Gerekli',
+  approved_internal: 'İç İnceleme',
+  approved_public:   'Kamuya Açık Onay',
   rejected:          'Reddedildi',
+  archived:          'Arşivlendi',
+  do_not_publish:    'Yayın Engeli',
   published:         'Yayınlandı',
 };
 
@@ -79,13 +88,24 @@ function getBlockers(row: QueueRow): string[] {
   }
   if (!row.has_prediction) blockers.push('Eksik Tahmin — tahmin taslağı yok');
   if (row.has_prediction && row.prediction_state === 'rejected') blockers.push('Tahmin reddedildi');
+  if (row.has_prediction && row.prediction_state === 'do_not_publish') blockers.push('Tahmin: Yayın Engeli aktif');
+  if (row.has_prediction && row.prediction_state === 'archived') blockers.push('Tahmin arşivlendi');
   if (row.has_prediction && row.prediction_state === 'pending_review') blockers.push('Tahmin henüz incelenmedi');
+  if (row.has_prediction && row.prediction_state === 'review_required') blockers.push('Tahmin: İnsan Onayı Gerekli');
   if (!row.has_story) blockers.push('Eksik Senaryo — hikaye taslağı yok');
   if (row.has_story && !row.story_has_content) blockers.push('Senaryo içeriği boş');
   if (row.has_story && row.story_state === 'rejected') blockers.push('Senaryo reddedildi');
+  if (row.has_story && row.story_state === 'do_not_publish') blockers.push('Senaryo: Yayın Engeli aktif — kalıcı blok');
+  if (row.has_story && row.story_state === 'archived') blockers.push('Senaryo arşivlendi');
   if (row.has_story && row.story_state === 'pending_review') blockers.push('Senaryo henüz incelenmedi');
+  if (row.has_story && row.story_state === 'review_required') blockers.push('Senaryo: İnsan Onayı Gerekli');
   if (row.has_story && row.story_state === 'draft_generated') blockers.push('Senaryo onaylanmamış (taslak)');
   return blockers;
+}
+
+// Determine if a hard block exists (do_not_publish)
+function hasHardBlock(row: QueueRow): boolean {
+  return row.prediction_state === 'do_not_publish' || row.story_state === 'do_not_publish';
 }
 
 function isReadyToPublish(row: QueueRow): boolean {
@@ -158,11 +178,12 @@ export default function MatchPublishingQueuePage() {
     if (err) {
       setPublishError(row.match_id, err.message);
     } else {
-      const result = data as { success: boolean; error?: string; publication_id?: string };
+      const result = data as { success: boolean; error?: string; publication_id?: string; risk_level?: string };
       if (!result.success) {
         setPublishError(row.match_id, result.error ?? 'Yayın başarısız');
       } else {
         setPublishSuccess(prev => ({ ...prev, [row.match_id]: result.publication_id ?? 'ok' }));
+        // Governance log is recorded inside ml_admin_publish_story on the DB side
         await load();
       }
     }
@@ -185,10 +206,14 @@ export default function MatchPublishingQueuePage() {
         {/* Safety banner */}
         <div className="bg-amber-500/10 border border-amber-500/25 rounded-xl px-5 py-3 mb-8 flex items-start gap-3">
           <Shield className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-          <p className="text-sm text-amber-300">
-            <strong>Yayın Kuyruğu — Yalnızca Admin.</strong>{' '}
-            Yayın işlemi geri alınamaz. Yalnızca onaylı senaryo + bağlı tahmin olan maçlar yayınlanabilir.
-          </p>
+          <div>
+            <p className="text-sm text-amber-300 font-medium">İnsan Onayı Gerekli — Yayın Yönetim Katmanı Aktif</p>
+            <p className="text-xs text-amber-400/80 mt-0.5">
+              Yayın işlemi geri alınamaz. Yalnızca <span className="font-mono">approved_internal</span> durumundaki senaryo +
+              bağlı tahmin olan maçlar yayınlanabilir.
+              <span className="text-red-400 font-medium"> Yayın Engeli</span> aktif olan içerik hiçbir zaman yayınlanamaz.
+            </p>
+          </div>
         </div>
 
         {/* Header */}
@@ -399,8 +424,15 @@ function QueueRow({
               </span>
             )}
 
+            {/* Hard block — do_not_publish */}
+            {!row.has_publication && hasHardBlock(row) && (
+              <span className="inline-flex items-center gap-1 text-[10px] text-red-300 bg-red-900/30 border border-red-700/50 rounded px-2 py-1">
+                <Lock className="w-3 h-3" />Yayın Engeli
+              </span>
+            )}
+
             {/* Blockers — no publish button */}
-            {!row.has_publication && hasBlockers && (
+            {!row.has_publication && hasBlockers && !hasHardBlock(row) && (
               <span className="inline-flex items-center gap-1 text-[10px] text-red-400 bg-red-500/10 border border-red-500/20 rounded px-2 py-1">
                 <Ban className="w-3 h-3" />Yayın Blokajı
               </span>
@@ -514,6 +546,38 @@ function ExpandedDetail({ row, blockers, ready }: {
             Yayın işlemi geri alınamaz uyarısı onaylandıktan sonra gerçekleşir.
           </div>
         )}
+
+        {/* Hard block explicit notice */}
+        {hasHardBlock(row) && (
+          <div className="mt-2 flex items-start gap-1.5 text-[11px] text-red-300 bg-red-900/20 border border-red-700/40 rounded-lg px-2.5 py-2">
+            <Lock className="w-3 h-3 shrink-0 mt-0.5" />
+            Yayın Engeli aktif. Bu içerik hiçbir zaman yayınlanamaz, sitemap veya ana sayfaya eklenemez.
+          </div>
+        )}
+
+        {/* Risk indicators */}
+        <div className="mt-3">
+          <div className="text-[11px] font-semibold text-navy-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+            <Activity className="w-3 h-3" />Yayın Riski
+          </div>
+          <div className="space-y-1">
+            {[
+              { label: 'Tahmin Mevcut',     ok: row.has_prediction },
+              { label: 'Senaryo Mevcut',    ok: row.has_story },
+              { label: 'İçerik Dolu',       ok: row.story_has_content },
+              { label: 'Yayın Engeli Yok',  ok: !hasHardBlock(row) },
+              { label: 'İnsan Onayı Var',   ok: row.story_state === 'approved_internal' || row.story_state === 'approved_public' },
+            ].map(r => (
+              <div key={r.label} className="flex items-center justify-between text-[10px]">
+                <span className="text-navy-500">{r.label}</span>
+                {r.ok
+                  ? <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                  : <XCircle className="w-3 h-3 text-red-400" />
+                }
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Tahmin detayı */}
