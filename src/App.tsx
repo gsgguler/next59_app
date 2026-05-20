@@ -94,6 +94,12 @@ import LaunchReadinessPage from './pages/admin/LaunchReadinessPage';
 import OperasyonDongusuPage from './pages/admin/OperasyonDongusuPage';
 import IntelligenceGraphPage from './pages/admin/IntelligenceGraphPage';
 import LiveMicroSimPage from './pages/admin/LiveMicroSimPage';
+import BrainOrkestrasiPage from './pages/admin/tahmin-motoru/BrainOrkestrasiPage';
+import NeDedikNeOlduPage from './pages/admin/tahmin-motoru/NeDedikNeOlduPage';
+import TestLabPage from './pages/admin/tahmin-motoru/TestLabPage';
+import ModelKarsilastirmaPage from './pages/admin/tahmin-motoru/ModelKarsilastirmaPage';
+import ZekaGrafigiPage from './pages/admin/tahmin-motoru/ZekaGrafigiPage';
+import MacTahminPage from './pages/public/MacTahminPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import PlaceholderPage from './pages/PlaceholderPage';
@@ -110,6 +116,7 @@ export default function App() {
               <Route element={<PublicLayout />}>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/mac/:matchId" element={<MatchDetailPage />} />
+                <Route path="/mac/:matchId/tahmin" element={<MacTahminPage />} />
                 <Route path="/world-cup-2026" element={<WorldCup2026Page />} />
                 <Route path="/world-cup/tarihce" element={<WorldCupHistoryPage />} />
                 <Route path="/world-cup/tarihce/mac/:matchId" element={<WcMatchDetailPage />} />
@@ -215,6 +222,12 @@ export default function App() {
                 <Route path="model-lab/prematch-ops" element={<PreMatchOpsPage />} />
                 <Route path="model-lab/daily-monitor" element={<DailyMonitorPage />} />
                 <Route path="model-lab/canli-mikro-sim" element={<LiveMicroSimPage />} />
+                {/* Tahmin Motoru */}
+                <Route path="tahmin-motoru/brain-orkestrasi" element={<BrainOrkestrasiPage />} />
+                <Route path="tahmin-motoru/ne-dedik-ne-oldu" element={<NeDedikNeOlduPage />} />
+                <Route path="tahmin-motoru/test-lab" element={<TestLabPage />} />
+                <Route path="tahmin-motoru/model-karsilastirma" element={<ModelKarsilastirmaPage />} />
+                <Route path="tahmin-motoru/zeka-grafigi" element={<ZekaGrafigiPage />} />
                 <Route path="wc2026/kadro-ops"    element={<WcSquadOpsPage />} />
                 <Route path="wc2026/kalibrasyon" element={<WcCalibrationPage />} />
                 <Route path="wc2026/canli-motor" element={<WcLiveEnginePage />} />

@@ -13,8 +13,6 @@ import {
   ChevronDown,
   TrendingUp,
   TestTube,
-  FileText,
-  Send,
   Sliders,
   BarChart3,
   Layers,
@@ -24,6 +22,7 @@ import {
   Wifi,
   Rocket,
   GitBranch,
+  Brain,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -57,6 +56,7 @@ const adminGroups = [
       { to: '/admin/operasyon-dongusu', label: 'Operasyon Döngüsü', icon: Cpu },
       { to: '/admin/saglayici-sagligi', label: 'Sağlayıcı Sağlığı', icon: Wifi },
       { to: '/admin/launch-hazirlik', label: 'Launch Hazırlık', icon: Rocket },
+      { to: '/admin/model-lab/daily-monitor', label: 'Günlük Monitor', icon: Activity },
     ],
   },
   {
@@ -66,29 +66,21 @@ const adminGroups = [
     items: [
       { to: '/admin/kalibrasyon', label: 'Kalibrasyon Merkezi', icon: Sliders },
       { to: '/admin/kalibrasyon/durum', label: 'Kalibrasyon Durumu', icon: BarChart3 },
-    ],
-  },
-  {
-    key: 'model',
-    label: 'Model & Tahmin',
-    icon: Cpu,
-    items: [
       { to: '/admin/model-lab', label: 'Model Lab', icon: Layers },
-      { to: '/admin/model-lab/model-status', label: 'Model Karşılaştırma', icon: TrendingUp },
-      { to: '/admin/model-lab/pre-match-lab', label: 'Tahmin Test Lab', icon: TestTube },
+      { to: '/admin/model-lab/canli-mikro-sim', label: 'Canlı Mikro Sim', icon: Zap },
+      { to: '/admin/model-lab/prematch-ops', label: 'Pre-Match Ops', icon: Zap },
     ],
   },
   {
-    key: 'icerik',
-    label: 'İçerik & Yayın',
-    icon: FileText,
+    key: 'tahmin',
+    label: 'Tahmin Motoru',
+    icon: Brain,
     items: [
-      { to: '/admin/model-lab/daily-monitor', label: 'Günlük Monitor', icon: Activity },
-      { to: '/admin/model-lab/canli-mikro-sim', label: 'Canlı Mikro Sim', icon: Zap },
-      { to: '/admin/model-lab/story-generator', label: 'Hikaye Üretici', icon: FileText },
-      { to: '/admin/model-lab/publishing-queue', label: 'Yayın Kuyruğu', icon: Send },
-      { to: '/admin/model-lab/prematch-ops', label: 'Pre-Match Ops', icon: Zap },
-      { to: '/admin/intelligence-graph', label: 'Zekâ Grafiği', icon: GitBranch },
+      { to: '/admin/tahmin-motoru/brain-orkestrasi', label: 'Brain Orkestrasyonu', icon: Brain },
+      { to: '/admin/tahmin-motoru/ne-dedik-ne-oldu', label: 'Ne Dedik / Ne Oldu', icon: TrendingUp },
+      { to: '/admin/tahmin-motoru/test-lab', label: 'Test Lab', icon: TestTube },
+      { to: '/admin/tahmin-motoru/model-karsilastirma', label: 'Model Karşılaştırma', icon: Layers },
+      { to: '/admin/tahmin-motoru/zeka-grafigi', label: 'Zeka Grafiği', icon: GitBranch },
     ],
   },
   {
