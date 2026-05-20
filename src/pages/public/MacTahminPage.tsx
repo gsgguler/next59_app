@@ -109,7 +109,6 @@ export default function MacTahminPage() {
     return () => clearInterval(timer);
   }, [fetchAll]);
 
-  // Realtime subscription for live match state inserts
   useEffect(() => {
     if (!matchId) return;
     const channel = supabase
@@ -136,7 +135,6 @@ export default function MacTahminPage() {
           filter: `match_id=eq.${matchId}`,
         },
         () => {
-          // New snapshot inserted — re-fetch to show latest
           fetchAll();
         }
       )
@@ -154,6 +152,9 @@ export default function MacTahminPage() {
         Object.entries(lastRun.brain_results).map(([k, v]) => [k, v as { status: string; latency_ms: number; output: { winner_prob: { home: number; draw: number; away: number }; confidence: number; key_factors?: string[] } | null; error: string | null }])
       )
     : {};
+
+  // suppress unused warning — liveState used for realtime indicator only
+  void liveState;
 
   if (loading) {
     return (
@@ -176,7 +177,6 @@ export default function MacTahminPage() {
     <div className="min-h-screen bg-navy-900">
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
 
-        {/* Back */}
         <Link
           to={`/mac/${matchId}`}
           className="inline-flex items-center gap-1.5 text-sm text-navy-400 hover:text-white transition-colors"
@@ -185,7 +185,6 @@ export default function MacTahminPage() {
           Maç detayına dön
         </Link>
 
-        {/* Header */}
         <div className="rounded-2xl border border-navy-600 bg-navy-800/60 overflow-hidden">
           <div className="px-6 pt-6 pb-4">
             {matchInfo.competition_name && (
@@ -201,7 +200,6 @@ export default function MacTahminPage() {
               </div>
             </div>
 
-            {/* Ensemble probabilities */}
             {ensembleProbs && (
               <div className="grid grid-cols-3 gap-3">
                 {[
@@ -218,7 +216,6 @@ export default function MacTahminPage() {
             )}
           </div>
 
-          {/* Prediction metadata row */}
           {latestSnap && (
             <div className="px-6 py-3 border-t border-navy-600/40 bg-navy-700/20 flex items-center flex-wrap gap-4 text-xs text-navy-400">
               <span>
@@ -254,17 +251,13 @@ export default function MacTahminPage() {
           )}
         </div>
 
-        {/* Live widget */}
         <LiveMatchWidget
           matchId={matchId!}
           homeTeam={matchInfo.home_team}
           awayTeam={matchInfo.away_team}
         />
 
-        {/* Two-column layout on larger screens */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-          {/* Prediction Timeline */}
           <div className="rounded-xl border border-navy-600 bg-navy-800/40 p-5">
             <div className="flex items-center gap-2 mb-4">
               <Brain className="w-4 h-4 text-champagne" />
@@ -278,7 +271,6 @@ export default function MacTahminPage() {
             />
           </div>
 
-          {/* Brain Details */}
           <div className="rounded-xl border border-navy-600 bg-navy-800/40 p-5">
             <div className="flex items-center gap-2 mb-4">
               <Brain className="w-4 h-4 text-blue-400" />
@@ -297,7 +289,6 @@ export default function MacTahminPage() {
           </div>
         </div>
 
-        {/* Disclaimer */}
         <p className="text-[11px] text-navy-600 text-center leading-relaxed max-w-2xl mx-auto">
           Bu tahminler istatistiksel modeller tarafından üretilmektedir. Sonuçları garanti etmez ve bahis amaçlı kullanılamaz.
           Olasılıklar maç koşullarına göre otomatik olarak güncellenir.
@@ -307,8 +298,6 @@ export default function MacTahminPage() {
     </div>
   );
 }
-
-
 
 
 export default MacTahminPage
