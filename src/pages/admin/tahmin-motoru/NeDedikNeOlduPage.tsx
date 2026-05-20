@@ -44,14 +44,30 @@ export default function NeDedikNeOlduPage() {
     if (!data) { setLoading(false); return; }
 
     const grouped: Record<string, SnapshotEntry[]> = {};
-    const brainMap: Record<string, unknown> = {};
-    const weightMap: Record<string, unknown> = {};
 
     for (const row of data as (SnapshotEntry & { brain_outputs?: unknown; effective_weights?: unknown })[]) {
       if (!grouped[row.match_id]) grouped[row.match_id] = [];
       grouped[row.match_id].push(row);
-      if (row.brain_outputs) brainMap[row.match_id] = row.brain_outputs;
-      if (row.effective_weights) weightMap[row.match_id] = row.effective_weights;
+    }
+
+    // Fetch team names for all match IDs in one query
+    const matchIds = Object.keys(grouped);
+    const { data: matchRows } = await supabase
+      .from('matches')
+      .select(`
+        id,
+        home_team:teams!matches_home_team_id_fkey(name),
+        away_team:teams!matches_away_team_id_fkey(name)
+      `)
+      .in('id', matchIds);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const matchNameMap: Record<string, { home: string; away: string }> = {};
+    for (const m of (matchRows ?? []) as any[]) {
+      matchNameMap[m.id] = {
+        home: m.home_team?.name ?? null,
+        away: m.away_team?.name ?? null,
+      };
     }
 
     const groups: MatchSnapshot[] = Object.entries(grouped).map(([matchId, snaps]) => {
@@ -61,10 +77,11 @@ export default function NeDedikNeOlduPage() {
         ? evaluated.reduce((sum, s) => sum + (s.brier_score ?? 0), 0) / evaluated.length
         : null;
       const last = sorted[sorted.length - 1];
+      const names = matchNameMap[matchId];
       return {
         match_id: matchId,
-        home_team: (last.explanation_json?.home_team as string) ?? 'Ev Sahibi',
-        away_team: (last.explanation_json?.away_team as string) ?? 'Deplasman',
+        home_team: names?.home ?? (last.explanation_json?.home_team as string) ?? 'Ev Sahibi',
+        away_team: names?.away ?? (last.explanation_json?.away_team as string) ?? 'Deplasman',
         actual_outcome: last.actual_outcome,
         snapshots: sorted,
         avg_brier: avgBrier,

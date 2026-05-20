@@ -53,7 +53,8 @@ export default function MacTahminPage() {
             competition:competitions!competition_seasons_competition_id_fkey(name)
           )
         `)
-        .eq('id', matchId)
+        .or(`id.eq.${matchId},id.like.${matchId}%`)
+        .limit(1)
         .maybeSingle(),
       supabase
         .from('ensemble_prediction_snapshots')

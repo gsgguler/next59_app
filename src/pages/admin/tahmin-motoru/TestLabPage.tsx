@@ -48,11 +48,25 @@ export default function TestLabPage() {
     if (matchesLoaded) return;
     const { data } = await supabase
       .from('matches')
-      .select('id, home_team_id, away_team_id')
-      .limit(20);
+      .select(`
+        id,
+        timestamp,
+        status_short,
+        home_team:teams!matches_home_team_id_fkey(name),
+        away_team:teams!matches_away_team_id_fkey(name)
+      `)
+      .order('timestamp', { ascending: false })
+      .limit(50);
     if (data) {
-      setMatches(data.map(m => ({ id: m.id, label: `${m.id.slice(0, 8)}…` })));
-      if (data.length > 0) setMatchId(data[0].id);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mapped = (data as any[]).map(m => {
+        const home = m.home_team?.name ?? m.id.slice(0, 8);
+        const away = m.away_team?.name ?? '?';
+        const date = m.timestamp ? new Date(m.timestamp * 1000).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' }) : '';
+        return { id: m.id, label: `${home} vs ${away}${date ? ` (${date})` : ''}` };
+      });
+      setMatches(mapped);
+      if (mapped.length > 0) setMatchId(mapped[0].id);
     }
     setMatchesLoaded(true);
   }, [matchesLoaded]);

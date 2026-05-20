@@ -322,7 +322,12 @@ function fuseResults(
 
 // ─── Build explanation JSON ───────────────────────────────────────────────────
 
-function buildExplanation(results: BrainOutput[], weights: Record<string, number>, fused: ReturnType<typeof fuseResults>) {
+function buildExplanation(
+  results: BrainOutput[],
+  weights: Record<string, number>,
+  fused: ReturnType<typeof fuseResults>,
+  matchMeta: { home_team: string; away_team: string; competition: string; match_id: string }
+) {
   const successBrains = results.filter((r) => r.status === "success" && r.output);
   const dominantBrain = successBrains.reduce<BrainOutput | null>((best, r) => {
     const w = weights[r.brain_key] ?? 0;
@@ -340,6 +345,10 @@ function buildExplanation(results: BrainOutput[], weights: Record<string, number
   }).slice(0, 8);
 
   return {
+    home_team: matchMeta.home_team,
+    away_team: matchMeta.away_team,
+    competition: matchMeta.competition,
+    match_id_short: matchMeta.match_id.slice(0, 8),
     dominant_brain: dominantBrain?.brain_key ?? null,
     consensus_level: consensusLevel,
     brain_agreement_range: parseFloat(range.toFixed(4)),
@@ -491,7 +500,16 @@ Deno.serve(async (req: Request) => {
     const fused = fuseResults(allResults, weights);
 
     // Build explanation
-    const explanation = buildExplanation(allResults, weights, fused);
+    const homeTeamName = (match.home_team as { name: string } | null)?.name ?? "Ev Sahibi";
+    const awayTeamName = (match.away_team as { name: string } | null)?.name ?? "Deplasman";
+    const competitionName = ((match.competition_season as { competition?: { name?: string } } | null)?.competition?.name) ?? "Bilinmiyor";
+
+    const explanation = buildExplanation(allResults, weights, fused, {
+      home_team: homeTeamName,
+      away_team: awayTeamName,
+      competition: competitionName,
+      match_id: match_id,
+    });
 
     // Determine next snapshot version
     const { data: existingSnaps } = await supabase
