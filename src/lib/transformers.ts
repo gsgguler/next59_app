@@ -1,4 +1,4 @@
-import type { DbMatch, DbTeam, DbVenue, DbPrediction } from '../types/schema';
+import type { DbMatch, DbTeam, DbVenue } from '../types/schema';
 import type { UIMatch, UITeam, UIStadium, UIPrediction } from '../types/ui-models';
 
 const STATUS_MAP: Record<string, UIMatch['status']> = {
@@ -39,7 +39,8 @@ function transformVenue(raw: DbVenue | null): UIStadium | null {
   return { name: raw.name, city: raw.city };
 }
 
-// New prediction shape from model_lab.prematch_prediction_drafts via get_match_prediction RPC
+// Prediction shape returned by the get_match_prediction RPC
+// (backed by model_lab.prematch_prediction_drafts)
 interface NewPrediction {
   p_home: number;
   p_draw: number;
@@ -82,43 +83,6 @@ function transformNewPrediction(data: NewPrediction): UIPrediction {
   };
 }
 
-function transformLegacyPredictions(predictions: DbPrediction[]): UIPrediction | null {
-  if (!predictions || predictions.length === 0) return null;
-
-  const resultPred = predictions.find(p => p.prediction_type === 'match_result');
-  if (!resultPred) return null;
-
-  const explanation = resultPred.explanation_json ?? {};
-  const homeProb = (explanation as Record<string, number>).home_prob ?? resultPred.confidence;
-  const drawProb = (explanation as Record<string, number>).draw_prob ?? 0.33;
-  const awayProb = (explanation as Record<string, number>).away_prob ?? (1 - homeProb - drawProb);
-
-  const goalPred = predictions.find(p => p.prediction_type === 'over_under');
-  const bttsPred = predictions.find(p => p.prediction_type === 'btts');
-  const over25   = goalPred ? goalPred.confidence : 0.5;
-  const btts     = bttsPred ? bttsPred.confidence : 0.5;
-
-  return {
-    home_prob:          homeProb,
-    draw_prob:          drawProb,
-    away_prob:          Math.max(0, awayProb),
-    ht_home_prob:       null,
-    ht_draw_prob:       null,
-    ht_away_prob:       null,
-    over_2_5:           over25,
-    btts,
-    confidence:         resultPred.confidence,
-    high_scoring:       over25,
-    mutual_scoring:     btts,
-    xg_home:            null,
-    xg_away:            null,
-    predicted_score:    null,
-    predicted_score_ht: null,
-    elo_home:           null,
-    elo_away:           null,
-  };
-}
-
 function buildKickoffAt(raw: DbMatch): string {
   if (raw.match_time) {
     return `${raw.match_date}T${raw.match_time}:00+03:00`;
@@ -128,22 +92,12 @@ function buildKickoffAt(raw: DbMatch): string {
 
 export function transformMatch(
   raw: DbMatch,
-  predictions: DbPrediction[],
-  newPredData?: NewPrediction | null,
+  predData: NewPrediction | null,
 ): UIMatch {
-  // Prefer new prediction system over legacy
-  let prediction: UIPrediction | null = null;
-  let hasNewPrediction = false;
-
-  if (newPredData && newPredData.p_home != null) {
-    prediction = transformNewPrediction(newPredData);
-    hasNewPrediction = true;
-  } else {
-    prediction = transformLegacyPredictions(predictions);
-  }
-
-  const eloHome = newPredData?.pre_match_elo_home ?? null;
-  const eloAway = newPredData?.pre_match_elo_away ?? null;
+  const prediction: UIPrediction | null =
+    predData && predData.p_home != null
+      ? transformNewPrediction(predData)
+      : null;
 
   return {
     id: raw.id,
@@ -154,8 +108,7 @@ export function transformMatch(
     status: STATUS_MAP[(raw.status_short ?? 'ns').toLowerCase()] ?? 'scheduled',
     round_name: raw.round ?? '',
     prediction,
-    home_elo: eloHome,
-    away_elo: eloAway,
-    has_new_prediction: hasNewPrediction,
+    home_elo: predData?.pre_match_elo_home ?? null,
+    away_elo: predData?.pre_match_elo_away ?? null,
   };
 }

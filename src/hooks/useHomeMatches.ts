@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { transformMatch } from '../lib/transformers';
 import type { UIMatch } from '../types/ui-models';
-import type { DbMatch, DbPrediction } from '../types/schema';
+import type { DbMatch } from '../types/schema';
 
 const MATCH_LIMIT = 50;
 
@@ -58,29 +58,8 @@ export function useHomeMatches(): UseHomeMatchesResult {
         return;
       }
 
-      const matchIds = rawMatches.map((m: { id: string }) => m.id);
-
-      const { data: predData } = await supabase
-        .from('predictions')
-        .select('id, match_id, prediction_type, predicted_outcome, confidence, odds_fair, explanation_json, is_elite_only, superseded_by, created_at, updated_at')
-        .in('match_id', matchIds)
-        .is('superseded_by', null)
-        .limit(matchIds.length * 5)
-        .abortSignal(controller.signal);
-
-      if (controller.signal.aborted) return;
-
-      const predsByMatch = new Map<string, DbPrediction[]>();
-      if (predData) {
-        for (const p of predData as unknown as DbPrediction[]) {
-          const arr = predsByMatch.get(p.match_id);
-          if (arr) arr.push(p);
-          else predsByMatch.set(p.match_id, [p]);
-        }
-      }
-
       const uiMatches = (rawMatches as unknown as DbMatch[]).map((raw) =>
-        transformMatch(raw, predsByMatch.get(raw.id) ?? []),
+        transformMatch(raw, null),
       );
 
       setMatches(uiMatches);

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { transformMatch } from '../lib/transformers';
 import type { UIMatch } from '../types/ui-models';
-import type { DbMatch, DbPrediction } from '../types/schema';
+import type { DbMatch } from '../types/schema';
 
 interface UseMatchResult {
   match: UIMatch | null;
@@ -47,8 +47,6 @@ export function useMatch(matchId: string | undefined): UseMatchResult {
         .limit(1)
         .abortSignal(controller.signal);
 
-      const raw = rows?.[0] ?? null;
-
       if (controller.signal.aborted) return;
 
       if (matchErr) {
@@ -57,39 +55,20 @@ export function useMatch(matchId: string | undefined): UseMatchResult {
         return;
       }
 
+      const raw = rows?.[0] ?? null;
       if (!raw) {
         setMatch(null);
         setLoading(false);
         return;
       }
 
-      const dbMatch = raw as unknown as DbMatch;
-
-      // Try legacy predictions table first
       const { data: predData } = await supabase
-        .from('predictions')
-        .select('id, match_id, prediction_type, predicted_outcome, confidence, odds_fair, explanation_json, is_elite_only, superseded_by, created_at, updated_at')
-        .eq('match_id', matchId)
-        .is('superseded_by', null)
-        .limit(10)
-        .abortSignal(controller.signal);
-
-      if (controller.signal.aborted) return;
-
-      // Also try new prematch_prediction_drafts via public RPC
-      const { data: newPredData } = await supabase
         .rpc('get_match_prediction', { p_match_id: matchId })
         .abortSignal(controller.signal);
 
       if (controller.signal.aborted) return;
 
-      setMatch(
-        transformMatch(
-          dbMatch,
-          (predData as unknown as DbPrediction[]) ?? [],
-          newPredData ?? null,
-        ),
-      );
+      setMatch(transformMatch(raw as unknown as DbMatch, predData ?? null));
       setLoading(false);
     }
 

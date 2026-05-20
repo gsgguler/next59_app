@@ -60,21 +60,6 @@ export interface DbMatch {
   venue: DbVenue | null;
 }
 
-export interface DbPrediction {
-  id: string;
-  match_id: string;
-  model_version_id: string | null;
-  prediction_type: string;
-  predicted_outcome: string;
-  confidence: number;
-  odds_fair: number | null;
-  explanation_json: Record<string, unknown> | null;
-  is_elite_only: boolean;
-  superseded_by: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface DbProfile {
   id: string;
   email: string;

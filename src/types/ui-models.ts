@@ -42,5 +42,4 @@ export interface UIMatch {
   prediction: UIPrediction | null;
   home_elo: number | null;
   away_elo: number | null;
-  has_new_prediction: boolean;
 }
