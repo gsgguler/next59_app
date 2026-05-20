@@ -197,7 +197,10 @@ interface EnrichmentHealth {
   injuries: EnrichmentSyncEntry;
   team_statistics: EnrichmentSyncEntry;
   venues: EnrichmentSyncEntry;
+  h2h: EnrichmentSyncEntry;
+  squads: EnrichmentSyncEntry;
   coverageUpcoming: { standings: number; injuries: number; team_stats: number; venue: number; total: number };
+  contextCounts: { venues: number; h2h: number; squads: number };
 }
 
 interface LiveMatchStateRow {
@@ -609,7 +612,7 @@ function ResultSyncEvalCard({
 
 function EnrichmentHealthCard({ health }: { health: EnrichmentHealth }) {
   const STALE_HOURS: Record<string, number> = {
-    standings: 2, injuries: 5, team_statistics: 13, venues: 25,
+    standings: 2, injuries: 5, team_statistics: 13, venues: 25, h2h: 168, squads: 48,
   };
 
   function sinceStr(ts: string | null | undefined): string {
@@ -625,11 +628,13 @@ function EnrichmentHealthCard({ health }: { health: EnrichmentHealth }) {
     return `${Math.round((n / total) * 100)}%`;
   }
 
-  const types: { key: keyof Pick<EnrichmentHealth, 'standings' | 'injuries' | 'team_statistics' | 'venues'>; label: string }[] = [
+  const types: { key: keyof Pick<EnrichmentHealth, 'standings' | 'injuries' | 'team_statistics' | 'venues' | 'h2h' | 'squads'>; label: string }[] = [
     { key: 'standings', label: 'Puan Tab.' },
     { key: 'injuries', label: 'Sakatlıklar' },
     { key: 'team_statistics', label: 'Takım İstat.' },
     { key: 'venues', label: 'Venüler' },
+    { key: 'h2h', label: 'İkili Rek.' },
+    { key: 'squads', label: 'Kadro' },
   ];
 
   const hasErrors = types.some(t => (health[t.key].errors_today ?? 0) > 0);
@@ -661,7 +666,7 @@ function EnrichmentHealthCard({ health }: { health: EnrichmentHealth }) {
       </div>
 
       {/* Per-type rows */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mb-3">
         {types.map(({ key, label }) => {
           const e = health[key];
           const stale = !e.latest_at || (Date.now() - new Date(e.latest_at).getTime()) / 36e5 > STALE_HOURS[key];
@@ -690,7 +695,7 @@ function EnrichmentHealthCard({ health }: { health: EnrichmentHealth }) {
 
       {/* Coverage for upcoming fixtures */}
       {cov.total > 0 && (
-        <div className="border-t border-navy-700/50 pt-2.5">
+        <div className="border-t border-navy-700/50 pt-2.5 mb-2.5">
           <div className="text-[10px] text-navy-500 uppercase mb-2">Yaklasan Mac Enrichment Kapsami ({cov.total} mac)</div>
           <div className="flex flex-wrap gap-x-5 gap-y-1">
             <Stat label="Puan tab." value={null} color="text-sky-400" />
@@ -704,6 +709,31 @@ function EnrichmentHealthCard({ health }: { health: EnrichmentHealth }) {
           </div>
         </div>
       )}
+
+      {/* Context data row counts */}
+      <div className="border-t border-navy-700/50 pt-2.5">
+        <div className="text-[10px] text-navy-500 uppercase mb-2">Bağlam Veri Sayımı</div>
+        <div className="flex flex-wrap gap-4">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-navy-400">Stadyum Verisi</span>
+            <span className={`text-xs font-bold ${health.contextCounts.venues > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+              {health.contextCounts.venues}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-navy-400">İkili Rekabet</span>
+            <span className={`text-xs font-bold ${health.contextCounts.h2h > 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+              {health.contextCounts.h2h}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-navy-400">Kadro Sürekliliği</span>
+            <span className={`text-xs font-bold ${health.contextCounts.squads > 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+              {health.contextCounts.squads}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -2022,7 +2052,10 @@ export default function DailyMonitorPage() {
     injuries: emptyEnrichEntry(),
     team_statistics: emptyEnrichEntry(),
     venues: emptyEnrichEntry(),
+    h2h: emptyEnrichEntry(),
+    squads: emptyEnrichEntry(),
     coverageUpcoming: { standings: 0, injuries: 0, team_stats: 0, venue: 0, total: 0 },
+    contextCounts: { venues: 0, h2h: 0, squads: 0 },
   });
 
   const [liveEngineHealth, setLiveEngineHealth] = useState<LiveEngineHealth>({
@@ -2244,7 +2277,7 @@ export default function DailyMonitorPage() {
     // 11. Enrichment health — per-type sync log summary + upcoming coverage
     try {
       const todayIso = new Date().toISOString().slice(0, 10);
-      const [standingsLogRes, injuriesLogRes, teamStatsLogRes, venuesLogRes] = await Promise.allSettled([
+      const [standingsLogRes, injuriesLogRes, teamStatsLogRes, venuesLogRes, h2hLogRes, squadsLogRes] = await Promise.allSettled([
         supabase.schema('model_lab').from('enrichment_sync_log')
           .select('sync_type, started_at, status, rows_inserted, rows_updated, errors_json')
           .eq('sync_type', 'standings').order('started_at', { ascending: false }).limit(10),
@@ -2257,6 +2290,12 @@ export default function DailyMonitorPage() {
         supabase.schema('model_lab').from('enrichment_sync_log')
           .select('sync_type, started_at, status, rows_inserted, rows_updated, errors_json')
           .eq('sync_type', 'venues').order('started_at', { ascending: false }).limit(10),
+        supabase.schema('model_lab').from('enrichment_sync_log')
+          .select('sync_type, started_at, status, rows_inserted, rows_updated, errors_json')
+          .eq('sync_type', 'h2h').order('started_at', { ascending: false }).limit(10),
+        supabase.schema('model_lab').from('enrichment_sync_log')
+          .select('sync_type, started_at, status, rows_inserted, rows_updated, errors_json')
+          .eq('sync_type', 'squads').order('started_at', { ascending: false }).limit(10),
       ]);
 
       function summarize(res: PromiseSettledResult<{ data: any; error: any }>): EnrichmentSyncEntry {
@@ -2285,6 +2324,8 @@ export default function DailyMonitorPage() {
       const injHealth = summarize(injuriesLogRes);
       const tsHealth = summarize(teamStatsLogRes);
       const venHealth = summarize(venuesLogRes);
+      const h2hHealth = summarize(h2hLogRes);
+      const squadsHealth = summarize(squadsLogRes);
 
       // Coverage: count upcoming matches that have enrichment data
       const { start: upStart, end: upEnd } = dateRange();
@@ -2295,18 +2336,32 @@ export default function DailyMonitorPage() {
         .gte('match_date', upStart ?? todayIso)
         .lte('match_date', upEnd ?? addDays(todayIso, 30));
 
+      // Context table row counts (quick count queries)
+      const [venCountRes, h2hCountRes, squadCountRes] = await Promise.allSettled([
+        supabase.from('af_venues_normalized').select('id', { count: 'exact', head: true }),
+        supabase.from('af_h2h_normalized').select('id', { count: 'exact', head: true }),
+        supabase.from('af_player_squads_normalized').select('id', { count: 'exact', head: true }),
+      ]);
+
       const covTotal = covRows?.length ?? 0;
       setEnrichmentHealth({
         standings: stHealth,
         injuries: injHealth,
         team_statistics: tsHealth,
         venues: venHealth,
+        h2h: h2hHealth,
+        squads: squadsHealth,
         coverageUpcoming: {
           total: covTotal,
           standings: covRows?.filter((r: any) => r.has_standings_features).length ?? 0,
           injuries: covRows?.filter((r: any) => r.has_injuries_features).length ?? 0,
           team_stats: covRows?.filter((r: any) => r.has_team_stats_features).length ?? 0,
           venue: covRows?.filter((r: any) => r.has_venue_features).length ?? 0,
+        },
+        contextCounts: {
+          venues: venCountRes.status === 'fulfilled' ? (venCountRes.value.count ?? 0) : 0,
+          h2h:    h2hCountRes.status === 'fulfilled' ? (h2hCountRes.value.count ?? 0) : 0,
+          squads: squadCountRes.status === 'fulfilled' ? (squadCountRes.value.count ?? 0) : 0,
         },
       });
     } catch (enrichErr) {

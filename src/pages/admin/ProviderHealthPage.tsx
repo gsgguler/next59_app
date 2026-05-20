@@ -30,6 +30,7 @@ const FEED_GROUPS: Record<string, string[]> = {
   'API-Football Veri Akışları': [
     'af_standings', 'af_injuries', 'af_team_stats', 'af_venues',
     'af_fixtures_upcoming', 'af_uefa',
+    'af_h2h', 'af_squads',
   ],
   'Pipeline & Sync': [
     'prematch_pipeline', 'enrichment_sync', 'result_sync',
