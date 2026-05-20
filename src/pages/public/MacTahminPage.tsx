@@ -315,6 +315,3 @@ export default function MacTahminPage() {
     </div>
   );
 }
-
-
-export default MacTahminPage

@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Brain, Play, Zap, StopCircle, RefreshCw, CheckCircle2, XCircle, Clock, AlertTriangle } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Brain, Play, Zap, StopCircle, RefreshCw, CheckCircle2, XCircle, Clock, AlertTriangle, X } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import BrainStatusCard, { type BrainConfig, type BrainPerf } from '../../../components/tahmin-motoru/BrainStatusCard';
 import MetaLearnerPanel from '../../../components/tahmin-motoru/MetaLearnerPanel';
@@ -41,6 +41,8 @@ const STATUS_ICON: Record<string, typeof CheckCircle2> = {
   failed:    XCircle,
 };
 
+const CONFIRM_WORD = 'DURDUR';
+
 export default function BrainOrkestrasiPage() {
   const [brainConfigs, setBrainConfigs] = useState<BrainConfig[]>([]);
   const [brainPerfs, setBrainPerfs] = useState<Record<string, BrainPerf>>({});
@@ -49,6 +51,11 @@ export default function BrainOrkestrasiPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionResult, setActionResult] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+
+  // Emergency stop modal state
+  const [stopModalOpen, setStopModalOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
+  const confirmInputRef = useRef<HTMLInputElement>(null);
 
   const fetchData = useCallback(async () => {
     const [cfgRes, perfRes, modelRes, runsRes] = await Promise.all([
@@ -81,7 +88,33 @@ export default function BrainOrkestrasiPage() {
     fetchData();
   }, [fetchData]);
 
-  async function handleEmergencyStop() {
+  // Focus confirm input when modal opens
+  useEffect(() => {
+    if (stopModalOpen) {
+      setConfirmText('');
+      setTimeout(() => confirmInputRef.current?.focus(), 50);
+    }
+  }, [stopModalOpen]);
+
+  // Close modal on Escape
+  useEffect(() => {
+    if (!stopModalOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeStopModal(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [stopModalOpen]);
+
+  function openStopModal() {
+    setStopModalOpen(true);
+  }
+
+  function closeStopModal() {
+    if (actionLoading === 'stop') return; // prevent close while stopping
+    setStopModalOpen(false);
+    setConfirmText('');
+  }
+
+  async function executeEmergencyStop() {
     setActionLoading('stop');
     setActionResult(null);
     try {
@@ -91,6 +124,7 @@ export default function BrainOrkestrasiPage() {
         .neq('id', '00000000-0000-0000-0000-000000000000');
       if (error) throw error;
       setActionResult({ type: 'success', msg: 'Tüm brain\'ler durduruldu' });
+      closeStopModal();
       await fetchData();
     } catch (e) {
       setActionResult({ type: 'error', msg: `Emergency stop hatası: ${String(e)}` });
@@ -147,6 +181,8 @@ export default function BrainOrkestrasiPage() {
     { key: 'live',     label: 'FORCE LIVE REVISION',   icon: Zap,         cls: 'border-yellow-700/40 bg-yellow-900/20 text-yellow-300 hover:bg-yellow-900/40' },
     { key: 'validate', label: 'FORCE VALIDATE RESULTS', icon: CheckCircle2, cls: 'border-emerald-700/40 bg-emerald-900/20 text-emerald-300 hover:bg-emerald-900/40' },
   ];
+
+  const canConfirmStop = confirmText === CONFIRM_WORD && actionLoading !== 'stop';
 
   if (loading) {
     return (
@@ -288,14 +324,11 @@ export default function BrainOrkestrasiPage() {
         {/* Stop/Resume Controls */}
         <div className="flex gap-3">
           <button
-            onClick={handleEmergencyStop}
+            onClick={openStopModal}
             disabled={actionLoading !== null}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border border-red-700/40 bg-red-900/20 text-red-400 hover:bg-red-900/40 transition-colors disabled:opacity-50"
           >
-            {actionLoading === 'stop'
-              ? <RefreshCw className="w-4 h-4 animate-spin" />
-              : <StopCircle className="w-4 h-4" />
-            }
+            <StopCircle className="w-4 h-4" />
             EMERGENCY STOP
           </button>
           <button
@@ -312,6 +345,84 @@ export default function BrainOrkestrasiPage() {
         </div>
 
       </div>
+
+      {/* Emergency Stop Confirmation Modal */}
+      {stopModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          onClick={(e) => { if (e.target === e.currentTarget) closeStopModal(); }}
+        >
+          <div className="w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border border-red-800/60 bg-navy-900">
+
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-5 py-4 bg-red-950/80 border-b border-red-800/60">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-red-700/40 border border-red-600/50 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-4 h-4 text-red-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-red-300 uppercase tracking-wide">Sistemi Durduruyorsunuz</p>
+                  <p className="text-[11px] text-red-500">Bu işlem geri alınabilir</p>
+                </div>
+              </div>
+              <button
+                onClick={closeStopModal}
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-red-500 hover:text-red-300 hover:bg-red-900/50 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="px-5 py-5 space-y-5">
+              <div className="rounded-xl bg-red-950/40 border border-red-800/40 px-4 py-3 text-sm text-red-300 leading-relaxed">
+                Tüm aktif brain modelleri <span className="font-bold text-red-200">anında devre dışı</span> bırakılacak.
+                Tahmin üretimi ve canlı revizyonlar duracak.
+                RESUME butonu ile yeniden aktif edebilirsiniz.
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-navy-300 mb-2">
+                  Onaylamak için{' '}
+                  <span className="text-red-400 font-mono font-black select-none">{CONFIRM_WORD}</span>
+                  {' '}yazın:
+                </label>
+                <input
+                  ref={confirmInputRef}
+                  type="text"
+                  value={confirmText}
+                  onChange={(e) => setConfirmText(e.target.value.toUpperCase())}
+                  placeholder={CONFIRM_WORD}
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="w-full rounded-lg border border-navy-600 bg-navy-800 px-3 py-2.5 text-sm font-mono text-white placeholder-navy-600 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500/30 transition-colors"
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end pt-1">
+                <button
+                  onClick={closeStopModal}
+                  disabled={actionLoading === 'stop'}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-navy-300 hover:text-white hover:bg-navy-700 border border-navy-600 transition-colors disabled:opacity-50"
+                >
+                  Vazgec
+                </button>
+                <button
+                  onClick={executeEmergencyStop}
+                  disabled={!canConfirmStop}
+                  className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold bg-red-700 hover:bg-red-600 text-white border border-red-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {actionLoading === 'stop'
+                    ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Durduruluyor…</>
+                    : <><StopCircle className="w-3.5 h-3.5" /> Sistemi Durdur</>
+                  }
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }
