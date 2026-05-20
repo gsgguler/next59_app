@@ -90,7 +90,9 @@ export default function LiveMatchWidget({ matchId, homeTeam, awayTeam, onLiveUpd
 
     return () => {
       clearInterval(interval);
-      supabase.removeChannel(channel);
+      channel.unsubscribe().finally(() => {
+        supabase.removeChannel(channel);
+      });
     };
   }, [matchId]);
 

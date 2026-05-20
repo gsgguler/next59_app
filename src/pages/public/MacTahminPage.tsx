@@ -152,7 +152,11 @@ export default function MacTahminPage() {
         }
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      channel.unsubscribe().finally(() => {
+        supabase.removeChannel(channel);
+      });
+    };
   }, [matchId, resolvedId, fetchAll]);
 
   const latestSnap = snapshots.length > 0 ? snapshots[snapshots.length - 1] : null;
@@ -311,3 +315,6 @@ export default function MacTahminPage() {
     </div>
   );
 }
+
+
+export default MacTahminPage
