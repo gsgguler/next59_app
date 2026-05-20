@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, CheckCircle, AlertCircle, TrendingUp, Database, FlaskConical, Shield, Star } from 'lucide-react';
+import { RefreshCw, CheckCircle, AlertCircle, TrendingUp, Database, FlaskConical, Shield, Star, Layers } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useActiveModelStack } from '../../hooks/useActiveModelStack';
 
 interface EloVersionStats {
   elo_version: string;
@@ -49,9 +50,8 @@ interface StatusData {
   calibration_rows: CalibrationRow[];
 }
 
-const ELO_PRODUCTION_CANDIDATE = 'elo_v2_ha0_k20_global';
-
 export default function ModelStatusPage() {
+  const { stack: activeStack, loading: stackLoading } = useActiveModelStack();
   const [data, setData] = useState<StatusData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -131,6 +131,9 @@ export default function ModelStatusPage() {
           </div>
         )}
 
+        {/* Active Model Stack Banner */}
+        <ActiveStackBanner stack={activeStack} loading={stackLoading} />
+
         {/* ELO Versions */}
         <Section title="ELO Versiyonları" icon={<TrendingUp className="w-4 h-4" />}>
           {loading ? (
@@ -154,7 +157,7 @@ export default function ModelStatusPage() {
                 </thead>
                 <tbody>
                   {data?.elo_versions.map((v) => {
-                    const isProd = v.elo_version === ELO_PRODUCTION_CANDIDATE;
+                    const isProd = activeStack ? v.elo_version === activeStack.elo_version : false;
                     return (
                       <tr key={v.elo_version} className={`border-b border-navy-800/50 ${isProd ? 'bg-emerald-500/5' : ''}`}>
                         <td className="py-2.5 pr-4">
@@ -246,6 +249,45 @@ export default function ModelStatusPage() {
             <CalibrationTable rows={data!.calibration_rows} />
           )}
         </Section>
+      </div>
+    </div>
+  );
+}
+
+function ActiveStackBanner({
+  stack,
+  loading,
+}: {
+  stack: { elo_version: string; feature_version: string; prediction_formula: string; calibration_version: string | null; frozen_at: string } | null;
+  loading: boolean;
+}) {
+  if (loading) {
+    return <div className="h-14 bg-navy-800/40 rounded-xl animate-pulse mb-4" />;
+  }
+  if (!stack) {
+    return (
+      <div className="bg-red-500/10 border border-red-500/25 rounded-xl px-4 py-3 mb-4 flex items-center gap-2 text-xs text-red-400">
+        <AlertCircle className="w-4 h-4 shrink-0" />
+        Aktif model paketi tanımlı değil — üretim versiyonları belirlenemiyor.
+      </div>
+    );
+  }
+  return (
+    <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl px-4 py-3 mb-4 flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-2 shrink-0">
+        <Layers className="w-4 h-4 text-emerald-400" />
+        <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Aktif Model Paketi</span>
+      </div>
+      <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-navy-300">
+        <span>ELO: <span className="font-mono text-white">{stack.elo_version}</span></span>
+        <span>Features: <span className="font-mono text-white">{stack.feature_version}</span></span>
+        <span>Formül: <span className="font-mono text-white">{stack.prediction_formula}</span></span>
+        {stack.calibration_version && (
+          <span>Kalibrasyon: <span className="font-mono text-white">{stack.calibration_version}</span></span>
+        )}
+        <span className="text-navy-500">
+          Donduruldu: {new Date(stack.frozen_at).toLocaleDateString('tr-TR')}
+        </span>
       </div>
     </div>
   );

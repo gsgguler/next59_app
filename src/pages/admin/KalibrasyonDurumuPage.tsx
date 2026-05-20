@@ -5,6 +5,7 @@ import {
   CheckCircle2, XCircle, Star,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useActiveModelStack } from '../../hooks/useActiveModelStack';
 
 interface BestRun {
   competition_name: string;
@@ -87,6 +88,7 @@ function formatDuration(start: string, end: string | null): string {
 }
 
 export default function KalibrasyonDurumuPage() {
+  const { stack: activeStack } = useActiveModelStack();
   const [rows, setRows] = useState<BestRun[]>([]);
   const [allRuns, setAllRuns] = useState<AllRun[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
@@ -200,7 +202,10 @@ export default function KalibrasyonDurumuPage() {
             <div>
               <h1 className="text-2xl font-bold text-white font-display">Kalibrasyon Durumu</h1>
               <p className="text-sm text-readable-muted mt-1">
-                Formül versiyonu farkındalıklı metrik görünümü — Draw V2 varsa V1'e tercih edilir
+                Formül versiyonu farkındalıklı metrik görünümü
+                {activeStack && (
+                  <span className="ml-2 font-mono text-xs text-blue-400">{activeStack.prediction_formula}</span>
+                )}
               </p>
             </div>
           </div>

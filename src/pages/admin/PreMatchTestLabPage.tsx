@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FlaskConical, Shield, AlertCircle, CheckCircle, RefreshCw, ChevronDown } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useActiveModelStack } from '../../hooks/useActiveModelStack';
 
 interface Competition {
   competition_name: string;
@@ -49,6 +50,7 @@ const COMPETITIONS = [
 ];
 
 export default function PreMatchTestLabPage() {
+  const { stack: activeStack, loading: stackLoading } = useActiveModelStack();
   const [competitions] = useState<string[]>(COMPETITIONS);
   const [selectedComp, setSelectedComp] = useState<string>('');
   const [seasons, setSeasons] = useState<string[]>([]);
@@ -152,14 +154,18 @@ export default function PreMatchTestLabPage() {
 
   async function generatePrediction() {
     if (!selectedMatch) return;
+    if (!activeStack) {
+      setError('Aktif model paketi tanımlı değil — tahmin üretilemiyor.');
+      return;
+    }
     setGenerating(true);
     setResult(null);
     setError(null);
 
     const { data, error: err } = await supabase.rpc('ml_admin_generate_prematch_prediction', {
       p_match_id: selectedMatch,
-      p_elo_version: 'elo_v2_ha0_k20_global',
-      p_feature_version: 'features_v2_domestic_2026_05',
+      p_elo_version: activeStack.elo_version,
+      p_feature_version: activeStack.feature_version,
     });
 
     if (err) {
@@ -279,10 +285,10 @@ export default function PreMatchTestLabPage() {
             </div>
           )}
 
-          <div className="mt-4">
+          <div className="mt-4 flex items-center gap-4 flex-wrap">
             <button
               onClick={generatePrediction}
-              disabled={!selectedMatch || generating}
+              disabled={!selectedMatch || generating || stackLoading || !activeStack}
               className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-champagne/15 border border-champagne/30 text-champagne font-semibold text-sm hover:bg-champagne/25 transition-all disabled:opacity-40"
             >
               {generating
@@ -290,6 +296,20 @@ export default function PreMatchTestLabPage() {
                 : <><FlaskConical className="w-4 h-4" />Tahmin Üret</>
               }
             </button>
+            {stackLoading ? (
+              <span className="text-xs text-navy-500">Model paketi yükleniyor...</span>
+            ) : !activeStack ? (
+              <span className="text-xs text-red-400 flex items-center gap-1">
+                <AlertCircle className="w-3.5 h-3.5" />
+                Aktif model paketi tanımlı değil
+              </span>
+            ) : (
+              <span className="text-xs text-navy-500">
+                <span className="font-mono text-navy-400">{activeStack.elo_version}</span>
+                {' · '}
+                <span className="font-mono text-navy-400">{activeStack.feature_version}</span>
+              </span>
+            )}
           </div>
         </div>
 
