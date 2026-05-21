@@ -198,7 +198,7 @@ export default function TestLabPage() {
                 onClick={() => setForce(f => !f)}
                 className={`w-10 h-5 rounded-full transition-colors relative ${force ? 'bg-emerald-500' : 'bg-navy-600'}`}
               >
-                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${force ? 'left-5' : 'left-0.5'}`} />
+                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-slate-100 transition-all ${force ? 'left-5' : 'left-0.5'}`} />
               </button>
             </div>
 

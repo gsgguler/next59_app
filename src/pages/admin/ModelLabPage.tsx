@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   FlaskConical, Database, Shield, ChevronRight, Activity,
   RefreshCw, CheckCircle, AlertCircle, Clock, Trash2,
-  Beaker, GitCompare,
+  Beaker, GitCompare, TrendingUp,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
@@ -210,6 +210,42 @@ export default function ModelLabPage() {
             </div>
           )}
 
+          {/* KPI Performance Banner */}
+          {!loading && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+              <KpiBanner
+                label="Tamamlanan Backtest"
+                value={completedRuns > 0 ? String(completedRuns) : '–'}
+                sub={`${totalRuns} toplam çalışma`}
+                accent={completedRuns > 0 ? 'green' : undefined}
+                icon={<CheckCircle className="w-5 h-5" />}
+              />
+              <KpiBanner
+                label="Ortalama Brier Skoru"
+                value={(() => {
+                  const runs = latestRuns.filter(r => r.run_status === 'completed' && r.average_brier_1x2 != null);
+                  if (runs.length === 0) return '–';
+                  const avg = runs.reduce((s, r) => s + (r.average_brier_1x2 ?? 0), 0) / runs.length;
+                  return avg.toFixed(4);
+                })()}
+                sub="Son tamamlanan çalışmalar"
+                accent={(() => {
+                  const runs = latestRuns.filter(r => r.run_status === 'completed' && r.average_brier_1x2 != null);
+                  if (runs.length === 0) return undefined;
+                  const avg = runs.reduce((s, r) => s + (r.average_brier_1x2 ?? 0), 0) / runs.length;
+                  return avg < 0.22 ? 'green' : avg < 0.27 ? 'amber' : 'red';
+                })()}
+                icon={<TrendingUp className="w-5 h-5" />}
+              />
+              <KpiBanner
+                label="Arşiv Verisi"
+                value={data?.archive_count != null ? Number(data.archive_count).toLocaleString('tr-TR') : '–'}
+                sub={activeModel ? `Model: ${activeModel.version_key}` : 'Aktif model yok'}
+                icon={<Database className="w-5 h-5" />}
+              />
+            </div>
+          )}
+
           {/* Stat cards */}
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
@@ -343,6 +379,38 @@ function Field({ label, value, mono }: { label: string; value: string; mono?: bo
     <div>
       <span className="text-xs text-readable-muted">{label}: </span>
       <span className={`text-sm text-white ${mono ? 'font-mono' : ''}`}>{value}</span>
+    </div>
+  );
+}
+
+function KpiBanner({
+  label, value, sub, accent, icon,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  accent?: 'green' | 'red' | 'amber';
+  icon: React.ReactNode;
+}) {
+  const accentColor =
+    accent === 'green' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/25' :
+    accent === 'red'   ? 'text-red-400 bg-red-500/10 border-red-500/25' :
+    accent === 'amber' ? 'text-amber-400 bg-amber-500/10 border-amber-500/25' :
+    'text-navy-300 bg-navy-800/60 border-navy-700/60';
+  const iconColor =
+    accent === 'green' ? 'text-emerald-400' :
+    accent === 'red'   ? 'text-red-400' :
+    accent === 'amber' ? 'text-amber-400' :
+    'text-navy-400';
+
+  return (
+    <div className={`rounded-xl border px-4 py-4 flex items-start gap-3 ${accentColor}`}>
+      <div className={`mt-0.5 shrink-0 ${iconColor}`}>{icon}</div>
+      <div className="min-w-0">
+        <p className="text-[11px] text-readable-muted mb-1">{label}</p>
+        <p className="text-2xl font-bold tabular-nums text-white leading-none">{value}</p>
+        <p className="text-[11px] text-readable-muted mt-1 truncate font-mono">{sub}</p>
+      </div>
     </div>
   );
 }
