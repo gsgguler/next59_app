@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, Eye } from 'lucide-react';
+import { Clock, Eye, ChevronDown, Calendar, Tag } from 'lucide-react';
 import type { Match } from '../../pages/MatchListPage';
 import ShareMatchCard from '../ShareMatchCard';
 
@@ -28,9 +29,12 @@ function TeamDisplay({ name, code, side }: { name: string; code: string; side: '
 }
 
 export default function MatchCard({ match }: { match: Match }) {
+  const [showDetails, setShowDetails] = useState(false);
+
   const statusKey = (match.status_short ?? 'ns').toLowerCase();
   const status = statusConfig[statusKey] ?? statusConfig.ns;
   const compName = match.competition_season?.competition?.short_name ?? match.competition_season?.competition?.name ?? '';
+  const seasonCode = match.competition_season?.season_code ?? '';
 
   const kickoffDate = match.match_date
     ? new Date(match.match_time ? `${match.match_date}T${match.match_time}` : match.match_date)
@@ -45,20 +49,30 @@ export default function MatchCard({ match }: { match: Match }) {
     : '';
 
   const isFinished = ['ft', 'aet', 'pen'].includes(statusKey);
+  const isLive = ['1h', '2h', 'ht'].includes(statusKey);
 
   return (
     <div className="relative bg-surface-card-solid rounded-xl border border-readable-soft overflow-hidden hover:shadow-lg hover:shadow-navy-950/50 hover:border-readable-hover transition-all duration-200 group">
+      {/* Header row: league + status */}
       <div className="flex items-center justify-between px-4 py-2.5 bg-navy-800/50 border-b border-readable-soft">
-        {compName && (
+        {compName ? (
           <span className="text-xs font-semibold text-gold-400 bg-gold-500/10 border border-gold-500/20 px-2 py-0.5 rounded">
             {compName}
           </span>
-        )}
-        <span className={`text-xs font-medium px-2 py-0.5 rounded border ${status.bg} ${status.color}`}>
-          {status.label}
-        </span>
+        ) : <span />}
+        <div className="flex items-center gap-2">
+          {isLive && (
+            <span className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+            </span>
+          )}
+          <span className={`text-xs font-medium px-2 py-0.5 rounded border ${status.bg} ${status.color}`}>
+            {status.label}
+          </span>
+        </div>
       </div>
 
+      {/* Summary: teams + score — always visible */}
       <div className="p-4">
         <div className="flex items-center justify-between gap-2">
           <div className="flex-1 min-w-0">
@@ -71,12 +85,17 @@ export default function MatchCard({ match }: { match: Match }) {
 
           <div className="flex flex-col items-center px-3 shrink-0">
             {isFinished ? (
-              <div className="text-xl font-bold text-white">
+              <div className="text-xl font-bold text-white tabular-nums">
+                {match.home_score_ft ?? 0} - {match.away_score_ft ?? 0}
+              </div>
+            ) : isLive ? (
+              <div className="text-xl font-bold text-red-400 tabular-nums">
                 {match.home_score_ft ?? 0} - {match.away_score_ft ?? 0}
               </div>
             ) : (
               <div className="text-center">
                 <p className="text-xs font-medium text-readable-muted uppercase tracking-wide">VS</p>
+                {timeStr && <p className="text-xs text-slate-400 mt-0.5">{timeStr}</p>}
               </div>
             )}
           </div>
@@ -90,27 +109,81 @@ export default function MatchCard({ match }: { match: Match }) {
           </div>
         </div>
 
+        {/* Date row + toggle */}
         <div className="flex items-center justify-between mt-4 pt-3 border-t border-readable-soft">
           <div className="flex items-center gap-1.5 text-xs text-readable-muted">
             <Clock className="w-3.5 h-3.5" />
-            <span>{dateStr}{timeStr && ` - ${timeStr}`}</span>
+            <span>{dateStr}{timeStr && isFinished ? ` - ${timeStr}` : ''}</span>
           </div>
 
-          {match.round && (
-            <span className="text-xs text-readable-muted">{match.round}</span>
-          )}
+          <button
+            onClick={() => setShowDetails(!showDetails)}
+            className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+            aria-expanded={showDetails}
+          >
+            <span>{showDetails ? 'Gizle' : 'Detaylar'}</span>
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showDetails ? 'rotate-180' : ''}`} />
+          </button>
         </div>
       </div>
 
-      <div className="px-4 pb-4">
-        <Link
-          to={`/matches/${match.id}`}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-navy-700 text-white text-sm font-medium hover:bg-navy-600 active:bg-navy-800 transition-colors group-hover:bg-gold-500 group-hover:text-navy-900"
-        >
-          <Eye className="w-4 h-4" />
-          Maçı İncele
-        </Link>
-      </div>
+      {/* Secondary details — accordion */}
+      {showDetails && (
+        <div className="px-4 pb-3 border-t border-readable-soft bg-navy-900/40 animate-slide-up">
+          <div className="grid grid-cols-2 gap-3 pt-3">
+            {match.round && (
+              <div className="flex items-start gap-2">
+                <Tag className="w-3.5 h-3.5 text-slate-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Tur</p>
+                  <p className="text-xs text-slate-300 mt-0.5">{match.round}</p>
+                </div>
+              </div>
+            )}
+
+            {seasonCode && (
+              <div className="flex items-start gap-2">
+                <Calendar className="w-3.5 h-3.5 text-slate-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Sezon</p>
+                  <p className="text-xs text-slate-300 mt-0.5">{seasonCode}</p>
+                </div>
+              </div>
+            )}
+
+            {match.competition_season?.competition?.name && compName !== match.competition_season.competition.name && (
+              <div className="flex items-start gap-2 col-span-2">
+                <div className="w-3.5 h-3.5 shrink-0" />
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Turnuva</p>
+                  <p className="text-xs text-slate-300 mt-0.5">{match.competition_season.competition.name}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <Link
+            to={`/matches/${match.id}`}
+            className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-navy-700 text-white text-sm font-medium hover:bg-navy-600 active:bg-navy-800 transition-colors group-hover:bg-gold-500 group-hover:text-navy-900"
+          >
+            <Eye className="w-4 h-4" />
+            Maçı İncele
+          </Link>
+        </div>
+      )}
+
+      {/* Collapsed CTA — only when details hidden */}
+      {!showDetails && (
+        <div className="px-4 pb-4">
+          <Link
+            to={`/matches/${match.id}`}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-navy-700 text-white text-sm font-medium hover:bg-navy-600 active:bg-navy-800 transition-colors group-hover:bg-gold-500 group-hover:text-navy-900"
+          >
+            <Eye className="w-4 h-4" />
+            Maçı İncele
+          </Link>
+        </div>
+      )}
 
       <ShareMatchCard
         matchId={match.id}

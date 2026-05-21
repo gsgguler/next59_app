@@ -64,11 +64,11 @@ export default function MatchListPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Trophy className="w-6 h-6 text-gold-500" />
             Maçlar
           </h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-slate-400 mt-1">
             {loading ? 'Yükleniyor…' : `${total} maç listeleniyor`}
           </p>
         </div>
@@ -77,8 +77,8 @@ export default function MatchListPage() {
           onClick={() => setShowFilters(!showFilters)}
           className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all
             ${showFilters
-              ? 'bg-navy-700 text-white'
-              : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+              ? 'bg-navy-600 text-white border border-navy-500'
+              : 'bg-navy-800 border border-readable-soft text-slate-300 hover:bg-navy-700 hover:text-white'
             }`}
         >
           <Filter className="w-4 h-4" />
@@ -115,9 +115,9 @@ export default function MatchListPage() {
 
       {/* Empty state */}
       {!loading && !error && empty && (
-        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+        <div className="flex flex-col items-center justify-center py-20 text-slate-500">
           <Calendar className="w-12 h-12 mb-3" />
-          <p className="text-lg font-medium">Maç bulunamadı</p>
+          <p className="text-lg font-medium text-slate-300">Maç bulunamadı</p>
           <p className="text-sm mt-1">Filtreleri değiştirmeyi deneyin</p>
         </div>
       )}
@@ -137,14 +137,14 @@ export default function MatchListPage() {
               <button
                 onClick={loadMore}
                 disabled={loadingMore}
-                className="inline-flex items-center gap-2 bg-white border border-gray-200 hover:border-navy-400 text-gray-700 hover:text-navy-700 text-sm font-medium px-6 py-2.5 rounded-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 bg-navy-800 border border-readable-soft hover:border-readable-hover text-slate-300 hover:text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {loadingMore
                   ? <><Loader2 className="w-4 h-4 animate-spin" /> Yükleniyor…</>
                   : <><ChevronDown className="w-4 h-4" /> Daha Fazla Yükle</>
                 }
               </button>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-slate-500">
                 {matches.length} / {total} maç gösteriliyor
               </p>
             </div>
