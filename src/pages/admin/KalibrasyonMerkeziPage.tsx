@@ -69,23 +69,19 @@ export default function KalibrasyonMerkeziPage() {
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const yukle = useCallback(async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = supabase as any;
     const [kRes, bRes] = await Promise.all([
-      supabase
-        .from('kalibrasyon_kuyrugu' as 'profiles')
-        .select('*')
-        .order('competition_name')
-        .order('season_label'),
-      supabase
-        .from('v_best_replay_run_per_season' as 'profiles')
-        .select('competition_name,season_label,run_key,prediction_formula,is_production_candidate,brier,hit_rate,draw_gap'),
+      sb.from('kalibrasyon_kuyrugu').select('*').order('competition_name').order('season_label'),
+      sb.from('v_best_replay_run_per_season').select('competition_name,season_label,run_key,prediction_formula,is_production_candidate,brier,hit_rate,draw_gap'),
     ]);
 
-    if (!kRes.error && kRes.data) setKuyruk(kRes.data as unknown as KuyruKSatir[]);
+    if (!kRes.error && kRes.data) setKuyruk(kRes.data as KuyruKSatir[]);
     if (kRes.error) setHata(kRes.error.message);
 
     if (!bRes.error && bRes.data) {
       const idx: Record<string, BestRunIndex> = {};
-      (bRes.data as unknown as BestRunIndex[]).forEach(r => {
+      (bRes.data as BestRunIndex[]).forEach(r => {
         idx[`${r.competition_name}|${r.season_label}`] = r;
       });
       setBestRunIndex(idx);

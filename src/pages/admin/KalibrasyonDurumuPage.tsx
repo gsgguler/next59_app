@@ -100,22 +100,17 @@ export default function KalibrasyonDurumuPage() {
 
   const yukle = useCallback(async () => {
     setYukleniyor(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = supabase as any;
     const [bestRes, allRes] = await Promise.all([
-      supabase
-        .from('v_best_replay_run_per_season' as 'profiles')
-        .select('*')
-        .order('competition_name')
-        .order('season_label'),
-      supabase
-        .from('v_replay_run_season_metrics' as 'profiles')
-        .select('competition_name,season_label,run_id,run_key,prediction_formula,started_at,brier,hit_rate,draw_gap,n_matches')
-        .order('started_at', { ascending: false }),
+      sb.from('v_best_replay_run_per_season').select('*').order('competition_name').order('season_label'),
+      sb.from('v_replay_run_season_metrics').select('competition_name,season_label,run_id,run_key,prediction_formula,started_at,brier,hit_rate,draw_gap,n_matches').order('started_at', { ascending: false }),
     ]);
 
     if (bestRes.error) setHata(bestRes.error.message);
-    else if (bestRes.data) setRows(bestRes.data as unknown as BestRun[]);
+    else if (bestRes.data) setRows(bestRes.data as BestRun[]);
 
-    if (!allRes.error && allRes.data) setAllRuns(allRes.data as unknown as AllRun[]);
+    if (!allRes.error && allRes.data) setAllRuns(allRes.data as AllRun[]);
 
     setYukleniyor(false);
   }, []);
