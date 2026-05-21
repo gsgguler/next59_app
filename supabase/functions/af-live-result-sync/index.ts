@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { fetchWithRetry } from "../_shared/rateLimiter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -95,9 +96,9 @@ Deno.serve(async (req: Request) => {
       const endpoint = `https://v3.football.api-sports.io/fixtures?ids=${idsParam}`;
 
       try {
-        const resp = await fetch(endpoint, {
+        const resp = await fetchWithRetry(endpoint, {
           headers: { "x-apisports-key": AF_KEY },
-        });
+        }, { maxRetries: 3, baseDelayMs: 1000 });
         if (!resp.ok) throw new Error(`AF API HTTP ${resp.status}`);
         const json = await resp.json();
         const fixtures: any[] = json?.response ?? [];

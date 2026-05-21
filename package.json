@@ -19,6 +19,7 @@
     "audit:copy-risk": "node scripts/audit-copy-risk.mjs"
   },
   "dependencies": {
+    "@sentry/react": "^10.53.1",
     "@supabase/supabase-js": "^2.57.4",
     "flag-icons": "^7.5.0",
     "lucide-react": "^0.344.0",

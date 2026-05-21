@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { fetchWithRetry } from "../_shared/rateLimiter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -73,7 +74,7 @@ Deno.serve(async (req: Request) => {
 
     for (const match of toSchedule) {
       try {
-        const resp = await fetch(orchestratorUrl, {
+        const resp = await fetchWithRetry(orchestratorUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -84,7 +85,7 @@ Deno.serve(async (req: Request) => {
             run_type: "prematch",
             triggered_by: "prematch_scheduler",
           }),
-        });
+        }, { maxRetries: 3, baseDelayMs: 1000 });
 
         if (resp.ok) {
           const data = await resp.json();
@@ -97,8 +98,8 @@ Deno.serve(async (req: Request) => {
         results.push({ match_id: match.id, status: "error", error: String(err).slice(0, 200) });
       }
 
-      // Brief pause to avoid hammering
-      await new Promise((r) => setTimeout(r, 200));
+      // Brief pause between matches to avoid hammering the orchestrator
+      await new Promise((r) => setTimeout(r, 300));
     }
 
     const scheduled = results.filter((r) => r.status === "scheduled").length;

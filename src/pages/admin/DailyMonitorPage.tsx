@@ -21,6 +21,7 @@ import {
   Radio,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { captureError, captureWarning } from '../../lib/sentry';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -2110,7 +2111,7 @@ export default function DailyMonitorPage() {
 
     const { data: rdData, error: rdErr } = await rdQuery;
     if (rdErr) {
-      console.error('[DailyMonitor] upcoming_match_readiness:', rdErr);
+      captureError(rdErr, { context: 'DailyMonitor.upcoming_match_readiness' });
       errors.push(`readiness: ${rdErr.message}`);
     }
     const rdRows = (rdData as ReadinessRow[]) ?? [];
@@ -2130,7 +2131,7 @@ export default function DailyMonitorPage() {
         .in('match_id', matchIds)
         .order('generated_at', { ascending: false });
       if (pErr) {
-        console.error('[DailyMonitor] prematch_prediction_drafts:', pErr);
+        captureError(pErr, { context: 'DailyMonitor.prematch_prediction_drafts' });
         errors.push(`predictions: ${pErr.message}`);
       }
       // Dedup by match_id — keep latest
@@ -2152,7 +2153,7 @@ export default function DailyMonitorPage() {
         .eq('status', 'completed')
         .order('generated_at', { ascending: false });
       if (runErr) {
-        console.error('[DailyMonitor] prematch_brain_runs:', runErr);
+        captureError(runErr, { context: 'DailyMonitor.prematch_brain_runs' });
         errors.push(`brain_runs: ${runErr.message}`);
       }
       for (const r of (runData as BrainRun[]) ?? []) {
@@ -2171,7 +2172,7 @@ export default function DailyMonitorPage() {
         .select('*')
         .in('brain_run_id', runIds);
       if (mbErr) {
-        console.error('[DailyMonitor] prematch_master_brain_outputs:', mbErr);
+        captureError(mbErr, { context: 'DailyMonitor.prematch_master_brain_outputs' });
         errors.push(`master_brains: ${mbErr.message}`);
       }
       mbRows = (mbData as MasterBrainRow[]) ?? [];
@@ -2188,7 +2189,7 @@ export default function DailyMonitorPage() {
       .order('evaluated_at', { ascending: false })
       .limit(50);
     if (evalErr) {
-      console.error('[DailyMonitor] replay_match_evaluations:', evalErr);
+      captureError(evalErr, { context: 'DailyMonitor.replay_match_evaluations' });
       errors.push(`evaluations: ${evalErr.message}`);
     }
     setEvals((evalData as EvalRow[]) ?? []);
@@ -2202,7 +2203,7 @@ export default function DailyMonitorPage() {
       )
       .order('competition_name');
     if (calErr) {
-      console.error('[DailyMonitor] league_calibration_state:', calErr);
+      captureError(calErr, { context: 'DailyMonitor.league_calibration_state' });
       errors.push(`calibration: ${calErr.message}`);
     }
     setCalibration((calData as CalibrationRow[]) ?? []);
@@ -2216,7 +2217,7 @@ export default function DailyMonitorPage() {
       .limit(1)
       .maybeSingle();
     if (prErr) {
-      console.error('[DailyMonitor] prematch_pipeline_runs:', prErr);
+      captureError(prErr, { context: 'DailyMonitor.prematch_pipeline_runs' });
       errors.push(`pipeline_run: ${prErr.message}`);
     }
     setPipelineRun((prData as PipelineRun) ?? null);
@@ -2259,7 +2260,7 @@ export default function DailyMonitorPage() {
       .from('prediction_evaluations')
       .select('was_correct, false_confidence, brier_score, evaluated_at');
     if (ehErr) {
-      console.error('[DailyMonitor] prediction_evaluations:', ehErr);
+      captureError(ehErr, { context: 'DailyMonitor.prediction_evaluations' });
       errors.push(`eval_health: ${ehErr.message}`);
     }
     const ehRows = (ehData as { was_correct: boolean; false_confidence: boolean; brier_score: number | null; evaluated_at: string }[]) ?? [];
@@ -2365,7 +2366,7 @@ export default function DailyMonitorPage() {
         },
       });
     } catch (enrichErr) {
-      console.warn('[DailyMonitor] enrichment_health:', enrichErr);
+      captureWarning('DailyMonitor.enrichment_health', { error: String(enrichErr) });
     }
 
     // 12. Live Engine health
@@ -2392,7 +2393,7 @@ export default function DailyMonitorPage() {
           : 0,
       });
     } catch (liveEngineErr) {
-      console.warn('[DailyMonitor] live_engine_health:', liveEngineErr);
+      captureWarning('DailyMonitor.live_engine_health', { error: String(liveEngineErr) });
     }
 
     // 13. Live Memory health
@@ -2433,7 +2434,7 @@ export default function DailyMonitorPage() {
         evaluatedFixtures: evalFixtures,
       });
     } catch (liveMemoryErr) {
-      console.warn('[DailyMonitor] live_memory_health:', liveMemoryErr);
+      captureWarning('DailyMonitor.live_memory_health', { error: String(liveMemoryErr) });
     }
 
     setQueryErrors(errors);

@@ -1,5 +1,6 @@
 import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
+import { captureError } from '../../lib/sentry';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface Props {
@@ -22,7 +23,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('[ErrorBoundary]', error, info.componentStack);
+    captureError(error, { componentStack: info.componentStack ?? undefined });
   }
 
   private handleReload = () => {
