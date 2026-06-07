@@ -32,7 +32,7 @@ function TBDTeam({ label, align = 'left' }: { label: string; align?: 'left' | 'r
     <div className={`flex-1 flex items-center gap-2 min-w-0 ${isRight ? 'justify-end' : ''}`}>
       {isRight && (
         <div className="flex flex-col items-end min-w-0">
-          <span className="text-[11px] text-readable-muted italic leading-tight truncate max-w-[90px]">{label}</span>
+          <span className="text-xs text-readable-muted italic leading-tight truncate max-w-[90px]">{label}</span>
         </div>
       )}
       <div className="w-9 h-9 rounded-lg bg-navy-800/60 border border-navy-700/60 flex items-center justify-center shrink-0">
@@ -40,7 +40,7 @@ function TBDTeam({ label, align = 'left' }: { label: string; align?: 'left' | 'r
       </div>
       {!isRight && (
         <div className="flex flex-col items-start min-w-0">
-          <span className="text-[11px] text-readable-muted italic leading-tight truncate max-w-[90px]">{label}</span>
+          <span className="text-xs text-readable-muted italic leading-tight truncate max-w-[90px]">{label}</span>
         </div>
       )}
     </div>
@@ -60,7 +60,7 @@ function TeamDisplay({ code, align = 'left' }: { code: string; align?: 'left' | 
       {isRight && (
         <div className="flex flex-col items-end min-w-0">
           <span className="text-sm font-semibold text-white truncate leading-tight">{country.name_en}</span>
-          <span className="text-[10px] text-readable-muted leading-tight truncate">{country.name_tr}</span>
+          <span className="text-[11px] text-readable-muted leading-tight truncate">{country.name_tr}</span>
         </div>
       )}
       <div
@@ -72,7 +72,7 @@ function TeamDisplay({ code, align = 'left' }: { code: string; align?: 'left' | 
       {!isRight && (
         <div className="flex flex-col items-start min-w-0">
           <span className="text-sm font-semibold text-white truncate leading-tight">{country.name_en}</span>
-          <span className="text-[10px] text-readable-muted leading-tight truncate">{country.name_tr}</span>
+          <span className="text-[11px] text-readable-muted leading-tight truncate">{country.name_tr}</span>
         </div>
       )}
     </div>

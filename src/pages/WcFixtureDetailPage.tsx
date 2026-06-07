@@ -407,7 +407,7 @@ function RiskBar({ value, label, color = 'amber' }: { value: number; label: stri
     color === 'emerald' ? 'bg-emerald-500' : 'bg-amber-400';
   return (
     <div className="flex items-center gap-2">
-      <span className="text-[10px] text-navy-400 w-24 shrink-0 leading-tight">{label}</span>
+      <span className="text-[10px] text-slate-400 w-24 shrink-0 leading-tight">{label}</span>
       <div className="flex-1 h-1.5 bg-navy-800 rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
       </div>
@@ -423,16 +423,16 @@ function TeamStrengthRow({ profile, side }: { profile: WcTeamProfile; side: 'hom
   return (
     <div className={`flex flex-col gap-1 ${isHome ? 'items-start' : 'items-end'}`}>
       <div className="flex items-center gap-1.5">
-        <span className="text-[10px] text-navy-400">ELO</span>
+        <span className="text-[10px] text-slate-400">ELO</span>
         <span className="text-sm font-bold text-white tabular-nums">{elo}</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <span className="text-[10px] text-navy-400">SI</span>
+        <span className="text-[10px] text-slate-400">SI</span>
         <span className="text-xs font-semibold text-champagne tabular-nums">{si}</span>
       </div>
       <div className="flex items-center gap-1">
         <ConfidenceDot level={profile.calibration_confidence} />
-        <span className="text-[9px] text-navy-500">{profile.calibration_confidence}</span>
+        <span className="text-[10px] text-slate-400">{profile.calibration_confidence}</span>
       </div>
     </div>
   );
@@ -568,9 +568,9 @@ function WcPredictionPanel({
         </div>
         <div className="flex items-center gap-1.5">
           <ConfidenceDot level={scenario.calibration_confidence} />
-          <span className="text-[10px] text-navy-500">{scenario.calibration_confidence}</span>
+          <span className="text-[10px] text-slate-400">{scenario.calibration_confidence}</span>
           {fmtDate && (
-            <span className="text-[10px] text-navy-600 ml-1">{fmtDate}</span>
+            <span className="text-[10px] text-slate-500 ml-1">{fmtDate}</span>
           )}
         </div>
       </div>
@@ -580,15 +580,15 @@ function WcPredictionPanel({
         <div className="flex items-end justify-between mb-2">
           <div className="text-center">
             <div className={`text-lg font-bold tabular-nums ${leading === 'home' ? 'text-champagne' : 'text-white'}`}>{hp}%</div>
-            <div className="text-[10px] text-navy-400 truncate max-w-[80px]">{homeTeamName}</div>
+            <div className="text-[10px] text-slate-300 truncate max-w-[80px]">{homeTeamName}</div>
           </div>
           <div className="text-center">
-            <div className={`text-base font-bold tabular-nums ${leading === 'draw' ? 'text-champagne/80' : 'text-navy-400'}`}>{dp}%</div>
-            <div className="text-[10px] text-navy-500">Beraberlik</div>
+            <div className={`text-base font-bold tabular-nums ${leading === 'draw' ? 'text-champagne/80' : 'text-slate-400'}`}>{dp}%</div>
+            <div className="text-[10px] text-slate-400">Beraberlik</div>
           </div>
           <div className="text-center">
             <div className={`text-lg font-bold tabular-nums ${leading === 'away' ? 'text-sky-400' : 'text-white'}`}>{ap}%</div>
-            <div className="text-[10px] text-navy-400 truncate max-w-[80px]">{awayTeamName}</div>
+            <div className="text-[10px] text-slate-300 truncate max-w-[80px]">{awayTeamName}</div>
           </div>
         </div>
         <div className="h-2 rounded-full overflow-hidden flex gap-px bg-navy-800">
@@ -609,7 +609,7 @@ function WcPredictionPanel({
 
       {/* Predicted Score */}
       <div className="flex items-center justify-center gap-4 py-2 bg-navy-800/40 rounded-lg">
-        <span className="text-[10px] text-navy-400 uppercase tracking-wider">Tahmini Skor</span>
+        <span className="text-[10px] text-slate-400 uppercase tracking-wider">Tahmini Skor</span>
         <span className="text-xl font-bold font-mono text-white tabular-nums">
           {scenario.predicted_score_home} – {scenario.predicted_score_away}
         </span>
@@ -618,17 +618,17 @@ function WcPredictionPanel({
       {/* Team Strength Comparison */}
       {(homeProfile || awayProfile) && (
         <div className="border border-navy-800/60 rounded-lg p-3">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-navy-500 mb-3 text-center">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-3 text-center">
             Güç İndeksi Karşılaştırması
           </div>
           <div className="flex items-center justify-between gap-2">
             {homeProfile ? (
               <TeamStrengthRow profile={homeProfile} side="home" />
             ) : (
-              <div className="text-xs text-navy-600">—</div>
+              <div className="text-xs text-slate-500">—</div>
             )}
             <div className="text-center">
-              <div className="text-[10px] text-navy-500 mb-1">Fark</div>
+              <div className="text-[10px] text-slate-400 mb-1">Fark</div>
               <div className={`text-sm font-bold tabular-nums ${scenario.strength_diff > 0 ? 'text-champagne' : scenario.strength_diff < 0 ? 'text-sky-400' : 'text-navy-400'}`}>
                 {scenario.strength_diff > 0 ? '+' : ''}{Math.round(scenario.strength_diff)}
               </div>
@@ -636,7 +636,7 @@ function WcPredictionPanel({
             {awayProfile ? (
               <TeamStrengthRow profile={awayProfile} side="away" />
             ) : (
-              <div className="text-xs text-navy-600">—</div>
+              <div className="text-xs text-slate-500">—</div>
             )}
           </div>
         </div>
@@ -644,7 +644,7 @@ function WcPredictionPanel({
 
       {/* WC Risk Indices */}
       <div className="space-y-2">
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-navy-500 mb-2">
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
           Turnuva Risk Endeksleri
         </div>
         <RiskBar value={scenario.late_goal_probability} label="Geç Gol Riski" color="amber" />
@@ -657,16 +657,16 @@ function WcPredictionPanel({
       {/* Tempo + Set piece */}
       <div className="grid grid-cols-2 gap-3 text-xs">
         <div className="bg-navy-800/40 rounded-lg p-2.5">
-          <div className="text-[9px] text-navy-500 uppercase tracking-wider mb-1">İlk 15 dk Tempo</div>
+          <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">İlk 15 dk Tempo</div>
           <div className="font-semibold text-white capitalize">{scenario.first_15_tempo?.toLowerCase() ?? '—'}</div>
         </div>
         <div className="bg-navy-800/40 rounded-lg p-2.5">
-          <div className="text-[9px] text-navy-500 uppercase tracking-wider mb-1">Set Piece Tehdit</div>
+          <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Set Piece Tehdit</div>
           <div className="font-semibold text-white capitalize">{scenario.set_piece_threat?.toLowerCase() ?? '—'}</div>
         </div>
       </div>
 
-      <p className="text-[10px] text-navy-600 leading-relaxed">
+      <p className="text-[10px] text-slate-500 leading-relaxed">
         Bu tahminler istatistiksel modelden üretilmiştir. Kesin sonuç iddiası taşımaz.
         Formül: ELO×0.40 + Form×0.25 + Hücum×0.15 + Savunma×0.15 + Ev Avantajı×0.05
       </p>

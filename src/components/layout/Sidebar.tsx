@@ -153,7 +153,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
           {isAdmin && (
             <div className="mt-3 pt-3 border-t border-navy-600">
               {!collapsed && (
-                <p className="px-4 mb-1.5 text-[10px] font-semibold text-navy-400 uppercase tracking-widest">
+                <p className="px-4 mb-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
                   Yönetici
                 </p>
               )}
@@ -186,7 +186,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
         {/* Daralt/genişlet butonu */}
         <button
           onClick={onToggle}
-          className="hidden lg:flex items-center justify-center h-11 border-t border-navy-600 text-navy-400 hover:text-white hover:bg-navy-600/50 transition-colors shrink-0"
+          className="hidden lg:flex items-center justify-center h-11 border-t border-navy-600 text-slate-400 hover:text-white hover:bg-navy-600/50 transition-colors shrink-0"
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>

@@ -115,10 +115,10 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div className="py-6 border-t border-navy-800 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-navy-400">
+          <p className="text-xs text-slate-400">
             &copy; {year} Next59. Tüm hakları saklıdır.
           </p>
-          <p className="text-xs text-navy-400 text-center sm:text-right max-w-md">
+          <p className="text-xs text-slate-400 text-center sm:text-right max-w-md">
             Bu platform bahis tavsiyesi vermez. İçerikler yalnızca bilgilendirme amaçlıdır.
           </p>
         </div>
