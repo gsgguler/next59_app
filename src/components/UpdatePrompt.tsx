@@ -8,9 +8,10 @@ export default function UpdatePrompt() {
   } = useRegisterSW({
     onRegisteredSW(_swUrl, registration) {
       if (registration) {
+        // Check for SW updates every 5 minutes instead of every hour
         setInterval(() => {
           registration.update();
-        }, 60 * 60 * 1000);
+        }, 5 * 60 * 1000);
       }
     },
   });
@@ -18,11 +19,7 @@ export default function UpdatePrompt() {
   if (!needRefresh) return null;
 
   function handleUpdate() {
-    // Tell the waiting SW to skip waiting, then hard-reload regardless of
-    // notification permission — avoids the browser blocking the SW message
-    // channel when notifications are denied.
     updateServiceWorker(true);
-    // Fallback: reload after a short delay in case SW message is suppressed
     setTimeout(() => window.location.reload(), 400);
   }
 
@@ -33,7 +30,7 @@ export default function UpdatePrompt() {
           <p className="text-sm font-semibold text-white">
             Yeni sürüm mevcut
           </p>
-          <p className="text-xs text-navy-400 mt-0.5">
+          <p className="text-xs text-slate-400 mt-0.5">
             En son özelliklere erişmek için güncelleyin.
           </p>
         </div>
@@ -46,7 +43,7 @@ export default function UpdatePrompt() {
         </button>
         <button
           onClick={() => setNeedRefresh(false)}
-          className="p-1.5 rounded-lg text-navy-400 hover:text-white hover:bg-navy-800 transition-colors shrink-0"
+          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-navy-800 transition-colors shrink-0"
         >
           <X className="w-4 h-4" />
         </button>
@@ -54,3 +51,4 @@ export default function UpdatePrompt() {
     </div>
   );
 }
+

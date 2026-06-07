@@ -20,6 +20,19 @@ if (isWebContainer) {
 
 precacheAndRoute(self.__WB_MANIFEST);
 
+// When the SW activates a new version, immediately claim all clients
+// so stale cached assets are never served after a new deploy.
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
+// Allow the main thread to trigger skipWaiting (called by UpdatePrompt)
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 // HTML / navigation requests: network-first so users always get the latest shell
 const htmlStrategy = new NetworkFirst({
   cacheName: 'pages-cache',
