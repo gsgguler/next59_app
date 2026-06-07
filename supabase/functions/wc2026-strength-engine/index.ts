@@ -9,7 +9,8 @@ const corsHeaders = {
 };
 
 const API_BASE = "https://v3.football.api-sports.io";
-const WC_HOST_COUNTRIES = ["US", "MX", "CA"];
+// WC 2026 host nation API-Football team IDs
+const WC_HOST_API_IDS = new Set([2384, 16, 5529]); // USA, Mexico, Canada
 
 function getSupabase() {
   return createClient(
@@ -20,81 +21,63 @@ function getSupabase() {
 
 async function callApi(
   endpoint: string,
-): Promise<{ status: number; headers: Record<string, string>; body: unknown }> {
+): Promise<{ status: number; body: unknown }> {
   const apiKey = Deno.env.get("API_FOOTBALL_KEY");
   if (!apiKey) throw new Error("API_FOOTBALL_KEY not configured");
-  const url = `${API_BASE}${endpoint}`;
   const ctrl = new AbortController();
   const timeout = setTimeout(() => ctrl.abort(), 15000);
-  const res = await fetch(url, { headers: { "x-apisports-key": apiKey }, signal: ctrl.signal });
+  const res = await fetch(`${API_BASE}${endpoint}`, {
+    headers: { "x-apisports-key": apiKey },
+    signal: ctrl.signal,
+  });
   clearTimeout(timeout);
-  const rateLimitHeaders: Record<string, string> = {};
-  for (const [key, value] of res.headers.entries()) {
-    if (key.startsWith("x-ratelimit") || key.startsWith("x-request")) {
-      rateLimitHeaders[key] = value;
-    }
-  }
   const body = await res.json();
-  return { status: res.status, headers: rateLimitHeaders, body };
+  return { status: res.status, body };
 }
 
 async function sha256(text: string): Promise<string> {
-  const data = new TextEncoder().encode(text);
-  const buf = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(buf))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
 }
 
-interface FixtureData {
-  fixture: {
-    id: number;
-    date: string;
-    venue?: { city?: string; country?: string };
-    status?: { short: string };
-  };
-  league: { id: number; name: string; country?: string; round?: string };
-  teams: {
-    home: { id: number; name: string };
-    away: { id: number; name: string };
-  };
+interface FixtureResponse {
+  fixture: { id: number; date: string; venue?: { country?: string }; status?: { short: string } };
+  league: { country?: string };
+  teams: { home: { id: number }; away: { id: number } };
   goals: { home: number | null; away: number | null };
-  score: {
-    halftime?: { home: number | null; away: number | null };
-    fulltime?: { home: number | null; away: number | null };
-  };
 }
 
-interface TeamInfo {
-  team_id: string;
-  name: string;
-  api_football_id: string;
-  country_code: string;
+interface WcFixture {
+  id: string;
+  api_football_fixture_id: number;
+  home_team_name: string;
+  away_team_name: string;
+  home_api_team_id: number;
+  away_api_team_id: number;
+  stage_code: string;
+  group_label: string | null;
+  match_date: string;
 }
 
-interface EloState {
-  rating: number;
+interface TeamStats {
+  elo: number;
   matchCount: number;
+  form5: number;
+  form10: number;
+  attackScore: number;
+  defenseScore: number;
+  winRate: number;
+  goalDiffAvg: number;
+  totalMatches: number;
   lastMatchAt: string | null;
   windowStart: string | null;
   windowEnd: string | null;
-  last5Results: number[]; // points: W=3, D=1, L=0
-  last10Results: number[];
-  goalsFor: number[];
-  goalsAgainst: number[];
-  allMatches: Array<{
-    date: string;
-    opponent_api_id: number;
-    goals_for: number;
-    goals_against: number;
-    result: "W" | "D" | "L";
-    is_home: boolean;
-    venue_country: string | null;
-  }>;
+  goalsFor: number;
+  goalsAgainst: number;
 }
 
 Deno.serve(async (req: Request) => {
@@ -102,286 +85,211 @@ Deno.serve(async (req: Request) => {
     return new Response(null, { status: 200, headers: corsHeaders });
   }
 
+  const supabase = getSupabase();
+  const log: string[] = [];
+  const errors: string[] = [];
+
+  // ═══════════════════════════════════════
+  // PHASE 0 — CREATE RUN TRACKING RECORDS
+  // ═══════════════════════════════════════
+
+  let ingestionRunId: string | null = null;
+  let calibrationRunId: string | null = null;
+
   try {
-    const supabase = getSupabase();
-    const log: string[] = [];
-    const errors: string[] = [];
-    let apiCallsUsed = 0;
-    let rowsRaw = 0;
-
-    // ═══════════════════════════════════════
-    // PHASE 1 — RAW FETCH: 48 TEAMS HISTORY
-    // ═══════════════════════════════════════
-
-    // Create ingestion run
-    const { data: run, error: runErr } = await supabase
-      .from("ingestion_runs")
+    const { data: ingRun, error: ingErr } = await supabase
+      .from("wc2026_ingestion_runs")
       .insert({
         provider_name: "api-football",
         ingestion_type: "national_team_history_strength",
-        league_code: "WC",
-        season_code: "2026",
-        status: "started",
-        metadata: {
-          description: "WC 2026 national team history fetch + strength engine",
-        },
+        run_status: "running",
+        started_at: new Date().toISOString(),
       })
       .select("id")
       .single();
 
-    if (runErr || !run) {
-      throw new Error(`Failed to create ingestion run: ${runErr?.message}`);
-    }
-    const runId = run.id;
-    log.push(`Ingestion run created: ${runId}`);
+    if (ingErr || !ingRun) throw new Error(`Ingestion run create failed: ${ingErr?.message}`);
+    ingestionRunId = ingRun.id;
+    log.push(`Ingestion run: ${ingestionRunId}`);
 
-    // Load all 48 WC teams with their API-Football IDs
-    const { data: wcTeamsRaw, error: teamsErr } = await supabase
-      .from("provider_mappings")
-      .select("internal_entity_id, provider_entity_id, provider_entity_name")
-      .eq("entity_type", "team")
-      .eq("provider_name", "api-football")
-      .eq("is_primary", true);
-
-    if (teamsErr || !wcTeamsRaw) {
-      throw new Error(`Failed to load team mappings: ${teamsErr?.message}`);
-    }
-
-    // Get WC team IDs
-    const { data: wcMatchTeams } = await supabase.rpc("", {});
-    // Instead, query WC teams directly
-    const { data: wcTeamIds } = await supabase
-      .from("matches")
-      .select("home_team_id, away_team_id, competition_season_id")
-      .eq("status", "scheduled");
-
-    // Get WC season ID
-    const { data: wcSeason } = await supabase
-      .from("competition_seasons")
+    const { data: calRun, error: calErr } = await supabase
+      .from("wc2026_calibration_runs")
+      .insert({
+        run_type: "strength_engine",
+        triggered_by: "edge_function",
+        run_status: "running",
+        data_version: "wc2026_v1",
+        started_at: new Date().toISOString(),
+      })
       .select("id")
-      .eq("season_code", "2026")
-      .maybeSingle();
+      .single();
 
-    if (!wcSeason) throw new Error("WC 2026 season not found");
+    if (calErr || !calRun) throw new Error(`Calibration run create failed: ${calErr?.message}`);
+    calibrationRunId = calRun.id;
+    log.push(`Calibration run: ${calibrationRunId}`);
 
-    const { data: wcMatches } = await supabase
-      .from("matches")
-      .select("home_team_id, away_team_id")
-      .eq("competition_season_id", wcSeason.id);
+    // ═══════════════════════════════════════
+    // PHASE 1 — LOAD WC FIXTURES + TEAMS
+    // ═══════════════════════════════════════
 
-    const wcTeamIdSet = new Set<string>();
-    for (const m of wcMatches ?? []) {
-      wcTeamIdSet.add(m.home_team_id);
-      wcTeamIdSet.add(m.away_team_id);
-    }
+    const { data: wcFixtures, error: fixturesErr } = await supabase
+      .from("wc2026_fixtures")
+      .select("id, api_football_fixture_id, home_team_name, away_team_name, home_api_team_id, away_api_team_id, stage_code, group_label, match_date")
+      .eq("fixture_status", "verified_official")
+      .order("match_date");
 
-    // Get team details
-    const { data: teamDetails } = await supabase
-      .from("teams")
-      .select("id, name, country_code, team_type")
-      .in("id", [...wcTeamIdSet]);
+    if (fixturesErr || !wcFixtures) throw new Error(`Failed to load WC fixtures: ${fixturesErr?.message}`);
+    log.push(`Verified official fixtures: ${wcFixtures.length}`);
 
-    const teamMap = new Map<string, TeamInfo>();
-    for (const t of teamDetails ?? []) {
-      const mapping = wcTeamsRaw.find((m) => m.internal_entity_id === t.id);
-      if (mapping) {
-        teamMap.set(t.id, {
-          team_id: t.id,
-          name: t.name,
-          api_football_id: mapping.provider_entity_id,
-          country_code: t.country_code,
-        });
+    // Collect unique API team IDs and build name map from fixtures
+    const apiTeamIds = new Set<number>();
+    const apiIdToName = new Map<number, string>();
+    for (const f of wcFixtures as WcFixture[]) {
+      if (f.home_api_team_id) {
+        apiTeamIds.add(f.home_api_team_id);
+        apiIdToName.set(f.home_api_team_id, f.home_team_name);
+      }
+      if (f.away_api_team_id) {
+        apiTeamIds.add(f.away_api_team_id);
+        apiIdToName.set(f.away_api_team_id, f.away_team_name);
       }
     }
 
-    log.push(`WC teams with API-Football mappings: ${teamMap.size}`);
+    log.push(`Unique WC teams: ${apiTeamIds.size}`);
 
-    if (teamMap.size < 48) {
-      errors.push(`Expected 48 teams, found ${teamMap.size} with mappings`);
+    // Look up internal team UUIDs for strength_ratings upsert (best-effort)
+    const { data: teamRows } = await supabase
+      .from("teams")
+      .select("id, api_football_id, name")
+      .in("api_football_id", [...apiTeamIds]);
+
+    const apiIdToUuid = new Map<number, { id: string; name: string }>();
+    for (const t of teamRows ?? []) {
+      apiIdToUuid.set(t.api_football_id, { id: t.id, name: t.name });
     }
+    log.push(`Teams with internal UUIDs: ${apiIdToUuid.size}`);
 
-    // Fetch last 30 fixtures for each team
-    const teamFixtures = new Map<string, FixtureData[]>();
-    const failedTeams: string[] = [];
+    // ═══════════════════════════════════════
+    // PHASE 2 — FETCH LAST 30 FIXTURES PER TEAM
+    // ═══════════════════════════════════════
 
-    for (const [teamId, info] of teamMap) {
+    let apiCallsUsed = 0;
+    let rowsRaw = 0;
+    const failedTeams: number[] = [];
+
+    // team_id (API int) → list of finished fixtures
+    const teamFixtures = new Map<number, FixtureResponse[]>();
+
+    for (const apiTeamId of apiTeamIds) {
       try {
-        const res = await callApi(`/fixtures?team=${info.api_football_id}&last=30`);
+        const res = await callApi(`/fixtures?team=${apiTeamId}&last=30`);
         apiCallsUsed++;
 
         const resJson = JSON.stringify(res.body);
         const resHash = await sha256(resJson);
 
-        // Store raw response
         const { error: rawErr } = await supabase
-          .from("api_football_raw_responses")
+          .from("wc2026_api_football_raw_responses")
           .insert({
             endpoint: "/fixtures",
-            request_params: { team: parseInt(info.api_football_id), last: 30 },
+            request_params: { team: apiTeamId, last: 30 },
             provider_entity_type: "fixture_list",
-            provider_entity_id: `team_${info.api_football_id}_last30`,
+            provider_entity_id: `team_${apiTeamId}_last30`,
             response_hash: resHash,
             response_json: res.body,
             http_status: res.status,
             fetched_at: new Date().toISOString(),
-            season_code: "multi",
-            league_code: "INT",
-            ingestion_run_id: runId,
             transform_status: "pending",
+            ingestion_run_id: ingestionRunId,
           });
 
-        if (rawErr) {
-          if (rawErr.code === "23505") {
-            rowsRaw++;
-          } else {
-            errors.push(`Raw store ${info.name}: ${rawErr.message}`);
-          }
+        if (rawErr && rawErr.code !== "23505") {
+          errors.push(`Raw store team ${apiTeamId}: ${rawErr.message}`);
         } else {
           rowsRaw++;
         }
 
-        // Extract finished fixtures
-        const body = res.body as { response?: FixtureData[]; results?: number };
-        const fixtures = (body?.response ?? []).filter(
-          (f) => f.fixture?.status?.short === "FT" &&
-            f.goals?.home !== null &&
-            f.goals?.away !== null,
+        const body = res.body as { response?: FixtureResponse[] };
+        const finished = (body?.response ?? []).filter(
+          (f) => f.fixture?.status?.short === "FT" && f.goals?.home !== null && f.goals?.away !== null,
         );
-        teamFixtures.set(teamId, fixtures);
-      } catch (fetchErr) {
-        failedTeams.push(info.name);
-        errors.push(`Fetch ${info.name}: ${(fetchErr as Error).message}`);
-        teamFixtures.set(teamId, []);
+        teamFixtures.set(apiTeamId, finished);
+      } catch (err) {
+        failedTeams.push(apiTeamId);
+        errors.push(`Fetch team ${apiTeamId}: ${(err as Error).message}`);
+        teamFixtures.set(apiTeamId, []);
       }
     }
 
-    log.push(`API calls used: ${apiCallsUsed}`);
-    log.push(`Raw rows stored: ${rowsRaw}`);
-    log.push(`Failed teams: ${failedTeams.length}`);
+    log.push(`API calls: ${apiCallsUsed} | Raw rows: ${rowsRaw} | Failed: ${failedTeams.length}`);
+
+    // Update ingestion run with raw fetch stats
+    await supabase
+      .from("wc2026_ingestion_runs")
+      .update({ api_calls_used: apiCallsUsed, rows_raw: rowsRaw })
+      .eq("id", ingestionRunId);
 
     // ═══════════════════════════════════════
-    // PHASE 2 — ELO COMPUTATION
+    // PHASE 3 — ELO COMPUTATION (chronological)
     // ═══════════════════════════════════════
 
-    // Collect ALL unique matches across all 48 teams, deduplicate by fixture.id
-    const allMatchesMap = new Map<number, { fixture: FixtureData; date: string }>();
+    // Deduplicate all matches across all teams, sort by date
+    const allMatchesMap = new Map<number, FixtureResponse>();
     for (const [, fixtures] of teamFixtures) {
       for (const f of fixtures) {
-        if (!allMatchesMap.has(f.fixture.id)) {
-          allMatchesMap.set(f.fixture.id, {
-            fixture: f,
-            date: f.fixture.date,
-          });
-        }
+        if (!allMatchesMap.has(f.fixture.id)) allMatchesMap.set(f.fixture.id, f);
       }
     }
 
-    // Sort all matches by date ascending for chronological Elo processing
     const sortedMatches = [...allMatchesMap.values()].sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+      (a, b) => new Date(a.fixture.date).getTime() - new Date(b.fixture.date).getTime(),
     );
+    log.push(`Unique historical fixtures for ELO: ${sortedMatches.length}`);
 
-    log.push(`Total unique fixtures across all teams: ${sortedMatches.length}`);
-
-    // Initialize Elo state for all teams (keyed by API-Football team ID)
     const eloByApiId = new Map<number, number>();
     const matchCountByApiId = new Map<number, number>();
-
-    // Build reverse lookup: API-Football ID -> internal team_id
-    const apiIdToInternal = new Map<number, string>();
-    for (const [teamId, info] of teamMap) {
-      const apiId = parseInt(info.api_football_id);
+    for (const apiId of apiTeamIds) {
       eloByApiId.set(apiId, 1500);
       matchCountByApiId.set(apiId, 0);
-      apiIdToInternal.set(apiId, teamId);
     }
 
-    // K factor
     const K = 30;
+    for (const f of sortedMatches) {
+      const hId = f.teams.home.id;
+      const aId = f.teams.away.id;
+      const hG = f.goals.home!;
+      const aG = f.goals.away!;
 
-    // Process matches chronologically
-    for (const { fixture: f } of sortedMatches) {
-      const homeApiId = f.teams.home.id;
-      const awayApiId = f.teams.away.id;
-      const homeGoals = f.goals.home!;
-      const awayGoals = f.goals.away!;
+      const hR = eloByApiId.get(hId) ?? 1500;
+      const aR = eloByApiId.get(aId) ?? 1500;
 
-      // Get current ratings (default 1500 for teams not in our set)
-      const homeRating = eloByApiId.get(homeApiId) ?? 1500;
-      const awayRating = eloByApiId.get(awayApiId) ?? 1500;
+      // Home advantage only if venue country matches league country (neutral venue otherwise)
+      const venueC = f.fixture.venue?.country?.toLowerCase() ?? "";
+      const leagueC = f.league?.country?.toLowerCase() ?? "";
+      const homeAdv = venueC && leagueC && venueC === leagueC ? 60 : 0;
 
-      // Home advantage: +60 if not neutral venue
-      // For international matches, most are neutral or away
-      // Simple heuristic: if venue country matches home team country, apply home advantage
-      let homeAdv = 0;
-      const venueCountry = f.fixture.venue?.country?.toLowerCase() ?? "";
-      const homeCountry = f.league?.country?.toLowerCase() ?? "";
-      // Keep it simple: international matches are mostly neutral
-      // Only apply home advantage if fixture is clearly a home match
-      // (venue country matches the home team's league country)
-      if (venueCountry && homeCountry && venueCountry === homeCountry) {
-        homeAdv = 60;
+      const eH = 1 / (1 + Math.pow(10, (aR - (hR + homeAdv)) / 400));
+      const sH = hG > aG ? 1 : hG === aG ? 0.5 : 0;
+      const sA = 1 - sH;
+
+      if (eloByApiId.has(hId)) {
+        eloByApiId.set(hId, hR + K * (sH - eH));
+        matchCountByApiId.set(hId, (matchCountByApiId.get(hId) ?? 0) + 1);
       }
-
-      // Expected scores
-      const eHome = 1 / (1 + Math.pow(10, (awayRating - (homeRating + homeAdv)) / 400));
-      const eAway = 1 - eHome;
-
-      // Actual scores
-      let sHome: number;
-      let sAway: number;
-      if (homeGoals > awayGoals) {
-        sHome = 1;
-        sAway = 0;
-      } else if (homeGoals === awayGoals) {
-        sHome = 0.5;
-        sAway = 0.5;
-      } else {
-        sHome = 0;
-        sAway = 1;
-      }
-
-      // Update ratings only for teams in our WC set
-      if (eloByApiId.has(homeApiId)) {
-        const newRating = homeRating + K * (sHome - eHome);
-        eloByApiId.set(homeApiId, newRating);
-        matchCountByApiId.set(homeApiId, (matchCountByApiId.get(homeApiId) ?? 0) + 1);
-      }
-      if (eloByApiId.has(awayApiId)) {
-        const newRating = awayRating + K * (sAway - eAway);
-        eloByApiId.set(awayApiId, newRating);
-        matchCountByApiId.set(awayApiId, (matchCountByApiId.get(awayApiId) ?? 0) + 1);
+      if (eloByApiId.has(aId)) {
+        eloByApiId.set(aId, aR + K * (sA - (1 - eH)));
+        matchCountByApiId.set(aId, (matchCountByApiId.get(aId) ?? 0) + 1);
       }
     }
 
     // ═══════════════════════════════════════
-    // PHASE 2B — FORM + ATTACK + DEFENSE per team
+    // PHASE 4 — PER-TEAM STATS + STRENGTH INDEX
     // ═══════════════════════════════════════
 
-    // Build per-team stats from their specific fixture lists
-    const teamStats = new Map<
-      string,
-      {
-        elo: number;
-        matchCount: number;
-        form5: number;
-        form10: number;
-        attackScore: number;
-        defenseScore: number;
-        lastMatchAt: string | null;
-        windowStart: string | null;
-        windowEnd: string | null;
-        goalsFor: number;
-        goalsAgainst: number;
-        totalMatches: number;
-      }
-    >();
+    const teamStats = new Map<number, TeamStats>();
 
-    for (const [teamId, info] of teamMap) {
-      const apiId = parseInt(info.api_football_id);
-      const fixtures = teamFixtures.get(teamId) ?? [];
-
-      // Sort by date descending for form calculation
+    for (const apiTeamId of apiTeamIds) {
+      const fixtures = teamFixtures.get(apiTeamId) ?? [];
       const sorted = [...fixtures].sort(
         (a, b) => new Date(b.fixture.date).getTime() - new Date(a.fixture.date).getTime(),
       );
@@ -389,15 +297,15 @@ Deno.serve(async (req: Request) => {
       const results: number[] = [];
       let totalGF = 0;
       let totalGA = 0;
+      let wins = 0;
 
       for (const f of sorted) {
-        const isHome = f.teams.home.id === apiId;
+        const isHome = f.teams.home.id === apiTeamId;
         const gf = isHome ? f.goals.home! : f.goals.away!;
         const ga = isHome ? f.goals.away! : f.goals.home!;
         totalGF += gf;
         totalGA += ga;
-
-        if (gf > ga) results.push(3);
+        if (gf > ga) { results.push(3); wins++; }
         else if (gf === ga) results.push(1);
         else results.push(0);
       }
@@ -406,78 +314,109 @@ Deno.serve(async (req: Request) => {
       const last10 = results.slice(0, 10);
       const form5 = last5.length > 0 ? last5.reduce((a, b) => a + b, 0) / (last5.length * 3) : 0;
       const form10 = last10.length > 0 ? last10.reduce((a, b) => a + b, 0) / (last10.length * 3) : 0;
-
-      const matchCount = matchCountByApiId.get(apiId) ?? 0;
+      const matchCount = matchCountByApiId.get(apiTeamId) ?? 0;
       const avgGF = sorted.length > 0 ? totalGF / sorted.length : 0;
       const avgGA = sorted.length > 0 ? totalGA / sorted.length : 0;
-
-      // Attack score: goals per match (higher = better)
-      const attackScore = avgGF;
-      // Defense score: inverse of goals conceded (higher = better defense)
-      // Use 2.0 - avgGA clamped to [0, 2] so that a team conceding 0/match = 2.0, conceding 2/match = 0
-      const defenseScore = clamp(2.0 - avgGA, 0, 2.0);
-
+      const winRate = sorted.length > 0 ? wins / sorted.length : 0;
+      const goalDiffAvg = sorted.length > 0 ? (totalGF - totalGA) / sorted.length : 0;
       const dates = sorted.map((f) => f.fixture.date);
-      const lastMatchAt = dates.length > 0 ? dates[0] : null;
-      const windowStart = dates.length > 0 ? dates[dates.length - 1] : null;
-      const windowEnd = dates.length > 0 ? dates[0] : null;
 
-      teamStats.set(teamId, {
-        elo: eloByApiId.get(apiId) ?? 1500,
+      teamStats.set(apiTeamId, {
+        elo: eloByApiId.get(apiTeamId) ?? 1500,
         matchCount,
         form5: parseFloat(form5.toFixed(3)),
         form10: parseFloat(form10.toFixed(3)),
-        attackScore: parseFloat(attackScore.toFixed(3)),
-        defenseScore: parseFloat(defenseScore.toFixed(3)),
-        lastMatchAt,
-        windowStart,
-        windowEnd,
+        attackScore: parseFloat(avgGF.toFixed(3)),
+        defenseScore: parseFloat(clamp(2.0 - avgGA, 0, 2.0).toFixed(3)),
+        winRate: parseFloat(winRate.toFixed(3)),
+        goalDiffAvg: parseFloat(goalDiffAvg.toFixed(3)),
+        totalMatches: sorted.length,
+        lastMatchAt: dates[0] ?? null,
+        windowStart: dates[dates.length - 1] ?? null,
+        windowEnd: dates[0] ?? null,
         goalsFor: totalGF,
         goalsAgainst: totalGA,
-        totalMatches: sorted.length,
       });
     }
 
-    // ═══════════════════════════════════════
-    // PHASE 3 — VENUE BRAIN
-    // ═══════════════════════════════════════
-
-    // Host teams get positive venue_score
-    const venueScores = new Map<string, number>();
-    for (const [teamId, info] of teamMap) {
-      if (WC_HOST_COUNTRIES.includes(info.country_code)) {
-        venueScores.set(teamId, 0.1);
-      } else {
-        venueScores.set(teamId, 0.0);
-      }
+    // Compute strength index (same weighted formula)
+    function strengthIndex(apiTeamId: number): number {
+      const s = teamStats.get(apiTeamId);
+      if (!s) return 750;
+      const venueBonus = WC_HOST_API_IDS.has(apiTeamId) ? 0.1 : 0.0;
+      return (
+        s.elo * 0.40 +
+        s.form5 * 1500 * 0.25 +
+        s.attackScore * 750 * 0.15 +
+        s.defenseScore * 750 * 0.15 +
+        venueBonus * 1500 * 0.05
+      );
     }
 
     // ═══════════════════════════════════════
-    // PHASE 4 — CONFIDENCE + UPSERT RATINGS
+    // PHASE 5 — UPSERT TEAM CALIBRATION PROFILES
     // ═══════════════════════════════════════
 
+    let teamProfilesInserted = 0;
+
+    for (const [apiTeamId, stats] of teamStats) {
+      const teamName = apiIdToUuid.get(apiTeamId)?.name ?? apiIdToName.get(apiTeamId) ?? `Team ${apiTeamId}`;
+
+      const si = strengthIndex(apiTeamId);
+      const normalizedSI = parseFloat((si / 1500).toFixed(4));
+
+      let confLabel: string;
+      if (stats.matchCount >= 20) confLabel = "high";
+      else if (stats.matchCount >= 10) confLabel = "medium";
+      else if (stats.matchCount >= 5) confLabel = "low";
+      else confLabel = "insufficient";
+
+      const { error: tcpErr } = await supabase
+        .from("wc2026_team_calibration_profiles")
+        .insert({
+          calibration_run_id: calibrationRunId,
+          api_football_team_id: apiTeamId,
+          team_name: teamName,
+          recent_matches_available: stats.matchCount,
+          recent_win_rate: stats.winRate,
+          recent_goal_diff_avg: stats.goalDiffAvg,
+          form_data_source: "api-football",
+          historical_elo_rating: parseFloat(stats.elo.toFixed(2)),
+          wc2026_team_strength_index: normalizedSI,
+          wc2026_scenario_confidence: stats.matchCount >= 10 ? 0.70 : stats.matchCount >= 5 ? 0.50 : 0.30,
+          wc2026_late_goal_risk: clamp(0.30 + (2.0 - stats.defenseScore) * 0.10, 0.10, 0.70),
+          wc2026_chaos_probability: clamp(0.25 + (1.0 - stats.form5) * 0.20, 0.10, 0.60),
+          wc2026_fatigue_risk: 0.30, // default; updated post-group stage
+          calibration_confidence: confLabel,
+          calibration_formula_version: "strength_engine_v1",
+          calibrated_at: new Date().toISOString(),
+          data_coverage_flags: { has_recent_form: stats.totalMatches >= 5, elo_calculated: stats.matchCount > 0 },
+        });
+
+      if (tcpErr) {
+        errors.push(`Team profile ${apiTeamId}: ${tcpErr.message}`);
+      } else {
+        teamProfilesInserted++;
+      }
+    }
+
+    log.push(`Team calibration profiles inserted: ${teamProfilesInserted}`);
+
+    // Also upsert team_strength_ratings for teams with internal UUIDs
     let ratingsUpserted = 0;
+    for (const [apiTeamId, stats] of teamStats) {
+      const internal = apiIdToUuid.get(apiTeamId);
+      if (!internal) continue;
 
-    for (const [teamId, stats] of teamStats) {
-      const info = teamMap.get(teamId)!;
-      const venue = venueScores.get(teamId) ?? 0;
+      const venueScore = WC_HOST_API_IDS.has(apiTeamId) ? 0.1 : 0.0;
+      const matchCount = stats.matchCount;
+      const confidence = matchCount >= 20 ? 0.85 : matchCount >= 15 ? 0.75 : matchCount >= 10 ? 0.60 : matchCount >= 5 ? 0.45 : matchCount >= 1 ? 0.25 : 0.10;
 
-      // Confidence calculation
-      let confidence: number;
-      if (stats.matchCount >= 20) confidence = 0.85;
-      else if (stats.matchCount >= 15) confidence = 0.75;
-      else if (stats.matchCount >= 10) confidence = 0.60;
-      else if (stats.matchCount >= 5) confidence = 0.45;
-      else if (stats.matchCount >= 1) confidence = 0.25;
-      else confidence = 0.10;
-
-      confidence = clamp(confidence, 0.10, 1.00);
-
-      const { error: upsertErr } = await supabase
+      const { error: srErr } = await supabase
         .from("team_strength_ratings")
         .upsert(
           {
-            team_id: teamId,
+            team_id: internal.id,
             provider_name: "api-football",
             rating_scope: "national_team_recent",
             rating_version: "wc2026_v1",
@@ -486,411 +425,236 @@ Deno.serve(async (req: Request) => {
             attack_score: stats.attackScore,
             defense_score: stats.defenseScore,
             market_score: null,
-            venue_score: venue,
-            match_count: stats.matchCount,
+            venue_score: venueScore,
+            match_count: matchCount,
             last_match_at: stats.lastMatchAt,
             data_window_start: stats.windowStart ? stats.windowStart.substring(0, 10) : null,
             data_window_end: stats.windowEnd ? stats.windowEnd.substring(0, 10) : null,
-            confidence_score: confidence,
+            confidence_score: clamp(confidence, 0.10, 1.00),
             metadata: {
-              source: "api-football-international",
-              ingestion_run_id: runId,
-              total_matches_considered: stats.totalMatches,
+              ingestion_run_id: ingestionRunId,
+              calibration_run_id: calibrationRunId,
               goals_for: stats.goalsFor,
               goals_against: stats.goalsAgainst,
+              win_rate: stats.winRate,
               form_last_10: stats.form10,
-              is_host: WC_HOST_COUNTRIES.includes(info.country_code),
+              is_host: WC_HOST_API_IDS.has(apiTeamId),
             },
             updated_at: new Date().toISOString(),
           },
           { onConflict: "team_id,provider_name,rating_scope,rating_version" },
         );
 
-      if (upsertErr) {
-        errors.push(`Rating upsert ${info.name}: ${upsertErr.message}`);
-      } else {
-        ratingsUpserted++;
-      }
+      if (srErr) errors.push(`Strength rating ${apiTeamId}: ${srErr.message}`);
+      else ratingsUpserted++;
     }
 
-    log.push(`Ratings upserted: ${ratingsUpserted}`);
+    log.push(`Strength ratings upserted: ${ratingsUpserted}`);
 
     // ═══════════════════════════════════════
-    // PHASE 5 — REGENERATE WC PREDICTIONS
+    // PHASE 6 — MATCH SCENARIO CALIBRATION
     // ═══════════════════════════════════════
 
-    // Load all 72 WC matches
-    const { data: wcMatchList, error: wcMatchErr } = await supabase
-      .from("matches")
-      .select(`
-        id, home_team_id, away_team_id, kickoff_at, matchweek,
-        is_neutral_venue, competition_season_id, round_name,
-        home_team:teams!matches_home_team_id_fkey(name),
-        away_team:teams!matches_away_team_id_fkey(name)
-      `)
-      .eq("competition_season_id", wcSeason.id)
-      .eq("status", "scheduled")
-      .order("kickoff_at");
-
-    if (wcMatchErr || !wcMatchList) {
-      throw new Error(`Failed to load WC matches: ${wcMatchErr?.message}`);
-    }
-
-    log.push(`WC matches to predict: ${wcMatchList.length}`);
-
-    // Check for existing predictions to handle versioning
-    const { data: existingPreds } = await supabase
-      .from("predictions")
-      .select("id, match_id, version, model_version")
-      .eq("is_current", true)
-      .in(
-        "match_id",
-        wcMatchList.map((m) => m.id),
-      );
-
-    const existingPredMap = new Map<string, { id: string; version: number; model_version: string }>();
-    for (const p of existingPreds ?? []) {
-      existingPredMap.set(p.match_id, { id: p.id, version: p.version, model_version: p.model_version });
-    }
-
-    let predictionsCreated = 0;
-    let predictionsSuperseded = 0;
+    let scenariosInserted = 0;
     const samplePredictions: unknown[] = [];
 
-    for (const match of wcMatchList) {
-      const homeStats = teamStats.get(match.home_team_id);
-      const awayStats = teamStats.get(match.away_team_id);
-      const homeName = (match.home_team as unknown as { name: string })?.name ?? "Home";
-      const awayName = (match.away_team as unknown as { name: string })?.name ?? "Away";
+    for (const fixture of wcFixtures as WcFixture[]) {
+      const hId = fixture.home_api_team_id;
+      const aId = fixture.away_api_team_id;
 
-      if (!homeStats || !awayStats) {
-        errors.push(`Missing stats for ${homeName} vs ${awayName}`);
+      if (!hId || !aId) {
+        errors.push(`Fixture ${fixture.api_football_fixture_id}: missing team IDs`);
         continue;
       }
 
-      const homeVenue = venueScores.get(match.home_team_id) ?? 0;
-      const awayVenue = venueScores.get(match.away_team_id) ?? 0;
+      const hStats = teamStats.get(hId);
+      const aStats = teamStats.get(aId);
 
-      // Weighted strength blend
-      const homeStrength =
-        homeStats.elo * 0.40 +
-        homeStats.form5 * 1500 * 0.25 + // scale form to Elo range
-        homeStats.attackScore * 750 * 0.15 +
-        homeStats.defenseScore * 750 * 0.15 +
-        homeVenue * 1500 * 0.05;
+      const hSI = strengthIndex(hId);
+      const aSI = strengthIndex(aId);
+      const siDiff = hSI - aSI;
 
-      const awayStrength =
-        awayStats.elo * 0.40 +
-        awayStats.form5 * 1500 * 0.25 +
-        awayStats.attackScore * 750 * 0.15 +
-        awayStats.defenseScore * 750 * 0.15 +
-        awayVenue * 1500 * 0.05;
+      // 1X2 probabilities from strength difference
+      let rawH = 0.33 + (siDiff / 400) * 0.15;
+      let rawA = 0.33 + (-siDiff / 400) * 0.15;
+      let rawD = 1.0 - rawH - rawA;
+      rawH = Math.max(rawH, 0.10);
+      rawA = Math.max(rawA, 0.10);
+      rawD = Math.max(rawD, 0.10);
+      const tot = rawH + rawD + rawA;
+      const pHome = parseFloat((rawH / tot).toFixed(3));
+      const pDraw = parseFloat((rawD / tot).toFixed(3));
+      const pAway = parseFloat((rawA / tot).toFixed(3));
 
-      // Convert strength difference to 1X2 probabilities
-      const strengthDiff = homeStrength - awayStrength;
+      // Predicted score based on attack/defense
+      const hAttack = hStats?.attackScore ?? 1.2;
+      const aAttack = aStats?.attackScore ?? 1.2;
+      const hDef = hStats?.defenseScore ?? 1.0;
+      const aDef = aStats?.defenseScore ?? 1.0;
+      const predictedHome = Math.round(clamp(hAttack * (2.0 - aDef) * 0.7, 0, 5));
+      const predictedAway = Math.round(clamp(aAttack * (2.0 - hDef) * 0.7, 0, 5));
 
-      let rawHome = 0.33 + (strengthDiff / 400) * 0.15;
-      let rawAway = 0.33 + (-strengthDiff / 400) * 0.15;
-      let rawDraw = 1.0 - rawHome - rawAway;
+      // Confidence based on data availability
+      const hCount = hStats?.matchCount ?? 0;
+      const aCount = aStats?.matchCount ?? 0;
+      const minCount = Math.min(hCount, aCount);
+      const confLabel = minCount >= 15 ? "high" : minCount >= 8 ? "medium" : "low";
+      const scenarioConf = minCount >= 15 ? 0.75 : minCount >= 8 ? 0.55 : 0.35;
 
-      // Neutral venue: no home advantage (all WC matches are neutral)
-      // Already accounted for in the base calculation
+      // WC-specific indices
+      const hForm = hStats?.form5 ?? 0.5;
+      const aForm = aStats?.form5 ?? 0.5;
+      const lateGoalRisk = parseFloat(clamp(0.30 + (2.0 - (hDef + aDef) / 2) * 0.15, 0.15, 0.65).toFixed(3));
+      const chaosProbability = parseFloat(clamp(0.25 + (Math.abs(pHome - pAway) < 0.10 ? 0.15 : 0), 0.10, 0.60).toFixed(3));
+      const fatigueRisk = 0.25; // base; increases in KO rounds
 
-      // Clamp minimums
-      rawHome = Math.max(rawHome, 0.10);
-      rawAway = Math.max(rawAway, 0.10);
-      rawDraw = Math.max(rawDraw, 0.10);
+      const missingWarnings: string[] = [];
+      if (hCount < 5) missingWarnings.push(`home_low_history:${fixture.home_team_name}`);
+      if (aCount < 5) missingWarnings.push(`away_low_history:${fixture.away_team_name}`);
 
-      // Normalize to sum=1
-      const total = rawHome + rawDraw + rawAway;
-      const homeProb = parseFloat((rawHome / total).toFixed(3));
-      const drawProb = parseFloat((rawDraw / total).toFixed(3));
-      const awayProb = parseFloat((rawAway / total).toFixed(3));
-
-      // Over 2.5
-      let over25Base = (homeStats.attackScore + awayStats.attackScore) / 4.0;
-      // Adjust by defense (poor defense = more goals)
-      over25Base += (2.0 - homeStats.defenseScore) * 0.05;
-      over25Base += (2.0 - awayStats.defenseScore) * 0.05;
-      const over25Prob = clamp(parseFloat(over25Base.toFixed(3)), 0.20, 0.80);
-
-      // BTTS
-      let bttsBase = 0.45;
-      bttsBase += (homeStats.attackScore + awayStats.attackScore - homeStats.defenseScore - awayStats.defenseScore) * 0.02;
-      // Both teams scoring relates to attack strength and opponent's defensive weakness
-      bttsBase += (homeStats.attackScore > 1.0 ? 0.05 : 0) + (awayStats.attackScore > 1.0 ? 0.05 : 0);
-      const bttsProb = clamp(parseFloat(bttsBase.toFixed(3)), 0.20, 0.80);
-
-      // Confidence
-      let conf = 0.50;
-      if (homeStats.matchCount >= 10 && awayStats.matchCount >= 10) conf += 0.10;
-      if (homeStats.matchCount >= 20 && awayStats.matchCount >= 20) conf += 0.10;
-      if (Math.abs(homeStats.elo - awayStats.elo) > 200) conf += 0.05;
-      if (homeStats.matchCount < 3 || awayStats.matchCount < 3) conf -= 0.10;
-      if (homeStats.matchCount < 8 || awayStats.matchCount < 8) conf -= 0.05;
-      conf = clamp(parseFloat(conf.toFixed(2)), 0.20, 0.95);
-
-      const confLabel = conf >= 0.70 ? "high" : conf >= 0.50 ? "medium" : "low";
-
-      // Data quality penalty
-      let dqp = 0;
-      if (homeStats.matchCount < 5) dqp += 0.3;
-      if (awayStats.matchCount < 5) dqp += 0.3;
-      if (homeStats.matchCount < 10) dqp += 0.1;
-      if (awayStats.matchCount < 10) dqp += 0.1;
-      dqp = clamp(dqp, 0, 1);
-
-      const missingFlags: string[] = [];
-      if (homeStats.matchCount < 5) missingFlags.push("home_low_history");
-      if (awayStats.matchCount < 5) missingFlags.push("away_low_history");
-
-      const modelOutputRaw = {
-        "1x2_home": homeProb,
-        "1x2_draw": drawProb,
-        "1x2_away": awayProb,
-        over_2_5: over25Prob,
-        btts_yes: bttsProb,
-      };
-
-      const headlineProb = Math.max(homeProb, drawProb, awayProb);
-
-      const featureSnapshot = {
-        home_team: homeName,
-        away_team: awayName,
-        home_elo: parseFloat(homeStats.elo.toFixed(2)),
-        away_elo: parseFloat(awayStats.elo.toFixed(2)),
-        elo_diff: parseFloat((homeStats.elo - awayStats.elo).toFixed(2)),
-        home_form5: homeStats.form5,
-        away_form5: awayStats.form5,
-        home_attack: homeStats.attackScore,
-        away_attack: awayStats.attackScore,
-        home_defense: homeStats.defenseScore,
-        away_defense: awayStats.defenseScore,
-        home_venue: homeVenue,
-        away_venue: awayVenue,
-        home_match_count: homeStats.matchCount,
-        away_match_count: awayStats.matchCount,
-        strength_diff: parseFloat(strengthDiff.toFixed(2)),
-      };
-
-      // Generate statement
-      let outcome: string;
-      if (homeProb > drawProb && homeProb > awayProb) {
-        outcome = homeProb > 0.45 ? `${homeName} are clear favorites` : `${homeName} have a slight edge`;
-      } else if (awayProb > drawProb && awayProb > homeProb) {
-        outcome = awayProb > 0.45 ? `${awayName} are clear favorites` : `${awayName} have a slight edge`;
-      } else {
-        outcome = "An evenly matched contest expected";
-      }
-      const goalNote = over25Prob > 0.55 ? "with goals expected" : over25Prob < 0.35 ? "in a likely tight affair" : "with moderate goal expectation";
-      const bttsNote = bttsProb > 0.55 ? " Both sides likely to score." : "";
-      const statement = `${outcome} ${goalNote}.${bttsNote}`;
-
-      const contentForHash = JSON.stringify({
-        match_id: match.id,
-        model_version: "wc2026_strength_v1",
-        predictions: modelOutputRaw,
-      });
-      const contentHash = await sha256(contentForHash);
-
-      // Handle idempotency / versioning
-      const existing = existingPredMap.get(match.id);
-
-      if (existing) {
-        const newVersion = existing.version + 1;
-        const cassandraCode = `STR-${homeName.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, "X")}-${awayName.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, "X")}-v${newVersion}-${match.id.substring(0, 4)}`;
-
-        const { data: newPred, error: insertErr } = await supabase
-          .from("predictions")
-          .insert({
-            match_id: match.id,
-            version: newVersion,
-            is_current: true,
-            supersedes: existing.id,
-            cassandra_code: cassandraCode,
-            statement,
-            probability: parseFloat(headlineProb.toFixed(3)),
-            confidence_label: confLabel,
-            category: "pre_match",
-            model_version: "wc2026_strength_v1",
-            model_input_features: featureSnapshot,
-            model_output_raw: modelOutputRaw,
-            content_hash: contentHash,
-            hash_algorithm: "sha-256",
-            hash_input_fields: ["match_id", "model_version", "predictions"],
-            access_level: "free",
-            data_quality_penalty: dqp,
-            missing_data_flags: missingFlags,
-            generation_source: "ensemble_model",
-            generated_by_function: "wc2026-strength-engine",
-          })
-          .select("id")
-          .single();
-
-        if (insertErr) {
-          errors.push(`Predict ${homeName} vs ${awayName}: ${insertErr.message}`);
-          continue;
-        }
-
-        // Mark old as superseded
-        await supabase
-          .from("predictions")
-          .update({
-            is_current: false,
-            superseded_at: new Date().toISOString(),
-            superseded_by: newPred!.id,
-          })
-          .eq("id", existing.id);
-
-        predictionsSuperseded++;
-        predictionsCreated++;
-      } else {
-        // New prediction (no existing)
-        const cassandraCode = `STR-${homeName.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, "X")}-${awayName.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, "X")}-v1-${match.id.substring(0, 4)}`;
-
-        const { error: insertErr } = await supabase
-          .from("predictions")
-          .insert({
-            match_id: match.id,
-            version: 1,
-            is_current: true,
-            supersedes: null,
-            cassandra_code: cassandraCode,
-            statement,
-            probability: parseFloat(headlineProb.toFixed(3)),
-            confidence_label: confLabel,
-            category: "pre_match",
-            model_version: "wc2026_strength_v1",
-            model_input_features: featureSnapshot,
-            model_output_raw: modelOutputRaw,
-            content_hash: contentHash,
-            hash_algorithm: "sha-256",
-            hash_input_fields: ["match_id", "model_version", "predictions"],
-            access_level: "free",
-            data_quality_penalty: dqp,
-            missing_data_flags: missingFlags,
-            generation_source: "ensemble_model",
-            generated_by_function: "wc2026-strength-engine",
-          });
-
-        if (insertErr) {
-          errors.push(`Predict ${homeName} vs ${awayName}: ${insertErr.message}`);
-          continue;
-        }
-        predictionsCreated++;
-      }
-
-      if (samplePredictions.length < 5) {
-        samplePredictions.push({
-          match: `${homeName} vs ${awayName}`,
-          home_elo: parseFloat(homeStats.elo.toFixed(1)),
-          away_elo: parseFloat(awayStats.elo.toFixed(1)),
-          elo_diff: parseFloat((homeStats.elo - awayStats.elo).toFixed(1)),
-          predictions: modelOutputRaw,
-          confidence: conf,
-          confidence_label: confLabel,
+      const { error: scErr } = await supabase
+        .from("wc2026_match_scenario_calibration")
+        .insert({
+          calibration_run_id: calibrationRunId,
+          api_football_fixture_id: fixture.api_football_fixture_id,
+          home_team_name: fixture.home_team_name,
+          away_team_name: fixture.away_team_name,
+          stage_code: fixture.stage_code,
+          group_label: fixture.group_label,
+          home_team_strength_index: parseFloat(hSI.toFixed(2)),
+          away_team_strength_index: parseFloat(aSI.toFixed(2)),
+          strength_diff: parseFloat(siDiff.toFixed(2)),
+          home_win_probability: pHome,
+          draw_probability: pDraw,
+          away_win_probability: pAway,
+          predicted_score_home: predictedHome,
+          predicted_score_away: predictedAway,
+          first_15_tempo: hForm > 0.65 || aForm > 0.65 ? "high" : "medium",
+          first_15_pressure: parseFloat(clamp((hForm + aForm) / 2, 0.20, 0.80).toFixed(3)),
+          first_half_pressure_dominant: hSI > aSI ? fixture.home_team_name : fixture.away_team_name,
+          first_half_goal_probability: parseFloat(clamp(0.35 + (hAttack + aAttack) * 0.05, 0.20, 0.70).toFixed(3)),
+          first_half_card_risk: Math.abs(siDiff) > 200 ? "medium" : "low",
+          second_half_fatigue_factor: parseFloat(fatigueRisk.toFixed(3)),
+          second_half_momentum_shift_risk: parseFloat(clamp(0.25 + (1.0 - scenarioConf) * 0.20, 0.10, 0.55).toFixed(3)),
+          late_game_chaos_score: chaosProbability,
+          late_goal_probability: lateGoalRisk,
+          late_card_risk: lateGoalRisk > 0.45 ? "high" : "medium",
+          comeback_probability: parseFloat(clamp(0.15 + (1.0 - Math.abs(pHome - pAway)) * 0.10, 0.05, 0.40).toFixed(3)),
+          set_piece_threat: hAttack + aAttack > 2.5 ? "high" : "medium",
+          wc2026_scenario_confidence: parseFloat(scenarioConf.toFixed(3)),
+          wc2026_late_goal_risk: lateGoalRisk,
+          wc2026_chaos_probability: chaosProbability,
+          wc2026_fatigue_risk: parseFloat(fatigueRisk.toFixed(3)),
+          calibration_confidence: confLabel,
+          missing_data_warnings: missingWarnings.length > 0 ? missingWarnings : [],
+          calibration_formula_version: "strength_engine_v1",
+          calibrated_at: new Date().toISOString(),
         });
+
+      if (scErr) {
+        errors.push(`Scenario ${fixture.home_team_name} vs ${fixture.away_team_name}: ${scErr.message}`);
+      } else {
+        scenariosInserted++;
+        if (samplePredictions.length < 5) {
+          samplePredictions.push({
+            fixture: `${fixture.home_team_name} vs ${fixture.away_team_name}`,
+            date: fixture.match_date?.substring(0, 10),
+            stage: fixture.stage_code,
+            home_si: parseFloat(hSI.toFixed(1)),
+            away_si: parseFloat(aSI.toFixed(1)),
+            probs: { home: pHome, draw: pDraw, away: pAway },
+            predicted_score: `${predictedHome}-${predictedAway}`,
+            confidence: confLabel,
+          });
+        }
       }
     }
 
-    log.push(`Predictions created: ${predictionsCreated}`);
-    log.push(`Predictions superseded (old versions): ${predictionsSuperseded}`);
+    log.push(`Match scenarios inserted: ${scenariosInserted}`);
 
     // ═══════════════════════════════════════
-    // PHASE 6 — UPDATE INGESTION RUN
+    // PHASE 7 — FINALIZE RUN RECORDS
     // ═══════════════════════════════════════
 
-    const finalStatus = errors.length > 0 ? "completed_with_errors" : "completed";
+    const finalStatus = errors.length > 0 ? "partial_error" : "completed";
+    const errorSummary = errors.length > 0 ? errors.slice(0, 20).join("; ") : null;
+
     await supabase
-      .from("ingestion_runs")
+      .from("wc2026_ingestion_runs")
       .update({
-        status: finalStatus,
+        run_status: finalStatus,
         completed_at: new Date().toISOString(),
-        api_calls_used: apiCallsUsed,
-        rows_raw: rowsRaw,
-        rows_transformed: ratingsUpserted,
-        rows_failed: errors.length,
-        error_summary: errors.length > 0 ? { errors: errors.slice(0, 50) } : null,
-        metadata: {
-          description: "WC 2026 national team history fetch + strength engine",
-          ratings_upserted: ratingsUpserted,
-          predictions_created: predictionsCreated,
-          predictions_superseded: predictionsSuperseded,
-          unique_fixtures: sortedMatches.length,
-          failed_teams: failedTeams,
-        },
+        rows_transformed: teamProfilesInserted,
+        error_summary: errorSummary,
       })
-      .eq("id", runId);
+      .eq("id", ingestionRunId);
 
-    // Build top/bottom Elo rankings
+    await supabase
+      .from("wc2026_calibration_runs")
+      .update({
+        run_status: finalStatus,
+        completed_at: new Date().toISOString(),
+        teams_processed: apiTeamIds.size,
+        teams_updated: teamProfilesInserted,
+        teams_skipped: apiTeamIds.size - teamProfilesInserted,
+        matches_processed: scenariosInserted,
+        error_summary: errorSummary,
+      })
+      .eq("id", calibrationRunId);
+
+    // Build ELO rankings
     const rankings = [...teamStats.entries()]
-      .map(([id, s]) => ({
-        name: teamMap.get(id)!.name,
+      .map(([apiId, s]) => ({
+        api_id: apiId,
+        name: apiIdToUuid.get(apiId)?.name ?? apiIdToName.get(apiId) ?? `Team ${apiId}`,
         elo: parseFloat(s.elo.toFixed(1)),
-        matchCount: s.matchCount,
         form5: s.form5,
-        attack: s.attackScore,
-        defense: s.defenseScore,
+        match_count: s.matchCount,
+        strength_index: parseFloat(strengthIndex(apiId).toFixed(1)),
       }))
-      .sort((a, b) => b.elo - a.elo);
+      .sort((a, b) => b.strength_index - a.strength_index);
 
-    const report = {
-      status: finalStatus === "completed" ? "GO" : "CONDITIONAL",
-      ingestion_run_id: runId,
-      phase1_raw_fetch: {
-        api_calls_used: apiCallsUsed,
-        raw_rows_stored: rowsRaw,
-        failed_teams: failedTeams,
-        total_unique_fixtures: sortedMatches.length,
-        date_range: sortedMatches.length > 0
-          ? {
-              earliest: sortedMatches[0].date.substring(0, 10),
-              latest: sortedMatches[sortedMatches.length - 1].date.substring(0, 10),
-            }
-          : null,
-      },
-      phase2_elo: {
-        rating_system: "Elo K=30, initial=1500, home_adv=60",
-        top_10: rankings.slice(0, 10),
-        bottom_10: rankings.slice(-10),
-        match_count_distribution: {
-          min: Math.min(...rankings.map((r) => r.matchCount)),
-          max: Math.max(...rankings.map((r) => r.matchCount)),
-          avg: parseFloat(
-            (rankings.reduce((s, r) => s + r.matchCount, 0) / rankings.length).toFixed(1),
-          ),
-        },
-      },
-      phase3_ratings: {
-        rows_upserted: ratingsUpserted,
-        rating_version: "wc2026_v1",
-        confidence_distribution: {
-          high: rankings.filter((r) => r.matchCount >= 20).length,
-          medium: rankings.filter((r) => r.matchCount >= 10 && r.matchCount < 20).length,
-          low: rankings.filter((r) => r.matchCount >= 5 && r.matchCount < 10).length,
-          insufficient: rankings.filter((r) => r.matchCount < 5).length,
-        },
-      },
-      phase4_predictions: {
-        predictions_created: predictionsCreated,
-        predictions_superseded: predictionsSuperseded,
-        model_version: "wc2026_strength_v1",
-        sample_predictions: samplePredictions,
-      },
-      errors: errors.slice(0, 20),
-      log,
-    };
-
-    return new Response(JSON.stringify(report, null, 2), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (err) {
     return new Response(
-      JSON.stringify({ error: (err as Error).message, stack: (err as Error).stack }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+      JSON.stringify(
+        {
+          status: finalStatus === "completed" ? "GO" : "CONDITIONAL",
+          ingestion_run_id: ingestionRunId,
+          calibration_run_id: calibrationRunId,
+          summary: {
+            wc_fixtures_loaded: (wcFixtures as WcFixture[]).length,
+            unique_teams: apiTeamIds.size,
+            api_calls_used: apiCallsUsed,
+            failed_teams: failedTeams.length,
+            unique_historical_fixtures: sortedMatches.length,
+            team_profiles_inserted: teamProfilesInserted,
+            strength_ratings_upserted: ratingsUpserted,
+            match_scenarios_inserted: scenariosInserted,
+          },
+          top_10: rankings.slice(0, 10),
+          bottom_5: rankings.slice(-5),
+          sample_predictions: samplePredictions,
+          errors: errors.slice(0, 20),
+          log,
+        },
+        null,
+        2,
+      ),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  } catch (err) {
+    const message = (err as Error).message;
+
+    // Best-effort: mark runs as failed
+    if (ingestionRunId) {
+      await supabase.from("wc2026_ingestion_runs").update({ run_status: "failed", error_summary: message, completed_at: new Date().toISOString() }).eq("id", ingestionRunId);
+    }
+    if (calibrationRunId) {
+      await supabase.from("wc2026_calibration_runs").update({ run_status: "failed", error_summary: message, completed_at: new Date().toISOString() }).eq("id", calibrationRunId);
+    }
+
+    return new Response(
+      JSON.stringify({ error: message, log, errors }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });
