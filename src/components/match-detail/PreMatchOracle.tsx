@@ -53,11 +53,11 @@ export default function PreMatchOracle({ match }: { match: UIMatch }) {
             <span className="text-sm font-semibold text-emerald-400">CANLI</span>
           </div>
           <div className="w-12 h-12 rounded-full bg-navy-800 border border-navy-700/60 flex items-center justify-center">
-            <Radio className="w-6 h-6 text-navy-400" />
+            <Radio className="w-6 h-6 text-slate-400" />
           </div>
           <div>
             <p className="text-sm font-semibold text-white mb-1">Canlı Veri Bekleniyor</p>
-            <p className="text-xs text-navy-400 max-w-xs leading-relaxed">
+            <p className="text-xs text-slate-400 max-w-xs leading-relaxed">
               Maç canlı devam ediyor. Bu maç için ön analiz yayınlanmamıştı.
             </p>
           </div>
@@ -68,11 +68,11 @@ export default function PreMatchOracle({ match }: { match: UIMatch }) {
     return (
       <div className="py-12 flex flex-col items-center justify-center text-center gap-4">
         <div className="w-12 h-12 rounded-full bg-navy-800 border border-navy-700/60 flex items-center justify-center">
-          <Clock className="w-6 h-6 text-navy-400" />
+          <Clock className="w-6 h-6 text-slate-400" />
         </div>
         <div>
           <p className="text-sm font-semibold text-white mb-1">Analiz Henüz Hazır Değil</p>
-          <p className="text-xs text-navy-400 max-w-xs leading-relaxed">
+          <p className="text-xs text-slate-400 max-w-xs leading-relaxed">
             Bu maç için veri analizi hazırlanıyor. Maç tarihine yakın tekrar kontrol edin.
           </p>
         </div>
@@ -85,8 +85,8 @@ export default function PreMatchOracle({ match }: { match: UIMatch }) {
       {/* Disclaimer banner */}
       <div className="mb-5 flex items-start gap-2.5 bg-navy-800/60 border border-navy-700/40 rounded-xl px-4 py-3">
         <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
-        <p className="text-[11px] text-navy-400 leading-relaxed">
-          <span className="font-semibold text-navy-300">Veri Senaryosu — Kesin Sonuç Değildir.</span>{' '}
+        <p className="text-xs text-slate-300 leading-relaxed">
+          <span className="font-semibold text-slate-100">Veri Senaryosu — Kesin Sonuç Değildir.</span>{' '}
           Bu analiz istatistiksel modelden üretilmiştir; bahis tavsiyesi veya garanti niteliği taşımaz.
         </p>
       </div>
@@ -106,7 +106,7 @@ export default function PreMatchOracle({ match }: { match: UIMatch }) {
 
       {/* Probability bar */}
       <div className="mb-6 p-4 bg-navy-900/60 border border-navy-800 rounded-xl">
-        <div className="flex items-center justify-between text-xs text-navy-400 mb-2">
+        <div className="flex items-center justify-between text-xs text-slate-300 mb-2">
           <span>{match.home_team.short_name}</span>
           <span>Beraberlik</span>
           <span>{match.away_team.short_name}</span>
@@ -130,17 +130,17 @@ export default function PreMatchOracle({ match }: { match: UIMatch }) {
         </div>
         <div className="flex items-center justify-between text-xs font-mono font-semibold mt-1.5 tabular-nums">
           <span className="text-champagne">{(p.home_prob * 100).toFixed(0)}%</span>
-          <span className="text-readable-muted">{(p.draw_prob * 100).toFixed(0)}%</span>
-          <span className="text-navy-300">{(p.away_prob * 100).toFixed(0)}%</span>
+          <span className="text-slate-400">{(p.draw_prob * 100).toFixed(0)}%</span>
+          <span className="text-slate-300">{(p.away_prob * 100).toFixed(0)}%</span>
         </div>
       </div>
 
       {/* Narrative sections — blanked for live state */}
       {isLive ? (
         <div className="bg-navy-900/40 border border-navy-800/60 rounded-xl p-6 text-center">
-          <Radio className="w-6 h-6 text-navy-600 mx-auto mb-3" />
-          <p className="text-sm font-semibold text-navy-300 mb-1">Canlı Veri Bekleniyor</p>
-          <p className="text-xs text-navy-500 max-w-xs mx-auto leading-relaxed">
+          <Radio className="w-6 h-6 text-slate-500 mx-auto mb-3" />
+          <p className="text-sm font-semibold text-slate-200 mb-1">Canlı Veri Bekleniyor</p>
+          <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
             Maç devam ederken senaryolar kilitlidir. Maç bitince sonuçlar burada görünecek.
           </p>
         </div>
@@ -168,7 +168,7 @@ export default function PreMatchOracle({ match }: { match: UIMatch }) {
       {isFinished && (
         <div className="mt-6 p-4 bg-navy-900/60 border border-navy-800 rounded-xl">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-navy-400 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
               Model Başarısı
             </span>
             <span className="text-sm font-mono font-bold text-champagne tabular-nums">
@@ -178,7 +178,7 @@ export default function PreMatchOracle({ match }: { match: UIMatch }) {
           <div className="h-2 rounded-full bg-navy-800 overflow-hidden">
             <div className="h-full w-0 bg-emerald-500 rounded-full transition-all" />
           </div>
-          <p className="text-[10px] text-readable-muted mt-1.5">
+          <p className="text-xs text-slate-400 mt-1.5">
             Maç sonuçları doğrulandıktan sonra güncellenir.
           </p>
         </div>

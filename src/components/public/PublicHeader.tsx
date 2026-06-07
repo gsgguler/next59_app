@@ -92,7 +92,7 @@ function DropdownNavItem({ item }: { item: NavItem }) {
         end={item.to === '/'}
         className={({ isActive: a }) =>
           `relative text-sm font-medium px-3 py-2 rounded-lg transition-all ${
-            a ? 'text-champagne' : 'text-navy-300 hover:text-white hover:bg-navy-800/50'
+            a ? 'text-champagne' : 'text-slate-300 hover:text-white hover:bg-navy-800/50'
           }`
         }
       >
@@ -113,7 +113,7 @@ function DropdownNavItem({ item }: { item: NavItem }) {
         className={`relative flex items-center gap-1 text-sm font-medium px-3 py-2 rounded-lg transition-all ${
           isActive
             ? 'text-champagne'
-            : 'text-navy-300 hover:text-white hover:bg-navy-800/50'
+            : 'text-slate-300 hover:text-white hover:bg-navy-800/50'
         }`}
       >
         {item.label}
@@ -131,7 +131,7 @@ function DropdownNavItem({ item }: { item: NavItem }) {
               className={`block px-4 py-2.5 text-sm transition-colors ${
                 location.pathname === child.to
                   ? 'text-champagne bg-navy-800/60'
-                  : 'text-navy-300 hover:text-white hover:bg-navy-800/60'
+                  : 'text-slate-300 hover:text-white hover:bg-navy-800/60'
               }`}
             >
               {child.label}
@@ -160,7 +160,7 @@ function MobileNavItem({
       <Link
         to={item.to}
         onClick={onClose}
-        className="block text-sm font-medium text-navy-300 hover:text-white px-3 py-3 rounded-lg hover:bg-navy-800/50 transition-colors"
+        className="block text-sm font-medium text-slate-300 hover:text-white px-3 py-3 rounded-lg hover:bg-navy-800/50 transition-colors"
       >
         {item.label}
       </Link>
@@ -171,7 +171,7 @@ function MobileNavItem({
     <div>
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between text-sm font-medium text-navy-300 hover:text-white px-3 py-3 rounded-lg hover:bg-navy-800/50 transition-colors"
+        className="w-full flex items-center justify-between text-sm font-medium text-slate-300 hover:text-white px-3 py-3 rounded-lg hover:bg-navy-800/50 transition-colors"
       >
         {item.label}
         <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
@@ -186,7 +186,7 @@ function MobileNavItem({
               className={`block text-sm py-2 px-2 rounded-lg transition-colors ${
                 location.pathname === child.to
                   ? 'text-champagne'
-                  : 'text-navy-400 hover:text-white hover:bg-navy-800/40'
+                  : 'text-slate-300 hover:text-white hover:bg-navy-800/40'
               }`}
             >
               {child.label}
@@ -310,20 +310,20 @@ export default function PublicHeader() {
                         <p className="text-sm font-medium text-white truncate">
                           {profile?.display_name ?? 'Kullanıcı'}
                         </p>
-                        <p className="text-xs text-navy-400 truncate mt-0.5">{user.email}</p>
+                        <p className="text-xs text-slate-400 truncate mt-0.5">{user.email}</p>
                       </div>
                       <div className="py-1">
                         <Link
                           to="/profile"
                           onClick={() => setDropdownOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-navy-300 hover:text-white hover:bg-navy-800/60 transition-colors"
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-navy-800/60 transition-colors"
                         >
                           <User className="w-4 h-4" />
                           Profil
                         </Link>
                         <button
                           onClick={() => { setDropdownOpen(false); signOut(); }}
-                          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-navy-300 hover:text-red-400 hover:bg-navy-800/60 transition-colors"
+                          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-300 hover:text-red-400 hover:bg-navy-800/60 transition-colors"
                         >
                           <LogOut className="w-4 h-4" />
                           Çıkış Yap
@@ -384,14 +384,14 @@ export default function PublicHeader() {
                   <Link
                     to="/profile"
                     onClick={() => setMobileOpen(false)}
-                    className="flex items-center gap-2.5 text-sm text-navy-300 hover:text-white px-3 py-2.5 rounded-lg hover:bg-navy-800/50 transition-colors"
+                    className="flex items-center gap-2.5 text-sm text-slate-300 hover:text-white px-3 py-2.5 rounded-lg hover:bg-navy-800/50 transition-colors"
                   >
                     <User className="w-4 h-4" />
                     Profil
                   </Link>
                   <button
                     onClick={() => { setMobileOpen(false); signOut(); }}
-                    className="w-full flex items-center gap-2.5 text-sm text-navy-300 hover:text-red-400 px-3 py-2.5 rounded-lg hover:bg-navy-800/50 transition-colors"
+                    className="w-full flex items-center gap-2.5 text-sm text-slate-300 hover:text-red-400 px-3 py-2.5 rounded-lg hover:bg-navy-800/50 transition-colors"
                   >
                     <LogOut className="w-4 h-4" />
                     Çıkış Yap

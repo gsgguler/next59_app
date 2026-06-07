@@ -32,7 +32,7 @@ function TBDTeam({ label, align = 'left' }: { label: string; align?: 'left' | 'r
     <div className={`flex-1 flex items-center gap-2 min-w-0 ${isRight ? 'justify-end' : ''}`}>
       {isRight && (
         <div className="flex flex-col items-end min-w-0">
-          <span className="text-xs text-readable-muted italic leading-tight truncate max-w-[90px]">{label}</span>
+          <span className="text-xs text-slate-400 italic leading-tight truncate max-w-[90px]">{label}</span>
         </div>
       )}
       <div className="w-9 h-9 rounded-lg bg-navy-800/60 border border-navy-700/60 flex items-center justify-center shrink-0">
@@ -40,7 +40,7 @@ function TBDTeam({ label, align = 'left' }: { label: string; align?: 'left' | 'r
       </div>
       {!isRight && (
         <div className="flex flex-col items-start min-w-0">
-          <span className="text-xs text-readable-muted italic leading-tight truncate max-w-[90px]">{label}</span>
+          <span className="text-xs text-slate-400 italic leading-tight truncate max-w-[90px]">{label}</span>
         </div>
       )}
     </div>
@@ -60,7 +60,7 @@ function TeamDisplay({ code, align = 'left' }: { code: string; align?: 'left' | 
       {isRight && (
         <div className="flex flex-col items-end min-w-0">
           <span className="text-sm font-semibold text-white truncate leading-tight">{country.name_en}</span>
-          <span className="text-[11px] text-readable-muted leading-tight truncate">{country.name_tr}</span>
+          <span className="text-xs text-slate-400 leading-tight truncate">{country.name_tr}</span>
         </div>
       )}
       <div
@@ -72,7 +72,7 @@ function TeamDisplay({ code, align = 'left' }: { code: string; align?: 'left' | 
       {!isRight && (
         <div className="flex flex-col items-start min-w-0">
           <span className="text-sm font-semibold text-white truncate leading-tight">{country.name_en}</span>
-          <span className="text-[11px] text-readable-muted leading-tight truncate">{country.name_tr}</span>
+          <span className="text-xs text-slate-400 leading-tight truncate">{country.name_tr}</span>
         </div>
       )}
     </div>
@@ -91,7 +91,8 @@ function ProbBar({ scenario }: { scenario: WcScenarioData }) {
 
   return (
     <div className="mt-3 pt-3 border-t border-navy-800/60">
-      <div className="h-1.5 rounded-full overflow-hidden flex gap-px bg-navy-800">
+      <p className="text-xs text-slate-500 mb-2">Model senaryosu <span className="text-slate-600">— bahis tavsiyesi değil</span></p>
+      <div className="h-2 rounded-full overflow-hidden flex gap-px bg-navy-800">
         <div
           className={`rounded-l-full transition-all ${leading === 'home' ? 'bg-champagne' : 'bg-navy-600'}`}
           style={{ width: `${hp}%` }}
@@ -105,15 +106,15 @@ function ProbBar({ scenario }: { scenario: WcScenarioData }) {
           style={{ width: `${ap}%` }}
         />
       </div>
-      <div className="flex items-center justify-between mt-1.5 text-[10px] font-mono tabular-nums">
-        <span className={leading === 'home' ? 'text-champagne font-semibold' : 'text-navy-400'}>
-          {hp}%
+      <div className="flex items-center justify-between mt-1.5 text-xs font-mono tabular-nums">
+        <span className={leading === 'home' ? 'text-champagne font-semibold' : 'text-slate-400'}>
+          {hp}% Ev
         </span>
-        <span className={leading === 'draw' ? 'text-champagne/70 font-semibold' : 'text-navy-500'}>
-          {dp}% X
+        <span className={leading === 'draw' ? 'text-champagne/70 font-semibold' : 'text-slate-500'}>
+          {dp}% Ber.
         </span>
-        <span className={leading === 'away' ? 'text-sky-400 font-semibold' : 'text-navy-400'}>
-          {ap}%
+        <span className={leading === 'away' ? 'text-sky-400 font-semibold' : 'text-slate-400'}>
+          {ap}% Dep.
         </span>
       </div>
     </div>
@@ -148,11 +149,11 @@ export function WC2026FixtureCard({
     >
       {/* Stage + match no */}
       <div className="flex items-center justify-between mb-3">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-champagne/70">
+        <span className="text-xs font-semibold uppercase tracking-wider text-champagne/90">
           {groupLabel ? `${stageLabel} — ${groupLabel}` : stageLabel}
         </span>
         <div className="flex items-center gap-1.5">
-          <span className="text-[10px] font-mono text-readable-muted">#{fixture.match_no}</span>
+          <span className="text-xs font-mono text-slate-400">#{fixture.match_no}</span>
           <ChevronRight className="w-3 h-3 text-navy-600 group-hover:text-champagne/60 transition-colors" />
         </div>
       </div>
@@ -166,7 +167,7 @@ export function WC2026FixtureCard({
         )}
 
         <div className="flex flex-col items-center px-1.5 shrink-0">
-          <span className="text-[10px] font-bold tracking-widest text-champagne/50 uppercase">VS</span>
+          <span className="text-xs font-bold tracking-widest text-champagne/70 uppercase">VS</span>
         </div>
 
         {isTBD ? (
@@ -180,17 +181,17 @@ export function WC2026FixtureCard({
       <div className="h-px bg-navy-800 my-3" />
 
       {/* Venue meta */}
-      <div className="flex items-start justify-between gap-2 text-[11px] text-readable-muted">
+      <div className="flex items-start justify-between gap-2 text-xs text-slate-300">
         <div className="flex items-start gap-1 min-w-0">
-          <MapPin className="w-3 h-3 text-readable-muted shrink-0 mt-px" />
+          <MapPin className="w-3 h-3 text-slate-400 shrink-0 mt-px" />
           <div className="min-w-0">
             {venue ? (
               <>
-                <span className="text-readable-muted">{venue.country_tr} · {venue.city_display}</span>
-                <span className="block text-readable-muted/70 truncate">
+                <span className="text-slate-300">{venue.country_tr} · {venue.city_display}</span>
+                <span className="block text-slate-400 truncate">
                   {fixture.venue}
                   {venue.capacity ? (
-                    <span className="text-readable-muted/50"> · {venue.capacity.toLocaleString('tr-TR')} kişi</span>
+                    <span className="text-slate-500"> · {venue.capacity.toLocaleString('tr-TR')} kişi</span>
                   ) : null}
                 </span>
               </>
@@ -199,7 +200,7 @@ export function WC2026FixtureCard({
             )}
           </div>
         </div>
-        <div className="shrink-0 tabular-nums text-readable-subtle font-medium">{trTime}</div>
+        <div className="shrink-0 tabular-nums text-slate-300 font-semibold">{trTime}</div>
       </div>
 
       {/* Prediction probability bar */}

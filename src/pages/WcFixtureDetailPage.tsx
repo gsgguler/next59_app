@@ -96,8 +96,8 @@ function TeamPastWC({ teamCode, teamNameEn }: { teamCode: string; teamNameEn: st
   if (matches.length === 0) return (
     <div className="text-center py-8">
       <Globe className="w-8 h-8 mx-auto mb-2 text-navy-700"/>
-      <p className="text-sm text-navy-400">Dünya Kupası geçmiş kaydı bulunamadı.</p>
-      <p className="text-xs text-navy-400 mt-1">({dbName} olarak arandı)</p>
+      <p className="text-sm text-slate-300">Dünya Kupası geçmiş kaydı bulunamadı.</p>
+      <p className="text-xs text-slate-500 mt-1">({dbName} olarak arandı)</p>
     </div>
   );
 
@@ -118,13 +118,13 @@ function TeamPastWC({ teamCode, teamNameEn }: { teamCode: string; teamNameEn: st
       <div className="flex gap-3 mb-4">
         {[
           { label: 'Galibiyet', val: totalG, cls: 'text-emerald-400' },
-          { label: 'Beraberlik', val: totalB, cls: 'text-navy-300' },
+          { label: 'Beraberlik', val: totalB, cls: 'text-slate-300' },
           { label: 'Mağlubiyet', val: totalM, cls: 'text-red-400' },
           { label: 'Toplam', val: matches.length, cls: 'text-champagne' },
         ].map(s => (
           <div key={s.label} className="flex-1 text-center bg-navy-900/60 border border-navy-800 rounded-lg py-2">
             <p className={`text-lg font-black ${s.cls}`}>{s.val}</p>
-            <p className="text-[10px] text-navy-400">{s.label}</p>
+            <p className="text-xs text-slate-400">{s.label}</p>
           </div>
         ))}
       </div>
@@ -133,7 +133,7 @@ function TeamPastWC({ teamCode, teamNameEn }: { teamCode: string; teamNameEn: st
       <div className="space-y-4">
         {[...byEdition.entries()].sort((a, b) => b[0] - a[0]).map(([year, ems]) => (
           <div key={year}>
-            <p className="text-xs font-bold text-navy-400 uppercase tracking-wider mb-1.5 px-0.5">{year} Dünya Kupası</p>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 px-0.5">{year} Dünya Kupası</p>
             <div className="space-y-1">
               {ems.sort((a, b) => stageOrder(a.stage_code) - stageOrder(b.stage_code)).map((m) => {
                 const isHome = m.home_team_name === dbName;
@@ -154,11 +154,11 @@ function TeamPastWC({ teamCode, teamNameEn }: { teamCode: string; teamNameEn: st
                     <span className={`shrink-0 w-5 h-5 rounded text-xs font-bold flex items-center justify-center border ${outcomeClass}`}>
                       {!winner ? 'B' : winner === dbName ? 'G' : 'M'}
                     </span>
-                    <span className="text-xs text-navy-400 shrink-0 w-14">{STAGE_LABELS[m.stage_code] ?? m.stage_code}</span>
-                    <span className="flex-1 text-xs text-navy-200 truncate">{isHome ? '(Ev) ' : '(Dep) '}{opponent}</span>
+                    <span className="text-xs text-slate-400 shrink-0 w-14">{STAGE_LABELS[m.stage_code] ?? m.stage_code}</span>
+                    <span className="flex-1 text-xs text-slate-200 truncate">{isHome ? '(Ev) ' : '(Dep) '}{opponent}</span>
                     <div className="shrink-0 flex items-center gap-1">
                       <span className="text-xs font-bold text-white tabular-nums">{teamScore ?? '?'}–{oppScore ?? '?'}</span>
-                      {badge && <span className="text-[9px] text-champagne/70">{badge}</span>}
+                      {badge && <span className="text-xs text-champagne/80 font-medium">{badge === 'PEN' ? 'Pen.' : 'Uzatma'}</span>}
                     </div>
                     <ChevronRight className="w-3 h-3 text-navy-700 group-hover:text-champagne transition-colors shrink-0"/>
                   </Link>
@@ -216,8 +216,8 @@ function H2HPastWC({ homeCode, awayCode, homeName, awayName }: {
   if (meetings.length === 0) return (
     <div className="text-center py-8">
       <Swords className="w-8 h-8 mx-auto mb-2 text-navy-700"/>
-      <p className="text-sm text-navy-400">Bu iki takım daha önce Dünya Kupası'nda karşılaşmamış.</p>
-      <p className="text-xs text-navy-400 mt-1">({hn} vs {an})</p>
+      <p className="text-sm text-slate-300">Bu iki takım daha önce Dünya Kupası'nda karşılaşmamış.</p>
+      <p className="text-xs text-slate-500 mt-1">({hn} vs {an})</p>
     </div>
   );
 
@@ -235,9 +235,9 @@ function H2HPastWC({ homeCode, awayCode, homeName, awayName }: {
           <p className="text-2xl font-black text-champagne">{hnWins}</p>
         </div>
         <div className="px-4 text-center">
-          <p className="text-xs text-navy-400 mb-0.5">Karşılaşma</p>
-          <p className="text-xl font-black text-navy-300">{meetings.length}</p>
-          <p className="text-xs text-navy-400 mt-0.5">Beraberlik: {draws}</p>
+          <p className="text-xs text-slate-400 mb-0.5">Karşılaşma</p>
+          <p className="text-xl font-black text-slate-200">{meetings.length}</p>
+          <p className="text-xs text-slate-400 mt-0.5">Beraberlik: {draws}</p>
         </div>
         <div className="flex-1 text-left">
           <p className="text-sm font-bold text-white">{awayName}</p>
@@ -255,16 +255,16 @@ function H2HPastWC({ homeCode, awayCode, homeName, awayName }: {
             <Link key={m.id} to={`/world-cup/tarihce/mac/${m.id}`}
               className="flex items-center gap-3 px-3 py-2.5 bg-navy-900/60 border border-navy-800 rounded-lg hover:border-navy-600 hover:bg-navy-900 transition-colors group"
             >
-              <span className="text-xs font-bold text-navy-400 shrink-0 w-8">{m.edition_year}</span>
-              <span className="text-xs text-navy-400 shrink-0 w-16">{STAGE_LABELS[m.stage_code] ?? m.stage_code}</span>
-              <span className={`flex-1 text-xs text-right truncate ${winner === m.home_team_name ? 'text-white font-semibold' : 'text-navy-400'}`}>
+              <span className="text-xs font-bold text-slate-300 shrink-0 w-8">{m.edition_year}</span>
+              <span className="text-xs text-slate-400 shrink-0 w-16">{STAGE_LABELS[m.stage_code] ?? m.stage_code}</span>
+              <span className={`flex-1 text-xs text-right truncate ${winner === m.home_team_name ? 'text-white font-semibold' : 'text-slate-400'}`}>
                 {m.home_team_name}
               </span>
               <div className="shrink-0 flex flex-col items-center min-w-[52px]">
                 <span className="text-xs font-bold text-white tabular-nums">{homeScore ?? '?'}–{awayScore ?? '?'}</span>
-                {badge && <span className="text-[9px] text-champagne/70">{badge}</span>}
+                {badge && <span className="text-xs text-champagne/80 font-medium">{badge === 'PEN' ? 'Pen.' : 'Uzatma'}</span>}
               </div>
-              <span className={`flex-1 text-xs truncate ${winner === m.away_team_name ? 'text-white font-semibold' : 'text-navy-400'}`}>
+              <span className={`flex-1 text-xs truncate ${winner === m.away_team_name ? 'text-white font-semibold' : 'text-slate-400'}`}>
                 {m.away_team_name}
               </span>
               <ChevronRight className="w-3 h-3 text-navy-700 group-hover:text-champagne transition-colors shrink-0"/>
@@ -288,7 +288,7 @@ function GroupContext({ fixture, allFixtures }: { fixture: WC2026Fixture; allFix
 
   return (
     <div>
-      <p className="text-xs font-bold uppercase tracking-wider text-navy-400 mb-3">Grup {fixture.group} Fikstürü</p>
+      <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Grup {fixture.group} Fikstürü</p>
       <div className="space-y-1">
         {groupFixtures.map((f) => {
           const hc = COUNTRY_BY_FIFA[f.home_team_code];
@@ -300,15 +300,15 @@ function GroupContext({ fixture, allFixtures }: { fixture: WC2026Fixture; allFix
                 isCurrent ? 'bg-champagne/5 border-champagne/20' : 'bg-navy-900/40 border-navy-800/60'
               }`}
             >
-              <span className="text-xs text-navy-400 shrink-0 w-20">{formatMatchDateTime(f.kickoff_utc, userTZ)}</span>
+              <span className="text-xs text-slate-400 shrink-0 w-20">{formatMatchDateTime(f.kickoff_utc, userTZ)}</span>
               <span className="flex items-center gap-1.5 flex-1 justify-end">
                 {hc && <span className={`fi fi-${hc.iso2} rounded-[3px] shrink-0`} style={{width:16,height:11,display:'inline-block'}}/>}
-                <span className={`text-xs truncate ${isCurrent ? 'text-white font-semibold' : 'text-navy-300'}`}>{hc?.name_tr ?? f.home_team}</span>
+                <span className={`text-xs truncate ${isCurrent ? 'text-white font-semibold' : 'text-slate-300'}`}>{hc?.name_tr ?? f.home_team}</span>
               </span>
-              <span className="text-xs text-navy-400 shrink-0">–</span>
+              <span className="text-xs text-slate-400 shrink-0">–</span>
               <span className="flex items-center gap-1.5 flex-1">
                 {ac && <span className={`fi fi-${ac.iso2} rounded-[3px] shrink-0`} style={{width:16,height:11,display:'inline-block'}}/>}
-                <span className={`text-xs truncate ${isCurrent ? 'text-white font-semibold' : 'text-navy-300'}`}>{ac?.name_tr ?? f.away_team}</span>
+                <span className={`text-xs truncate ${isCurrent ? 'text-white font-semibold' : 'text-slate-300'}`}>{ac?.name_tr ?? f.away_team}</span>
               </span>
               {isCurrent && <span className="text-xs text-champagne shrink-0">← Bu Maç</span>}
             </div>
@@ -323,7 +323,7 @@ function GroupContext({ fixture, allFixtures }: { fixture: WC2026Fixture; allFix
             const isCurrent = code === fixture.home_team_code || code === fixture.away_team_code;
             return (
               <span key={code} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border ${
-                isCurrent ? 'bg-champagne/10 border-champagne/30 text-white font-semibold' : 'bg-navy-900/60 border-navy-800 text-navy-400'
+                isCurrent ? 'bg-champagne/10 border-champagne/30 text-white font-semibold' : 'bg-navy-900/60 border-navy-800 text-slate-400'
               }`}>
                 <span className={`fi fi-${c.iso2} rounded-[2px]`} style={{width:14,height:10,display:'inline-block'}}/>
                 {c.name_tr}
@@ -349,7 +349,30 @@ function ConfidenceDot({ level }: { level: string }) {
   const color =
     level === 'HIGH' ? 'bg-emerald-500' :
     level === 'MEDIUM' ? 'bg-amber-400' : 'bg-red-400';
-  return <span className={`w-1.5 h-1.5 rounded-full ${color} inline-block`} />;
+  return <span className={`w-2 h-2 rounded-full ${color} inline-block shrink-0`} />;
+}
+
+const CONFIDENCE_TR: Record<string, string> = {
+  HIGH: 'Yüksek',
+  MEDIUM: 'Orta',
+  LOW: 'Düşük',
+};
+
+const TEMPO_TR: Record<string, string> = {
+  HIGH: 'Yüksek Tempo',
+  MEDIUM: 'Orta Tempo',
+  LOW: 'Düşük Tempo',
+  high: 'Yüksek Tempo',
+  medium: 'Orta Tempo',
+  low: 'Düşük Tempo',
+};
+
+function confidenceTr(level: string): string {
+  return CONFIDENCE_TR[level?.toUpperCase()] ?? level;
+}
+
+function tempoTr(level: string): string {
+  return TEMPO_TR[level] ?? level;
 }
 
 function RiskBar({ value, label, color = 'amber' }: { value: number; label: string; color?: 'amber' | 'red' | 'sky' | 'emerald' }) {
@@ -360,11 +383,11 @@ function RiskBar({ value, label, color = 'amber' }: { value: number; label: stri
     color === 'emerald' ? 'bg-emerald-500' : 'bg-amber-400';
   return (
     <div className="flex items-center gap-2">
-      <span className="text-[10px] text-slate-400 w-24 shrink-0 leading-tight">{label}</span>
-      <div className="flex-1 h-1.5 bg-navy-800 rounded-full overflow-hidden">
+      <span className="text-xs text-slate-300 w-28 shrink-0 leading-tight">{label}</span>
+      <div className="flex-1 h-2 bg-navy-800 rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-[10px] font-mono tabular-nums text-navy-300 w-7 text-right">{pct}%</span>
+      <span className="text-xs font-mono tabular-nums text-slate-200 w-9 text-right font-semibold">{pct}%</span>
     </div>
   );
 }
@@ -374,18 +397,18 @@ function TeamStrengthRow({ profile, side }: { profile: WcTeamProfile; side: 'hom
   const elo = Math.round(profile.historical_elo_rating);
   const si = Math.round(profile.wc2026_team_strength_index);
   return (
-    <div className={`flex flex-col gap-1 ${isHome ? 'items-start' : 'items-end'}`}>
-      <div className="flex items-center gap-1.5">
-        <span className="text-[10px] text-slate-400">ELO</span>
+    <div className={`flex flex-col gap-1.5 ${isHome ? 'items-start' : 'items-end'}`}>
+      <div className={`flex items-center gap-1.5 ${isHome ? '' : 'flex-row-reverse'}`}>
+        <span className="text-xs text-slate-400">ELO Puanı</span>
         <span className="text-sm font-bold text-white tabular-nums">{elo}</span>
       </div>
-      <div className="flex items-center gap-1.5">
-        <span className="text-[10px] text-slate-400">SI</span>
-        <span className="text-xs font-semibold text-champagne tabular-nums">{si}</span>
+      <div className={`flex items-center gap-1.5 ${isHome ? '' : 'flex-row-reverse'}`}>
+        <span className="text-xs text-slate-400">Güç Endeksi</span>
+        <span className="text-sm font-semibold text-champagne tabular-nums">{si}</span>
       </div>
-      <div className="flex items-center gap-1">
+      <div className={`flex items-center gap-1.5 ${isHome ? '' : 'flex-row-reverse'}`}>
         <ConfidenceDot level={profile.calibration_confidence} />
-        <span className="text-[10px] text-slate-400">{profile.calibration_confidence}</span>
+        <span className="text-xs text-slate-300">{confidenceTr(profile.calibration_confidence)} güven</span>
       </div>
     </div>
   );
@@ -517,34 +540,35 @@ function WcPredictionPanel({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-champagne shrink-0" />
-          <h3 className="text-sm font-bold text-white">Maç Analizi</h3>
+          <h3 className="text-sm font-bold text-white">Model Tahmini</h3>
         </div>
         <div className="flex items-center gap-1.5">
           <ConfidenceDot level={scenario.calibration_confidence} />
-          <span className="text-[10px] text-slate-400">{scenario.calibration_confidence}</span>
+          <span className="text-xs text-slate-300">{confidenceTr(scenario.calibration_confidence)} Güven</span>
           {fmtDate && (
-            <span className="text-[10px] text-slate-500 ml-1">{fmtDate}</span>
+            <span className="text-xs text-slate-400 ml-1">{fmtDate}</span>
           )}
         </div>
       </div>
 
       {/* 1X2 Probability Bar */}
       <div>
+        <p className="text-xs text-slate-400 mb-2">Senaryo Olasılıkları <span className="text-slate-500">— bahis tavsiyesi değildir</span></p>
         <div className="flex items-end justify-between mb-2">
           <div className="text-center">
             <div className={`text-lg font-bold tabular-nums ${leading === 'home' ? 'text-champagne' : 'text-white'}`}>{hp}%</div>
-            <div className="text-[10px] text-slate-300 truncate max-w-[80px]">{homeTeamName}</div>
+            <div className="text-xs text-slate-300 truncate max-w-[80px]">{homeTeamName}</div>
           </div>
           <div className="text-center">
             <div className={`text-base font-bold tabular-nums ${leading === 'draw' ? 'text-champagne/80' : 'text-slate-400'}`}>{dp}%</div>
-            <div className="text-[10px] text-slate-400">Beraberlik</div>
+            <div className="text-xs text-slate-400">Beraberlik</div>
           </div>
           <div className="text-center">
             <div className={`text-lg font-bold tabular-nums ${leading === 'away' ? 'text-sky-400' : 'text-white'}`}>{ap}%</div>
-            <div className="text-[10px] text-slate-300 truncate max-w-[80px]">{awayTeamName}</div>
+            <div className="text-xs text-slate-300 truncate max-w-[80px]">{awayTeamName}</div>
           </div>
         </div>
-        <div className="h-2 rounded-full overflow-hidden flex gap-px bg-navy-800">
+        <div className="h-2.5 rounded-full overflow-hidden flex gap-px bg-navy-800">
           <div
             className={`rounded-l-full transition-all ${leading === 'home' ? 'bg-champagne' : 'bg-navy-600'}`}
             style={{ width: `${hp}%` }}
@@ -561,8 +585,8 @@ function WcPredictionPanel({
       </div>
 
       {/* Predicted Score */}
-      <div className="flex items-center justify-center gap-4 py-2 bg-navy-800/40 rounded-lg">
-        <span className="text-[10px] text-slate-400 uppercase tracking-wider">Tahmini Skor</span>
+      <div className="flex items-center justify-center gap-4 py-2.5 bg-navy-800/40 rounded-lg">
+        <span className="text-xs text-slate-400 uppercase tracking-wider">Tahmini Skor</span>
         <span className="text-xl font-bold font-mono text-white tabular-nums">
           {scenario.predicted_score_home} – {scenario.predicted_score_away}
         </span>
@@ -570,58 +594,61 @@ function WcPredictionPanel({
 
       {/* Team Strength Comparison */}
       {(homeProfile || awayProfile) && (
-        <div className="border border-navy-800/60 rounded-lg p-3">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-3 text-center">
-            Güç İndeksi Karşılaştırması
+        <div className="border border-navy-800/60 rounded-lg p-4">
+          <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 text-center">
+            Güç Karşılaştırması
           </div>
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-start justify-between gap-2">
             {homeProfile ? (
               <TeamStrengthRow profile={homeProfile} side="home" />
             ) : (
-              <div className="text-xs text-slate-500">—</div>
+              <div className="text-xs text-slate-500 italic">Veri yok</div>
             )}
-            <div className="text-center">
-              <div className="text-[10px] text-slate-400 mb-1">Fark</div>
-              <div className={`text-sm font-bold tabular-nums ${scenario.strength_diff > 0 ? 'text-champagne' : scenario.strength_diff < 0 ? 'text-sky-400' : 'text-navy-400'}`}>
+            <div className="text-center px-2">
+              <div className="text-xs text-slate-400 mb-1">Güç Farkı</div>
+              <div className={`text-base font-bold tabular-nums ${scenario.strength_diff > 0 ? 'text-champagne' : scenario.strength_diff < 0 ? 'text-sky-400' : 'text-slate-400'}`}>
                 {scenario.strength_diff > 0 ? '+' : ''}{Math.round(scenario.strength_diff)}
               </div>
             </div>
             {awayProfile ? (
               <TeamStrengthRow profile={awayProfile} side="away" />
             ) : (
-              <div className="text-xs text-slate-500">—</div>
+              <div className="text-xs text-slate-500 italic">Veri yok</div>
             )}
           </div>
         </div>
       )}
 
       {/* WC Risk Indices */}
-      <div className="space-y-2">
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
+      <div className="space-y-2.5">
+        <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
           Turnuva Risk Endeksleri
         </div>
         <RiskBar value={scenario.late_goal_probability} label="Geç Gol Riski" color="amber" />
         <RiskBar value={scenario.wc2026_chaos_probability} label="Kaos Olasılığı" color="red" />
-        <RiskBar value={scenario.comeback_probability} label="Geri Dönüş" color="sky" />
+        <RiskBar value={scenario.comeback_probability} label="Geri Dönüş İhtimali" color="sky" />
         <RiskBar value={scenario.wc2026_fatigue_risk} label="Yorgunluk Riski" color="amber" />
-        <RiskBar value={scenario.first_half_goal_probability} label="İlk Yarı Gol" color="emerald" />
+        <RiskBar value={scenario.first_half_goal_probability} label="İlk Yarı Gol İhtimali" color="emerald" />
       </div>
 
       {/* Tempo + Set piece */}
-      <div className="grid grid-cols-2 gap-3 text-xs">
-        <div className="bg-navy-800/40 rounded-lg p-2.5">
-          <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">İlk 15 dk Tempo</div>
-          <div className="font-semibold text-white capitalize">{scenario.first_15_tempo?.toLowerCase() ?? '—'}</div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-navy-800/40 rounded-lg p-3">
+          <div className="text-xs text-slate-400 uppercase tracking-wider mb-1.5">İlk 15 dk Temposu</div>
+          <div className="text-sm font-semibold text-white capitalize">
+            {scenario.first_15_tempo ? tempoTr(scenario.first_15_tempo) : '—'}
+          </div>
         </div>
-        <div className="bg-navy-800/40 rounded-lg p-2.5">
-          <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Set Piece Tehdit</div>
-          <div className="font-semibold text-white capitalize">{scenario.set_piece_threat?.toLowerCase() ?? '—'}</div>
+        <div className="bg-navy-800/40 rounded-lg p-3">
+          <div className="text-xs text-slate-400 uppercase tracking-wider mb-1.5">Duran Top Tehdidi</div>
+          <div className="text-sm font-semibold text-white capitalize">
+            {scenario.set_piece_threat ? confidenceTr(scenario.set_piece_threat) : '—'}
+          </div>
         </div>
       </div>
 
-      <p className="text-[10px] text-slate-500 leading-relaxed">
-        Bu tahminler istatistiksel modelden üretilmiştir. Kesin sonuç iddiası taşımaz.
-        Formül: ELO×0.40 + Form×0.25 + Hücum×0.15 + Savunma×0.15 + Ev Avantajı×0.05
+      <p className="text-xs text-slate-500 leading-relaxed pt-1 border-t border-navy-800/40">
+        Bu tahminler istatistiksel modelden üretilmiştir. Kesin sonuç iddiası taşımaz. Bahis tavsiyesi değildir.
       </p>
     </div>
   );
@@ -676,12 +703,12 @@ export default function WcFixtureDetailPage() {
         </div>
         <div className="relative max-w-3xl mx-auto px-4 sm:px-6">
           {/* Breadcrumb */}
-          <div className="flex items-center gap-2 mb-6 text-xs text-navy-400">
+          <div className="flex items-center gap-2 mb-6 text-xs text-slate-400">
             <Link to="/world-cup-2026" className="flex items-center gap-1 hover:text-champagne transition-colors">
               <ArrowLeft className="w-3.5 h-3.5"/>2026 Fikstür
             </Link>
             <ChevronRight className="w-3 h-3"/>
-            <span className="text-navy-400">{stageLabel}{groupLabel ? ` · ${groupLabel}` : ''}</span>
+            <span className="text-slate-400">{stageLabel}{groupLabel ? ` · ${groupLabel}` : ''}</span>
           </div>
 
           {/* Stage badge */}
@@ -691,7 +718,7 @@ export default function WcFixtureDetailPage() {
             }`}>
               {fixture.stage === 'Final' ? <Trophy className="w-3.5 h-3.5"/> : <Shield className="w-3.5 h-3.5"/>}
               {stageLabel}{groupLabel ? ` · ${groupLabel}` : ''}
-              <span className="text-navy-400 font-mono ml-1">#{fixture.match_no}</span>
+              <span className="text-navy-400 font-mono ml-1 text-xs">#{fixture.match_no}</span>
             </span>
           </div>
 
@@ -710,7 +737,7 @@ export default function WcFixtureDetailPage() {
                 <p className="text-base sm:text-lg font-black text-white leading-tight">
                   {homeCountry?.name_en ?? fixture.home_team}
                 </p>
-                <p className="text-sm text-navy-400 leading-tight">
+                <p className="text-sm text-slate-300 leading-tight">
                   {homeCountry?.name_tr ?? 'Belirlenecek'}
                 </p>
               </div>
@@ -718,10 +745,10 @@ export default function WcFixtureDetailPage() {
 
             {/* Center */}
             <div className="flex flex-col items-center shrink-0">
-              <span className="text-3xl font-black text-navy-400">VS</span>
+              <span className="text-3xl font-black text-slate-400">VS</span>
               <div className="mt-2 text-center">
                 <p className="text-sm font-bold text-champagne">{trTime}</p>
-                <p className="text-xs text-navy-400 mt-0.5">{matchDate}</p>
+                <p className="text-xs text-slate-400 mt-0.5">{matchDate}</p>
               </div>
             </div>
 
@@ -738,7 +765,7 @@ export default function WcFixtureDetailPage() {
                 <p className="text-base sm:text-lg font-black text-white leading-tight">
                   {awayCountry?.name_en ?? fixture.away_team}
                 </p>
-                <p className="text-sm text-navy-400 leading-tight">
+                <p className="text-sm text-slate-300 leading-tight">
                   {awayCountry?.name_tr ?? 'Belirlenecek'}
                 </p>
               </div>
@@ -746,7 +773,7 @@ export default function WcFixtureDetailPage() {
           </div>
 
           {/* Venue summary */}
-          <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-navy-400">
+          <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-slate-300">
             <span className="flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5"/>{matchDate}
             </span>
@@ -776,20 +803,20 @@ export default function WcFixtureDetailPage() {
         <div className="grid sm:grid-cols-2 gap-4 mb-6">
           {/* Venue detail */}
           <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-navy-400 mb-3">Stadyum Bilgisi</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Stadyum Bilgisi</h3>
             <div className="space-y-2.5">
               <div className="flex items-start gap-2">
                 <MapPin className="w-3.5 h-3.5 text-navy-400 mt-0.5 shrink-0"/>
                 <div>
                   <p className="text-sm font-bold text-white">{fixture.venue}</p>
                   {venue && (
-                    <p className="text-xs text-navy-400">{venue.city_display} · {venue.country_tr}</p>
+                    <p className="text-xs text-slate-400">{venue.city_display} · {venue.country_tr}</p>
                   )}
                 </div>
               </div>
               {venue?.capacity && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-navy-400">Kapasite</span>
+              <span className="text-sm text-slate-300">Kapasite</span>
                   <span className="text-sm font-bold text-white">{venue.capacity.toLocaleString('tr-TR')}</span>
                 </div>
               )}

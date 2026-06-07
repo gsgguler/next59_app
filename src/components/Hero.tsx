@@ -159,8 +159,8 @@ export function Hero() {
                 <span className="text-xl sm:text-2xl font-bold text-white font-mono tabular-nums leading-none">
                   {s.value}
                 </span>
-                <span className="text-[11px] font-medium text-readable-muted mt-1">{s.label}</span>
-                <span className="text-[10px] text-readable-muted/70 mt-0.5">{s.detail}</span>
+                <span className="text-xs font-medium text-slate-400 mt-1">{s.label}</span>
+                <span className="text-xs text-slate-500 mt-0.5">{s.detail}</span>
               </div>
               {i < arr.length - 1 && (
                 <div className="w-px h-10 bg-navy-800 shrink-0" />
@@ -198,7 +198,7 @@ export function Hero() {
                 <div className="flex flex-col items-center gap-2 flex-1">
                   <MexicoFlag />
                   <span className="text-sm font-semibold text-white leading-tight">Mexico</span>
-                  <span className="text-[10px] text-readable-muted leading-tight -mt-1">Meksika</span>
+                  <span className="text-xs text-slate-400 leading-tight -mt-1">Meksika</span>
                 </div>
                 <div className="flex flex-col items-center gap-1 shrink-0 px-2">
                   <div className="w-px h-3 bg-navy-700" />
@@ -208,7 +208,7 @@ export function Hero() {
                 <div className="flex flex-col items-center gap-2 flex-1">
                   <SouthAfricaFlag />
                   <span className="text-sm font-semibold text-white leading-tight">South Africa</span>
-                  <span className="text-[10px] text-readable-muted leading-tight -mt-1">Güney Afrika</span>
+                  <span className="text-xs text-slate-400 leading-tight -mt-1">Güney Afrika</span>
                 </div>
               </div>
 
@@ -222,9 +222,9 @@ export function Hero() {
                 <span>Estadio Azteca, Mexico City</span>
               </div>
               {userTz !== 'Europe/Istanbul' && (
-                <p className="mt-1 text-[11px] text-readable-muted/70 text-center">
-                  Yerel saatiniz: <span className="text-readable-muted">{localKickoff}</span>
-                  <span className="ml-1 text-readable-muted/50">({userTz})</span>
+                <p className="mt-1 text-xs text-slate-400 text-center">
+                  Yerel saatiniz: <span className="text-slate-300">{localKickoff}</span>
+                  <span className="ml-1 text-slate-500">({userTz})</span>
                 </p>
               )}
             </div>
@@ -241,7 +241,7 @@ export function Hero() {
                           {String(b.value).padStart(2, '0')}
                         </span>
                       </div>
-                      <span className="mt-1 text-[8px] font-semibold tracking-[0.1em] text-readable-muted uppercase">
+                      <span className="mt-1 text-[11px] font-semibold tracking-[0.08em] text-slate-400 uppercase">
                         {b.label}
                       </span>
                     </div>
@@ -264,7 +264,7 @@ export function Hero() {
             <p className="text-sm font-semibold text-white mb-0.5">
               Dünya Kupası analizlerimiz hazır olduğunda haberdar olun
             </p>
-            <p className="text-xs text-navy-400 mb-4 leading-relaxed">
+            <p className="text-xs text-slate-400 mb-4 leading-relaxed">
               2026 Dünya Kupası maç incelemelerimiz ve 90 dakika analizlerimiz yayına girdiğinde
               sizi bilgilendireceğiz. Ücretsiz üye olursanız zaten otomatik olarak alırsınız —
               ya da sadece e-posta bırakın yeterli.

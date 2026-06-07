@@ -5,23 +5,23 @@ import type { Match } from '../../pages/MatchListPage';
 import ShareMatchCard from '../ShareMatchCard';
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
-  ns:   { label: 'Planli',      color: 'text-blue-300',   bg: 'bg-blue-900/40 border-blue-700/50' },
-  tbd:  { label: 'Planli',      color: 'text-blue-300',   bg: 'bg-blue-900/40 border-blue-700/50' },
-  '1h': { label: 'Canli',       color: 'text-red-300',    bg: 'bg-red-900/40 border-red-700/50' },
-  '2h': { label: 'Canli',       color: 'text-red-300',    bg: 'bg-red-900/40 border-red-700/50' },
-  ht:   { label: 'Devre Arasi', color: 'text-amber-300',  bg: 'bg-amber-900/40 border-amber-700/50' },
-  ft:   { label: 'Bitti',       color: 'text-slate-400',  bg: 'bg-navy-800/60 border-navy-700/50' },
-  aet:  { label: 'Bitti',       color: 'text-slate-400',  bg: 'bg-navy-800/60 border-navy-700/50' },
-  pen:  { label: 'Bitti',       color: 'text-slate-400',  bg: 'bg-navy-800/60 border-navy-700/50' },
-  pst:  { label: 'Ertelendi',   color: 'text-amber-300',  bg: 'bg-amber-900/40 border-amber-700/50' },
-  canc: { label: 'Iptal',       color: 'text-red-300',    bg: 'bg-red-900/40 border-red-700/50' },
+  ns:   { label: 'Planlı',       color: 'text-blue-300',   bg: 'bg-blue-900/40 border-blue-700/50' },
+  tbd:  { label: 'Planlı',       color: 'text-blue-300',   bg: 'bg-blue-900/40 border-blue-700/50' },
+  '1h': { label: 'Canlı',        color: 'text-red-300',    bg: 'bg-red-900/40 border-red-700/50' },
+  '2h': { label: 'Canlı',        color: 'text-red-300',    bg: 'bg-red-900/40 border-red-700/50' },
+  ht:   { label: 'Devre Arası',  color: 'text-amber-300',  bg: 'bg-amber-900/40 border-amber-700/50' },
+  ft:   { label: 'Bitti',        color: 'text-slate-400',  bg: 'bg-navy-800/60 border-navy-700/50' },
+  aet:  { label: 'Bitti',        color: 'text-slate-400',  bg: 'bg-navy-800/60 border-navy-700/50' },
+  pen:  { label: 'Bitti',        color: 'text-slate-400',  bg: 'bg-navy-800/60 border-navy-700/50' },
+  pst:  { label: 'Ertelendi',    color: 'text-amber-300',  bg: 'bg-amber-900/40 border-amber-700/50' },
+  canc: { label: 'İptal',        color: 'text-red-300',    bg: 'bg-red-900/40 border-red-700/50' },
 };
 
 function TeamDisplay({ name, code, side }: { name: string; code: string; side: 'home' | 'away' }) {
   return (
     <div className={`flex items-center gap-3 ${side === 'away' ? 'flex-row-reverse' : ''}`}>
       <div className="w-10 h-10 rounded-full bg-navy-800 border border-navy-700/60 flex items-center justify-center shrink-0 shadow-sm">
-        <span className="text-[10px] font-bold text-white leading-none">{code.slice(0, 3)}</span>
+        <span className="text-xs font-bold text-white leading-none">{code.slice(0, 3)}</span>
       </div>
       <span className="text-sm font-semibold text-white truncate">{name}</span>
     </div>

@@ -50,7 +50,7 @@ export default function Footer() {
 
           {/* Archive */}
           <div>
-            <h4 className="text-xs font-semibold text-navy-400 uppercase tracking-wider mb-4">
+            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
               Maç Arşivi
             </h4>
             <ul className="space-y-2.5">
@@ -66,7 +66,7 @@ export default function Footer() {
 
           {/* Analytics */}
           <div>
-            <h4 className="text-xs font-semibold text-navy-400 uppercase tracking-wider mb-4">
+            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
               Futbol Analitiği
             </h4>
             <ul className="space-y-2.5">
@@ -82,7 +82,7 @@ export default function Footer() {
 
           {/* About */}
           <div>
-            <h4 className="text-xs font-semibold text-navy-400 uppercase tracking-wider mb-4">
+            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
               Next59
             </h4>
             <ul className="space-y-2.5">
@@ -98,7 +98,7 @@ export default function Footer() {
 
           {/* Legal */}
           <div>
-            <h4 className="text-xs font-semibold text-navy-400 uppercase tracking-wider mb-4">
+            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
               Yasal
             </h4>
             <ul className="space-y-2.5">
