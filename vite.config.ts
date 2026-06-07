@@ -37,10 +37,20 @@ export default defineConfig({
           if (id.includes('lucide-react')) return 'vendor-lucide';
           // Vendor: flag-icons CSS
           if (id.includes('flag-icons')) return 'vendor-flags';
-          // Admin pages — large operational views
-          if (id.includes('/pages/admin/') || id.includes('/pages/AdminPage')) return 'chunk-admin';
-          // Model Lab — heavy data pages
+          // Vendor: recharts (used in many admin pages — isolate to avoid duplication)
+          if (id.includes('recharts') || id.includes('d3-') || id.includes('victory-vendor')) return 'vendor-recharts';
+          // Model Lab — heavy data pages (must come before admin catch-all)
           if (id.includes('/pages/admin/ModelLab') || id.includes('/lib/modelLab')) return 'chunk-model-lab';
+          // Tahmin motoru / brain sub-pages
+          if (id.includes('/pages/admin/tahmin-motoru/')) return 'chunk-admin-brain';
+          // WC 2026 admin pages
+          if (id.includes('/pages/admin/Wc') || id.includes('/pages/admin/wc')) return 'chunk-admin-wc';
+          // Kalibrasyon / model status pages
+          if (id.includes('/pages/admin/Kalibrasyon') || id.includes('/pages/admin/ModelStatus') || id.includes('/pages/admin/LaunchReadiness')) return 'chunk-admin-kalibrasyon';
+          // Ops / live engine pages
+          if (id.includes('/pages/admin/Operations') || id.includes('/pages/admin/DailyMonitor') || id.includes('/pages/admin/PreMatch') || id.includes('/pages/admin/OperasyonDongusu') || id.includes('/pages/admin/LiveMicroSim') || id.includes('/pages/admin/ProviderHealth')) return 'chunk-admin-ops';
+          // Remaining admin pages
+          if (id.includes('/pages/admin/') || id.includes('/pages/AdminPage')) return 'chunk-admin';
           // Archive pages
           if (id.includes('/pages/archive/') || id.includes('/pages/ArchivePage')) return 'chunk-archive';
           // Legal pages
