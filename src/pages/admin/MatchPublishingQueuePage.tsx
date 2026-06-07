@@ -137,6 +137,8 @@ export default function MatchPublishingQueuePage() {
   const [publishSuccess, setPublishSuccess] = useState<Record<string, string>>({});
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [confirmRow, setConfirmRow] = useState<string | null>(null);
+  const [bulkPublishing, setBulkPublishing] = useState(false);
+  const [bulkResult, setBulkResult] = useState<{ ok: boolean; count?: number; error?: string } | null>(null);
 
   const setPublishError = (id: string, msg: string) => {
     setPublishErrors(prev => ({ ...prev, [id]: msg }));
@@ -190,6 +192,23 @@ export default function MatchPublishingQueuePage() {
     setPublishing(null);
   };
 
+  const bulkPublishPredictions = async () => {
+    if (!user?.id) return;
+    setBulkPublishing(true);
+    setBulkResult(null);
+    const { data, error: err } = await supabase.rpc('ml_admin_bulk_publish_predictions', {
+      p_published_by: user.id,
+    });
+    if (err) {
+      setBulkResult({ ok: false, error: err.message });
+    } else {
+      const res = data as { ok: boolean; published: number };
+      setBulkResult({ ok: true, count: res.published });
+      await load();
+    }
+    setBulkPublishing(false);
+  };
+
   const summary = {
     total:           queue.length,
     hasPrediction:   queue.filter(r => r.has_prediction).length,
@@ -229,11 +248,32 @@ export default function MatchPublishingQueuePage() {
               </p>
             </div>
           </div>
-          <button onClick={load} disabled={loading}
-            className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg bg-navy-800 border border-navy-700 text-navy-400 hover:text-white transition-all disabled:opacity-40 shrink-0">
-            <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-            Yenile
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {bulkResult && (
+              <span className={`text-xs font-medium px-2.5 py-1.5 rounded-lg border ${
+                bulkResult.ok
+                  ? 'bg-emerald-900/30 border-emerald-700/50 text-emerald-400'
+                  : 'bg-red-900/30 border-red-700/50 text-red-400'
+              }`}>
+                {bulkResult.ok ? `${bulkResult.count} tahmin yayınlandı` : bulkResult.error}
+              </span>
+            )}
+            <button
+              onClick={bulkPublishPredictions}
+              disabled={bulkPublishing || loading}
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg bg-emerald-800/40 border border-emerald-700/50 text-emerald-400 hover:bg-emerald-700/40 hover:text-white transition-all disabled:opacity-40 shrink-0"
+            >
+              {bulkPublishing
+                ? <RefreshCw className="w-3 h-3 animate-spin" />
+                : <CheckCircle2 className="w-3 h-3" />}
+              Tüm Tahminleri Yayınla
+            </button>
+            <button onClick={load} disabled={loading}
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg bg-navy-800 border border-navy-700 text-navy-400 hover:text-white transition-all disabled:opacity-40 shrink-0">
+              <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+              Yenile
+            </button>
+          </div>
         </div>
 
         {/* Summary stats */}

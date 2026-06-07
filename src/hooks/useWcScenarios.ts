@@ -78,6 +78,7 @@ export function useWcScenarios(): UseWcScenariosResult {
           .from('wc2026_calibration_runs')
           .select('id, completed_at')
           .eq('run_status', 'completed')
+          .gt('matches_processed', 0)
           .order('completed_at', { ascending: false })
           .limit(1)
           .maybeSingle();
