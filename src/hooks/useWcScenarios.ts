@@ -79,6 +79,7 @@ export function useWcScenarios(): UseWcScenariosResult {
           .select('id, completed_at')
           .eq('run_status', 'completed')
           .gt('matches_processed', 0)
+          .order('matches_processed', { ascending: false })
           .order('completed_at', { ascending: false })
           .limit(1)
           .maybeSingle();
