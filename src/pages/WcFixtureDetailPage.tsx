@@ -9,11 +9,12 @@ import {
   getUserTimeZone, formatMatchDateTime,
   type WC2026Fixture,
 } from '../data/worldCup2026Fixtures';
-
-const userTZ = getUserTimeZone();
 import { COUNTRY_BY_FIFA } from '../data/worldCup2026Countries';
 import { supabase } from '../lib/supabase';
 import { STAGE_LABELS, stageOrder, type WcMatch } from './WorldCupHistoryPage';
+import type { WcScenarioData, WcTeamProfile } from '../hooks/useWcScenarios';
+
+const userTZ = getUserTimeZone();
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -384,39 +385,128 @@ function GroupContext({ fixture, allFixtures }: { fixture: WC2026Fixture; allFix
 
 // ── Prediction Panel ──────────────────────────────────────────────────────────
 
-interface WcPredictionRow {
-  id: string;
-  prediction_type: string;
-  predicted_outcome: string | null;
-  confidence: number;
-  explanation_json: Record<string, number> | null;
+interface WcScenarioState {
+  scenario: WcScenarioData | null;
+  homeProfile: WcTeamProfile | null;
+  awayProfile: WcTeamProfile | null;
+  calibratedAt: string | null;
 }
 
-function WcPredictionPanel({ matchNo, isTBD }: { matchNo: number; isTBD: boolean }) {
-  const [predictions, setPredictions] = useState<WcPredictionRow[]>([]);
+function ConfidenceDot({ level }: { level: string }) {
+  const color =
+    level === 'HIGH' ? 'bg-emerald-500' :
+    level === 'MEDIUM' ? 'bg-amber-400' : 'bg-red-400';
+  return <span className={`w-1.5 h-1.5 rounded-full ${color} inline-block`} />;
+}
+
+function RiskBar({ value, label, color = 'amber' }: { value: number; label: string; color?: 'amber' | 'red' | 'sky' | 'emerald' }) {
+  const pct = Math.round(value * 100);
+  const barColor =
+    color === 'red' ? 'bg-red-500' :
+    color === 'sky' ? 'bg-sky-400' :
+    color === 'emerald' ? 'bg-emerald-500' : 'bg-amber-400';
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[10px] text-navy-400 w-24 shrink-0 leading-tight">{label}</span>
+      <div className="flex-1 h-1.5 bg-navy-800 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-[10px] font-mono tabular-nums text-navy-300 w-7 text-right">{pct}%</span>
+    </div>
+  );
+}
+
+function TeamStrengthRow({ profile, side }: { profile: WcTeamProfile; side: 'home' | 'away' }) {
+  const isHome = side === 'home';
+  const elo = Math.round(profile.historical_elo_rating);
+  const si = Math.round(profile.wc2026_team_strength_index);
+  return (
+    <div className={`flex flex-col gap-1 ${isHome ? 'items-start' : 'items-end'}`}>
+      <div className="flex items-center gap-1.5">
+        <span className="text-[10px] text-navy-400">ELO</span>
+        <span className="text-sm font-bold text-white tabular-nums">{elo}</span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <span className="text-[10px] text-navy-400">SI</span>
+        <span className="text-xs font-semibold text-champagne tabular-nums">{si}</span>
+      </div>
+      <div className="flex items-center gap-1">
+        <ConfidenceDot level={profile.calibration_confidence} />
+        <span className="text-[9px] text-navy-500">{profile.calibration_confidence}</span>
+      </div>
+    </div>
+  );
+}
+
+function WcPredictionPanel({
+  matchNo,
+  isTBD,
+  homeTeamName,
+  awayTeamName,
+}: {
+  matchNo: number;
+  isTBD: boolean;
+  homeTeamName: string;
+  awayTeamName: string;
+}) {
+  const [state, setState] = useState<WcScenarioState>({
+    scenario: null, homeProfile: null, awayProfile: null, calibratedAt: null,
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (isTBD) { setLoading(false); return; }
-    async function fetchPredictions() {
-      const { data: fixture } = await supabase
+    let cancelled = false;
+
+    async function fetchData() {
+      const { data: run } = await supabase
+        .from('wc2026_calibration_runs')
+        .select('id, completed_at')
+        .eq('run_status', 'completed')
+        .order('completed_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!run || cancelled) { setLoading(false); return; }
+
+      const { data: wf } = await supabase
         .from('wc2026_fixtures')
-        .select('id')
+        .select('api_football_fixture_id, home_api_team_id, away_api_team_id')
         .eq('match_number', matchNo)
         .maybeSingle();
 
-      if (!fixture) { setLoading(false); return; }
+      if (!wf || cancelled) { setLoading(false); return; }
 
-      const { data } = await supabase
-        .from('predictions')
-        .select('id, prediction_type, predicted_outcome, confidence, explanation_json')
-        .eq('match_id', fixture.id)
-        .is('superseded_by', null);
+      const [{ data: scenRow }, { data: profiles }] = await Promise.all([
+        supabase
+          .from('wc2026_match_scenario_calibration')
+          .select('*')
+          .eq('calibration_run_id', run.id)
+          .eq('api_football_fixture_id', wf.api_football_fixture_id)
+          .maybeSingle(),
+        supabase
+          .from('wc2026_team_calibration_profiles')
+          .select('*')
+          .eq('calibration_run_id', run.id)
+          .in('api_football_team_id', [wf.home_api_team_id, wf.away_api_team_id]),
+      ]);
 
-      setPredictions((data as WcPredictionRow[]) ?? []);
+      if (cancelled) return;
+
+      const homeProfile = (profiles ?? []).find(p => p.api_football_team_id === wf.home_api_team_id) ?? null;
+      const awayProfile = (profiles ?? []).find(p => p.api_football_team_id === wf.away_api_team_id) ?? null;
+
+      setState({
+        scenario: scenRow as WcScenarioData | null,
+        homeProfile: homeProfile as WcTeamProfile | null,
+        awayProfile: awayProfile as WcTeamProfile | null,
+        calibratedAt: run.completed_at ?? null,
+      });
       setLoading(false);
     }
-    fetchPredictions();
+
+    fetchData();
+    return () => { cancelled = true; };
   }, [matchNo, isTBD]);
 
   if (isTBD) {
@@ -435,69 +525,150 @@ function WcPredictionPanel({ matchNo, isTBD }: { matchNo: number; isTBD: boolean
 
   if (loading) {
     return (
-      <div className="bg-navy-900/40 border border-navy-800/60 rounded-xl p-5 mt-6">
-        <div className="h-4 bg-navy-800 rounded w-32 animate-pulse mb-3" />
-        <div className="h-3 bg-navy-800 rounded w-full animate-pulse" />
+      <div className="bg-navy-900/40 border border-navy-800/60 rounded-xl p-5 mt-6 space-y-3">
+        <div className="h-4 bg-navy-800 rounded w-32 animate-pulse" />
+        <div className="h-2 bg-navy-800 rounded w-full animate-pulse" />
+        <div className="h-2 bg-navy-800 rounded w-3/4 animate-pulse" />
       </div>
     );
   }
 
-  const resultPred = predictions.find(p => p.prediction_type === 'match_result');
-  const expl = resultPred?.explanation_json ?? null;
-  const homeProb = expl && 'home_prob' in expl ? expl.home_prob as number : null;
-  const drawProb = expl && 'draw_prob' in expl ? expl.draw_prob as number : null;
-  const awayProb = expl && 'away_prob' in expl ? expl.away_prob as number : null;
+  const { scenario, homeProfile, awayProfile, calibratedAt } = state;
 
-  // Only show probability bar when all three probs are present
-  const hasFullProbs = homeProb !== null && drawProb !== null && awayProb !== null;
-
-  if (!resultPred || !hasFullProbs) {
+  if (!scenario) {
     return (
       <div className="bg-navy-900/40 border border-navy-800/60 rounded-xl p-5 mt-6">
-        <div className="flex items-center gap-2.5 mb-3">
-          <div className="w-8 h-8 rounded-lg bg-navy-800 border border-navy-700/60 flex items-center justify-center shrink-0">
-            <Clock className="w-4 h-4 text-navy-400" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-white">Analiz Henüz Hazır Değil</h3>
-            <p className="text-xs text-navy-400 mt-0.5">
-              Bu maç için model tahmini hazırlanıyor. Turnuva başlamadan önce yayınlanacak.
-            </p>
-          </div>
+        <div className="flex items-center gap-2 mb-2">
+          <Clock className="w-4 h-4 text-navy-400 shrink-0" />
+          <h3 className="text-sm font-bold text-white">Analiz Henüz Hazır Değil</h3>
         </div>
+        <p className="text-xs text-navy-400">
+          Bu maç için model tahmini hazırlanıyor. Turnuva başlamadan önce yayınlanacak.
+        </p>
       </div>
     );
   }
 
+  const hp = Math.round(scenario.home_win_probability * 100);
+  const dp = Math.round(scenario.draw_probability * 100);
+  const ap = Math.round(scenario.away_win_probability * 100);
+  const leading = hp > ap ? 'home' : ap > hp ? 'away' : 'draw';
+
+  const fmtDate = calibratedAt
+    ? new Date(calibratedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null;
+
   return (
-    <div className="bg-navy-900/40 border border-navy-800/60 rounded-xl p-5 mt-6">
-      <div className="flex items-center gap-2 mb-4">
-        <BarChart3 className="w-4 h-4 text-champagne shrink-0" />
-        <h3 className="text-sm font-bold text-white">Maç Analizi</h3>
-        <span className="ml-auto text-[10px] text-navy-500 font-mono">Tahmin Bekliyor</span>
-      </div>
-
-      {/* Probability bar */}
-      <div className="mb-3">
-        <div className="flex items-center justify-between text-xs text-navy-400 mb-1.5">
-          <span>Ev Sahibi</span>
-          <span>Beraberlik</span>
-          <span>Deplasman</span>
+    <div className="bg-navy-900/40 border border-navy-800/60 rounded-xl p-5 mt-6 space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="w-4 h-4 text-champagne shrink-0" />
+          <h3 className="text-sm font-bold text-white">Maç Analizi</h3>
         </div>
-        <div className="h-2.5 rounded-full overflow-hidden flex">
-          <div className="bg-champagne/70" style={{ width: `${homeProb * 100}%` }} />
-          <div className="bg-navy-600" style={{ width: `${drawProb * 100}%` }} />
-          <div className="bg-navy-400" style={{ width: `${awayProb * 100}%` }} />
-        </div>
-        <div className="flex items-center justify-between text-xs font-mono font-semibold mt-1 tabular-nums">
-          <span className="text-champagne">{(homeProb * 100).toFixed(0)}%</span>
-          <span className="text-navy-400">{(drawProb * 100).toFixed(0)}%</span>
-          <span className="text-navy-300">{(awayProb * 100).toFixed(0)}%</span>
+        <div className="flex items-center gap-1.5">
+          <ConfidenceDot level={scenario.calibration_confidence} />
+          <span className="text-[10px] text-navy-500">{scenario.calibration_confidence}</span>
+          {fmtDate && (
+            <span className="text-[10px] text-navy-600 ml-1">{fmtDate}</span>
+          )}
         </div>
       </div>
 
-      <p className="text-[10px] text-navy-500 leading-relaxed">
-        Veri Senaryosu — Bu olasılıklar istatistiksel modelden üretilmiştir. Kesin sonuç iddiası taşımaz.
+      {/* 1X2 Probability Bar */}
+      <div>
+        <div className="flex items-end justify-between mb-2">
+          <div className="text-center">
+            <div className={`text-lg font-bold tabular-nums ${leading === 'home' ? 'text-champagne' : 'text-white'}`}>{hp}%</div>
+            <div className="text-[10px] text-navy-400 truncate max-w-[80px]">{homeTeamName}</div>
+          </div>
+          <div className="text-center">
+            <div className={`text-base font-bold tabular-nums ${leading === 'draw' ? 'text-champagne/80' : 'text-navy-400'}`}>{dp}%</div>
+            <div className="text-[10px] text-navy-500">Beraberlik</div>
+          </div>
+          <div className="text-center">
+            <div className={`text-lg font-bold tabular-nums ${leading === 'away' ? 'text-sky-400' : 'text-white'}`}>{ap}%</div>
+            <div className="text-[10px] text-navy-400 truncate max-w-[80px]">{awayTeamName}</div>
+          </div>
+        </div>
+        <div className="h-2 rounded-full overflow-hidden flex gap-px bg-navy-800">
+          <div
+            className={`rounded-l-full transition-all ${leading === 'home' ? 'bg-champagne' : 'bg-navy-600'}`}
+            style={{ width: `${hp}%` }}
+          />
+          <div
+            className={`transition-all ${leading === 'draw' ? 'bg-champagne/50' : 'bg-navy-700'}`}
+            style={{ width: `${dp}%` }}
+          />
+          <div
+            className={`rounded-r-full transition-all ${leading === 'away' ? 'bg-sky-400' : 'bg-navy-600'}`}
+            style={{ width: `${ap}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Predicted Score */}
+      <div className="flex items-center justify-center gap-4 py-2 bg-navy-800/40 rounded-lg">
+        <span className="text-[10px] text-navy-400 uppercase tracking-wider">Tahmini Skor</span>
+        <span className="text-xl font-bold font-mono text-white tabular-nums">
+          {scenario.predicted_score_home} – {scenario.predicted_score_away}
+        </span>
+      </div>
+
+      {/* Team Strength Comparison */}
+      {(homeProfile || awayProfile) && (
+        <div className="border border-navy-800/60 rounded-lg p-3">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-navy-500 mb-3 text-center">
+            Güç İndeksi Karşılaştırması
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            {homeProfile ? (
+              <TeamStrengthRow profile={homeProfile} side="home" />
+            ) : (
+              <div className="text-xs text-navy-600">—</div>
+            )}
+            <div className="text-center">
+              <div className="text-[10px] text-navy-500 mb-1">Fark</div>
+              <div className={`text-sm font-bold tabular-nums ${scenario.strength_diff > 0 ? 'text-champagne' : scenario.strength_diff < 0 ? 'text-sky-400' : 'text-navy-400'}`}>
+                {scenario.strength_diff > 0 ? '+' : ''}{Math.round(scenario.strength_diff)}
+              </div>
+            </div>
+            {awayProfile ? (
+              <TeamStrengthRow profile={awayProfile} side="away" />
+            ) : (
+              <div className="text-xs text-navy-600">—</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* WC Risk Indices */}
+      <div className="space-y-2">
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-navy-500 mb-2">
+          Turnuva Risk Endeksleri
+        </div>
+        <RiskBar value={scenario.late_goal_probability} label="Geç Gol Riski" color="amber" />
+        <RiskBar value={scenario.wc2026_chaos_probability} label="Kaos Olasılığı" color="red" />
+        <RiskBar value={scenario.comeback_probability} label="Geri Dönüş" color="sky" />
+        <RiskBar value={scenario.wc2026_fatigue_risk} label="Yorgunluk Riski" color="amber" />
+        <RiskBar value={scenario.first_half_goal_probability} label="İlk Yarı Gol" color="emerald" />
+      </div>
+
+      {/* Tempo + Set piece */}
+      <div className="grid grid-cols-2 gap-3 text-xs">
+        <div className="bg-navy-800/40 rounded-lg p-2.5">
+          <div className="text-[9px] text-navy-500 uppercase tracking-wider mb-1">İlk 15 dk Tempo</div>
+          <div className="font-semibold text-white capitalize">{scenario.first_15_tempo?.toLowerCase() ?? '—'}</div>
+        </div>
+        <div className="bg-navy-800/40 rounded-lg p-2.5">
+          <div className="text-[9px] text-navy-500 uppercase tracking-wider mb-1">Set Piece Tehdit</div>
+          <div className="font-semibold text-white capitalize">{scenario.set_piece_threat?.toLowerCase() ?? '—'}</div>
+        </div>
+      </div>
+
+      <p className="text-[10px] text-navy-600 leading-relaxed">
+        Bu tahminler istatistiksel modelden üretilmiştir. Kesin sonuç iddiası taşımaz.
+        Formül: ELO×0.40 + Form×0.25 + Hücum×0.15 + Savunma×0.15 + Ev Avantajı×0.05
       </p>
     </div>
   );
@@ -728,7 +899,12 @@ export default function WcFixtureDetailPage() {
         </div>
 
         {/* Prediction panel */}
-        <WcPredictionPanel matchNo={fixture.match_no} isTBD={isTBD} />
+        <WcPredictionPanel
+            matchNo={fixture.match_no}
+            isTBD={isTBD}
+            homeTeamName={fixture.home_team}
+            awayTeamName={fixture.away_team}
+          />
 
         {/* Tabs */}
         <div className="flex gap-1 bg-navy-900/60 border border-navy-800 rounded-xl p-1 mt-6 mb-4 overflow-x-auto">

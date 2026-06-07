@@ -8,6 +8,7 @@ import {
   VENUE_META,
   type WC2026Fixture,
 } from '../../data/worldCup2026Fixtures';
+import type { WcScenarioData } from '../../hooks/useWcScenarios';
 
 const userTZ = getUserTimeZone();
 
@@ -80,7 +81,54 @@ function TeamDisplay({ code, align = 'left' }: { code: string; align?: 'left' | 
 
 // ── Card ──────────────────────────────────────────────────────────────────────
 
-export function WC2026FixtureCard({ fixture }: { fixture: WC2026Fixture }) {
+// ── Probability bar ───────────────────────────────────────────────────────────
+
+function ProbBar({ scenario }: { scenario: WcScenarioData }) {
+  const hp = Math.round(scenario.home_win_probability * 100);
+  const dp = Math.round(scenario.draw_probability * 100);
+  const ap = Math.round(scenario.away_win_probability * 100);
+  const leading = hp > ap ? 'home' : ap > hp ? 'away' : 'draw';
+
+  return (
+    <div className="mt-3 pt-3 border-t border-navy-800/60">
+      <div className="h-1.5 rounded-full overflow-hidden flex gap-px bg-navy-800">
+        <div
+          className={`rounded-l-full transition-all ${leading === 'home' ? 'bg-champagne' : 'bg-navy-600'}`}
+          style={{ width: `${hp}%` }}
+        />
+        <div
+          className={`transition-all ${leading === 'draw' ? 'bg-champagne/60' : 'bg-navy-700'}`}
+          style={{ width: `${dp}%` }}
+        />
+        <div
+          className={`rounded-r-full transition-all ${leading === 'away' ? 'bg-sky-400' : 'bg-navy-600'}`}
+          style={{ width: `${ap}%` }}
+        />
+      </div>
+      <div className="flex items-center justify-between mt-1.5 text-[10px] font-mono tabular-nums">
+        <span className={leading === 'home' ? 'text-champagne font-semibold' : 'text-navy-400'}>
+          {hp}%
+        </span>
+        <span className={leading === 'draw' ? 'text-champagne/70 font-semibold' : 'text-navy-500'}>
+          {dp}% X
+        </span>
+        <span className={leading === 'away' ? 'text-sky-400 font-semibold' : 'text-navy-400'}>
+          {ap}%
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ── Card ──────────────────────────────────────────────────────────────────────
+
+export function WC2026FixtureCard({
+  fixture,
+  scenario,
+}: {
+  fixture: WC2026Fixture;
+  scenario?: WcScenarioData;
+}) {
   const isTBD = fixture.home_team_code === 'TBD' || fixture.home_team === 'TBD';
   const trTime = formatMatchDateTime(fixture.kickoff_utc, userTZ);
   const stageLabel = STAGE_LABELS_TR[fixture.stage];
@@ -153,6 +201,9 @@ export function WC2026FixtureCard({ fixture }: { fixture: WC2026Fixture }) {
         </div>
         <div className="shrink-0 tabular-nums text-readable-subtle font-medium">{trTime}</div>
       </div>
+
+      {/* Prediction probability bar */}
+      {scenario && !isTBD && <ProbBar scenario={scenario} />}
     </Link>
   );
 }

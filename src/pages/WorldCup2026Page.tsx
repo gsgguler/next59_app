@@ -12,6 +12,7 @@ import {
 } from '../data/worldCup2026Fixtures';
 import { COUNTRY_BY_FIFA } from '../data/worldCup2026Countries';
 import { WC2026FixtureCard } from '../components/wc/WC2026FixtureCard';
+import { useWcScenarios } from '../hooks/useWcScenarios';
 import Countdown from '../components/Countdown';
 
 // ---------------------------------------------------------------------------
@@ -197,6 +198,8 @@ export default function WorldCup2026Page() {
   const [cityFilter, setCityFilter] = useState('');
   const [visibleDates, setVisibleDates] = useState(INITIAL_DATES);
   const [groupsExpanded, setGroupsExpanded] = useState(false);
+
+  const { scenarios } = useWcScenarios();
 
   useEffect(() => {
     document.title = 'World Cup 2026 Fikstür & Gruplar — Next59';
@@ -479,7 +482,7 @@ export default function WorldCup2026Page() {
                   </h3>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {grouped.get(dateKey)!.map((f) => (
-                      <WC2026FixtureCard key={f.id} fixture={f} />
+                      <WC2026FixtureCard key={f.id} fixture={f} scenario={scenarios.get(f.match_no)} />
                     ))}
                   </div>
                 </div>
