@@ -136,14 +136,14 @@ export function Hero() {
 
         {/* 1 ── Headline */}
         <h1
-          className="font-syne lowercase tracking-tight text-white"
+          className="font-sans font-bold lowercase tracking-tight text-white"
           style={{ fontSize: 'clamp(2.5rem, 8vw, 7rem)', letterSpacing: '-0.04em', lineHeight: 1.1 }}
         >
           {t('hero.tagline')}
         </h1>
 
         {/* 2 ── Subtitle */}
-        <p className="mt-5 text-base md:text-lg text-white/60 max-w-xl mx-auto font-outfit">
+        <p className="mt-5 text-base md:text-lg text-white/60 max-w-xl mx-auto font-sans">
           {t('hero.subtagline')}
         </p>
 
