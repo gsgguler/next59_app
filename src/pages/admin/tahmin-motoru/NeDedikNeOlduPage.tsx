@@ -466,7 +466,8 @@ function AnalyticsDashboard({ stats, matchGroups }: AnalyticsDashboardProps) {
                 contentStyle={{ background: '#0f1d2a', border: '1px solid #1e3a4c', borderRadius: 8, fontSize: 12 }}
                 labelStyle={{ color: '#94a3b8' }}
                 itemStyle={{ color: '#e2e8f0' }}
-                formatter={(value: number, _: string, entry: { payload?: { label?: string } }) => [value, entry.payload?.label ?? '']}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                formatter={((value: unknown, _: string, entry: { payload?: { label?: string } }) => [value, entry.payload?.label ?? '']) as any}
               />
               <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                 {brierBuckets.map((entry, i) => (
@@ -522,7 +523,8 @@ function AnalyticsDashboard({ stats, matchGroups }: AnalyticsDashboardProps) {
                 contentStyle={{ background: '#0f1d2a', border: '1px solid #1e3a4c', borderRadius: 8, fontSize: 12 }}
                 labelStyle={{ color: '#94a3b8' }}
                 itemStyle={{ color: '#e2e8f0' }}
-                formatter={(value: number) => [`${value}%`, 'Win Rate']}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                formatter={((value: unknown) => [`${value as number}%`, 'Win Rate']) as any}
               />
               <ReferenceLine y={50} stroke="#334155" strokeDasharray="4 4" />
               <ReferenceLine y={60} stroke="#10b98133" strokeDasharray="4 4" />

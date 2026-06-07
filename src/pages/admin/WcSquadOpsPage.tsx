@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Users, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle,
   Shield, Globe, Filter, ChevronDown, ChevronUp, Database,
-  AlertCircle, Activity, Eye, Search, Zap, Flag,
+  AlertCircle, Activity, Search, Zap, Flag,
   Info, Lock, RotateCcw,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -118,7 +118,7 @@ function DataReadinessIcon({
 }) {
   const isReady = status === 'complete' || status === 'confirmed' || status === 'available';
   const isPartial = status === 'partial' || status === 'probable';
-  const isMissing = status === 'pending' || status === 'none' || !status;
+  const _isMissing = status === 'pending' || status === 'none' || !status;
 
   if (isReady) return (
     <div className="flex flex-col items-center gap-0.5">
@@ -537,7 +537,7 @@ function TeamsTab() {
                                 <div className="text-white font-medium leading-tight flex items-center gap-1.5">
                                   {row.team_name}
                                   {row.manual_review && (
-                                    <Flag className="w-3 h-3 text-amber-400 shrink-0" title="Manuel Kontrol Gerekli" />
+                                    <Flag className="w-3 h-3 text-amber-400 shrink-0" aria-label="Manuel Kontrol Gerekli" />
                                   )}
                                 </div>
                                 <div className="text-navy-500 text-[10px] mt-0.5">
@@ -576,9 +576,9 @@ function TeamsTab() {
                           </td>
                           <td className="px-3 py-3 text-center">
                             {row.stale_warning
-                              ? <AlertTriangle className="w-3.5 h-3.5 text-orange-400 mx-auto" title="Bayat veri" />
+                              ? <AlertTriangle className="w-3.5 h-3.5 text-orange-400 mx-auto" aria-label="Bayat veri" />
                               : row.missing_warning
-                                ? <AlertCircle className="w-3.5 h-3.5 text-red-400 mx-auto" title="Eksik veri" />
+                                ? <AlertCircle className="w-3.5 h-3.5 text-red-400 mx-auto" aria-label="Eksik veri" />
                                 : <CheckCircle2 className="w-3.5 h-3.5 text-navy-700 mx-auto" />
                             }
                           </td>

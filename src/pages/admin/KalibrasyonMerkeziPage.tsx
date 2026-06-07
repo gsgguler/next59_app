@@ -162,7 +162,7 @@ export default function KalibrasyonMerkeziPage() {
   const bekliyor = filtrelenmis.filter(k => k.durum === 'bekliyor').length;
   const hataVar = filtrelenmis.filter(k => k.durum === 'hata').length;
   const tamamlanmisler = filtrelenmis.filter(k => k.durum === 'tamamlandı');
-  const ortBrier = tamamlanmisler.length
+  const _ortBrier = tamamlanmisler.length
     ? tamamlanmisler.reduce((s, k) => s + (k.ortalama_brier ?? 0), 0) / tamamlanmisler.length
     : null;
   const ortIsabet = tamamlanmisler.length

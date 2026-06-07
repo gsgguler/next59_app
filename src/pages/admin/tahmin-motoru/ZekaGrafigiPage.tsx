@@ -152,7 +152,8 @@ export default function ZekaGrafigiPage() {
                   <Tooltip
                     contentStyle={{ background: '#0f1d2a', border: '1px solid #1e3a5f', borderRadius: 8, fontSize: 11 }}
                     labelStyle={{ color: '#94a3b8' }}
-                    formatter={(v: number, name: string) => [`${v}%`, BRAIN_LABELS_MAP[name] ?? name]}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    formatter={((v: unknown, name: string) => [`${v as number}%`, BRAIN_LABELS_MAP[name] ?? name]) as any}
                   />
                   <Legend
                     wrapperStyle={{ fontSize: 11 }}
@@ -199,7 +200,8 @@ export default function ZekaGrafigiPage() {
                   <Tooltip
                     contentStyle={{ background: '#0f1d2a', border: '1px solid #1e3a5f', borderRadius: 8, fontSize: 11 }}
                     labelStyle={{ color: '#94a3b8' }}
-                    formatter={(v: number, name: string) => [`${v}%`, BRAIN_LABELS_MAP[name] ?? name]}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    formatter={((v: unknown, name: string) => [`${v as number}%`, BRAIN_LABELS_MAP[name] ?? name]) as any}
                   />
                   <Legend
                     wrapperStyle={{ fontSize: 11 }}

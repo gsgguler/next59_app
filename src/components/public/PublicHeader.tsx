@@ -148,11 +148,9 @@ function DropdownNavItem({ item }: { item: NavItem }) {
 function MobileNavItem({
   item,
   onClose,
-  openAuth,
 }: {
   item: NavItem;
   onClose: () => void;
-  openAuth: (m: 'login' | 'register') => void;
 }) {
   const [open, setOpen] = useState(false);
   const location = useLocation();
@@ -357,7 +355,6 @@ export default function PublicHeader() {
                   key={item.to}
                   item={item}
                   onClose={() => setMobileOpen(false)}
-                  openAuth={openAuth}
                 />
               ))}
 

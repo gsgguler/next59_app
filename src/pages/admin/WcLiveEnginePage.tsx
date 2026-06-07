@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  RefreshCw, AlertTriangle, CheckCircle2, Activity, Database,
-  Clock, Wifi, WifiOff, Play, ChevronDown,
+  RefreshCw, AlertTriangle, Activity, Database,
+  WifiOff, ChevronDown,
   AlertCircle, Info, Zap, Radio, Calendar,
-  BarChart2, Shield, HelpCircle, Search, MoreVertical,
+  BarChart2, HelpCircle, Search, MoreVertical,
   RotateCcw, Eye, Trash2, Download, X,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -437,7 +437,7 @@ function OverviewTab({
   status,
   loading,
   error,
-  onRefresh,
+  onRefresh: _onRefresh,
 }: {
   status: EngineStatus | null;
   loading: boolean;

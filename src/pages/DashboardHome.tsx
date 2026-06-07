@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Trophy, TrendingUp, MessageSquare, ArrowUpRight, Lock } from 'lucide-react';
+import { Trophy, TrendingUp, MessageSquare, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface StatCard {

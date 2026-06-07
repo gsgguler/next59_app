@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import {
   Trophy, MapPin, Calendar, Users, ArrowLeft,
-  Shield, Clock, ChevronRight, Swords,
+  Shield, Clock, ChevronRight,
   CircleDot, ArrowLeftRight, Square,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';

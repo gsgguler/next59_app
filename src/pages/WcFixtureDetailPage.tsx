@@ -16,53 +16,6 @@ import type { WcScenarioData, WcTeamProfile } from '../hooks/useWcScenarios';
 
 const userTZ = getUserTimeZone();
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-interface WcTeamRecord {
-  id: string;
-  edition_year: number;
-  name_en: string;
-  iso2: string | null;
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function Flag({ iso2, size = 'md' }: { iso2: string | null | undefined; size?: 'sm' | 'md' | 'lg' | 'xl' }) {
-  if (!iso2) return null;
-  const style: React.CSSProperties =
-    size === 'xl' ? { width: 64, height: 44 }
-    : size === 'lg' ? { width: 48, height: 34 }
-    : size === 'sm' ? { width: 20, height: 14 }
-    : { width: 32, height: 22 };
-  return (
-    <span
-      className="fi rounded-[3px] shadow-sm inline-block shrink-0"
-      style={{ ...style, display: 'inline-block' }}
-      // flag-icons requires class-based approach
-      ref={(el) => { if (el) el.className = `fi fi-${iso2.toLowerCase()} rounded-[3px] shadow-sm inline-block`; }}
-    />
-  );
-}
-
-// Small flag using className directly
-function FlagClass({ iso2, size = 'md' }: { iso2: string | null | undefined; size?: 'sm' | 'md' | 'lg' | 'xl' }) {
-  if (!iso2) return null;
-  const px = size === 'xl' ? 64 : size === 'lg' ? 48 : size === 'sm' ? 20 : 32;
-  const py = size === 'xl' ? 44 : size === 'lg' ? 34 : size === 'sm' ? 14 : 22;
-  return (
-    <span
-      className={`fi fi-${iso2.toLowerCase()} rounded-[3px] shadow-sm shrink-0`}
-      style={{ width: px, height: py, display: 'inline-block' }}
-    />
-  );
-}
-
-function dateFmtLong(d: string) {
-  return new Date(d).toLocaleDateString('tr-TR', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-  });
-}
-
 // ── Team Past WC History (from DB) ───────────────────────────────────────────
 
 function TeamPastWC({ teamCode, teamNameEn }: { teamCode: string; teamNameEn: string }) {

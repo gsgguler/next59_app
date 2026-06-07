@@ -11,10 +11,7 @@ import {
   ChevronUp,
   Layers,
   Link2,
-  Globe,
   FileText,
-  Zap,
-  BarChart3,
   Eye,
   Clock,
 } from 'lucide-react';
@@ -131,7 +128,7 @@ function OrphanCard({ summary }: { summary: OrphanSummary }) {
     { label: 'Özellik Anlık Görüntüsü Olmayan Tahminler', value: summary.predictions_without_feature_snapshot },
     { label: 'Hikaye Bağı Olmayan Yayınlar', value: summary.publications_without_story },
     { label: 'Elo Bağı Olmayan Özellik Anlık Görüntüleri', value: summary.feature_snapshots_without_elo },
-    { label: 'Kalibrasyon Bağı Olmayan DK2026 Senaryoları', value: summary.wc2026_scenarios_without_calibration },
+    { label: 'Kalibrasyon Bağı Olmayan DK2026 Senaryoları', value: summary.wc_scenarios_without_calibration },
   ];
   return (
     <div className="bg-navy-800 border border-navy-700 rounded-xl p-5">

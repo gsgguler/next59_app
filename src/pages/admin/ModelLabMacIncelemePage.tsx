@@ -57,7 +57,7 @@ export default function ModelLabMacIncelemePage() {
 
   // Filters
   const [compSearch, setCompSearch] = useState('');
-  const [seasonSearch, setSeasonSearch] = useState('');
+  const [seasonSearch, _setSeasonSearch] = useState('');
   const [resultFilter, setResultFilter] = useState('');
 
   useEffect(() => {

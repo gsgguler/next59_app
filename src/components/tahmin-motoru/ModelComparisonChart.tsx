@@ -47,9 +47,11 @@ export default function ModelComparisonChart({ data }: ModelComparisonChartProps
         <Tooltip
           contentStyle={{ background: '#0f1d2a', border: '1px solid #1e3a5f', borderRadius: 8, fontSize: 11 }}
           labelStyle={{ color: '#94a3b8' }}
-          formatter={(value: number, name: string) =>
-            name === 'brier' ? [formatBrier(value), 'Brier Skoru'] : [formatAcc(value), 'Doğruluk']
-          }
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          formatter={((value: unknown, name: string) => {
+            const v = value as number;
+            return name === 'brier' ? [formatBrier(v), 'Brier Skoru'] : [formatAcc(v), 'Doğruluk'];
+          }) as any}
         />
         <Legend
           wrapperStyle={{ fontSize: 11, color: '#94a3b8' }}

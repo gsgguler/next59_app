@@ -1,11 +1,10 @@
 import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import LegalPageLayout from './LegalPageLayout';
 
 export default function YasalUyariPage() {
   useEffect(() => { document.title = 'Yasal Uyarı | Next59'; }, []);
   return (
-    <LegalPageLayout title="Yasal Uyarı / Sorumluluk Reddi">
+    <LegalPageLayout title="Yasal Uyarı / Sorumluluk Reddi" lastUpdated="Haziran 2026">
       <p>
         Bu web sitesinde yer alan tüm içerikler yalnızca bilgilendirme ve eğlence amaçlıdır. Next59, bir bahis platformu değildir ve hiçbir şekilde bahis, kupon veya yatırım tavsiyesi vermez.
       </p>

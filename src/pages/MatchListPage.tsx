@@ -8,7 +8,6 @@ import { useHomeMatchesLoadMore, type HomeMatch } from '../hooks/useHomeMatches'
 
 // Re-export for MatchCard compatibility
 export type { HomeMatch as Match };
-export type Match = HomeMatch;
 
 export interface Filters {
   status: string;

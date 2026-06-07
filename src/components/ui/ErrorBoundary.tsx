@@ -53,7 +53,7 @@ export default class ErrorBoundary extends Component<Props, State> {
             Bir şeyler yanlış gitti. Sayfayı yeniden yüklemeyi deneyin veya ana sayfaya dönün.
           </p>
 
-          {process.env.NODE_ENV === 'development' && this.state.error && (
+          {import.meta.env.DEV && this.state.error && (
             <div className="mb-6 text-left bg-gray-900 rounded-lg p-4 overflow-x-auto">
               <p className="text-red-400 text-xs font-mono break-all">
                 {this.state.error.message}

@@ -5,7 +5,6 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  TrendingUp,
   TrendingDown,
   Brain,
   BarChart3,

@@ -19,7 +19,7 @@ interface PredictionItem {
   } | null;
 }
 
-type AccessFilter = 'all' | 'free' | 'elite';
+type AccessFilter = 'all' | 'free' | 'pro' | 'elite';
 type SortKey = 'date' | 'confidence';
 
 export default function PredictionsListPage() {

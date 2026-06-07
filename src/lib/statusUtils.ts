@@ -1,4 +1,5 @@
-import { CheckCircle, XCircle, Clock, AlertCircle, PlayCircle, Video as LucideIcon } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, AlertCircle, PlayCircle } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 export interface StatusConfig {
   color: string;

@@ -13,8 +13,8 @@ interface PredictionInfo {
   statement: string;
   match: {
     id: string;
-    home_team: { short_name: string } | null;
-    away_team: { short_name: string } | null;
+    home_team: { name: string; short_name: string } | null;
+    away_team: { name: string; short_name: string } | null;
   } | null;
 }
 

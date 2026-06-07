@@ -410,7 +410,7 @@ function Td({ children }: { children: React.ReactNode }) {
 }
 
 function MetricTd({
-  value, decimals, lowerBetter, suffix, absBound,
+  value, decimals, lowerBetter: _lowerBetter, suffix, absBound,
 }: {
   value: number | null;
   decimals: number;

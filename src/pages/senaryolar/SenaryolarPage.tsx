@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Zap, ChevronRight } from 'lucide-react';
+import { Zap } from 'lucide-react';
 import ContentPlaceholder from '../../components/ui/ContentPlaceholder';
 
 export default function SenaryolarPage() {
