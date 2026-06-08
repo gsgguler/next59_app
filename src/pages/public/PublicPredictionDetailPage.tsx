@@ -40,12 +40,20 @@ interface PredictionData {
 }
 
 const TYPE_LABELS: Record<string, string> = {
+  '1X2': 'Maç Sonucu',
   match_result: 'Maç Sonucu',
+  O_U: 'Gol Üstü/Altı',
   over_under: 'Gol Üstü/Altı',
+  BTTS: 'KG Var/Yok',
   btts: 'KG Var/Yok',
+  ASIAN_HANDICAP: 'Asya Handikabı',
+  CORRECT_SCORE: 'Skor Tahmini',
 };
 
 const OUTCOME_LABELS: Record<string, string> = {
+  H: 'Ev Sahibi Kazanır',
+  D: 'Beraberlik',
+  A: 'Deplasman Kazanır',
   home_win: 'Ev Sahibi Kazanır',
   draw: 'Beraberlik',
   away_win: 'Deplasman Kazanır',
