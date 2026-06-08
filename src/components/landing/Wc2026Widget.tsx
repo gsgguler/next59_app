@@ -1,7 +1,20 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Globe, ChevronRight, Zap, Trophy } from 'lucide-react';
+import { Globe, ChevronRight, Zap, Trophy, BarChart2 } from 'lucide-react';
 import { WC2026_COUNTRIES } from '../../data/worldCup2026Countries';
+import { supabase } from '../../lib/supabase';
+
+interface CalibrationSample {
+  home_team_name: string;
+  away_team_name: string;
+  home_win_probability: number;
+  draw_probability: number;
+  away_win_probability: number;
+  predicted_score_home: number;
+  predicted_score_away: number;
+  calibration_confidence: string | null;
+  calibrated_at: string;
+}
 
 const WC2026_START = new Date('2026-06-11T20:00:00-06:00'); // Mexico City opener
 
@@ -58,6 +71,17 @@ function CountdownUnit({ value, label }: { value: number; label: string }) {
 
 export default function Wc2026Widget() {
   const { days, hours, minutes, seconds } = useCountdown(WC2026_START);
+  const [sample, setSample] = useState<CalibrationSample | null | undefined>(undefined);
+
+  useEffect(() => {
+    supabase
+      .from('wc2026_match_scenario_calibration')
+      .select('home_team_name, away_team_name, home_win_probability, draw_probability, away_win_probability, predicted_score_home, predicted_score_away, calibration_confidence, calibrated_at')
+      .order('calibrated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => setSample(data ?? null));
+  }, []);
 
   return (
     <section className="py-20 sm:py-28 relative overflow-hidden">
@@ -145,6 +169,91 @@ export default function Wc2026Widget() {
           </p>
         </div>
 
+        {/* Proof card */}
+        <div className="mt-12">
+          <div className="flex items-center gap-2 mb-5">
+            <BarChart2 className="w-4 h-4 text-gold-400" />
+            <h3 className="text-sm font-semibold text-navy-300 uppercase tracking-wider">Modelden Örnek Okuma</h3>
+          </div>
+
+          {sample === undefined ? null : sample === null ? (
+            <div className="bg-navy-800/30 border border-navy-700/40 rounded-xl p-6 text-center">
+              <p className="text-sm text-navy-500">İlk kalibrasyon örnekleri yakında burada görünecek.</p>
+            </div>
+          ) : (
+            <div className="bg-navy-800/40 border border-navy-700/50 rounded-xl p-6 sm:p-7">
+              {/* Teams + score */}
+              <div className="flex items-center justify-between gap-4 mb-6">
+                <div className="flex-1 text-center">
+                  <p className="text-sm font-semibold text-white truncate">{sample.home_team_name}</p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="w-10 h-10 rounded-lg bg-navy-700/60 border border-navy-600/50 flex items-center justify-center text-lg font-bold text-white">
+                    {sample.predicted_score_home}
+                  </span>
+                  <span className="text-navy-500 font-bold text-sm">—</span>
+                  <span className="w-10 h-10 rounded-lg bg-navy-700/60 border border-navy-600/50 flex items-center justify-center text-lg font-bold text-white">
+                    {sample.predicted_score_away}
+                  </span>
+                </div>
+                <div className="flex-1 text-center">
+                  <p className="text-sm font-semibold text-white truncate">{sample.away_team_name}</p>
+                </div>
+              </div>
+
+              {/* 1X2 bars */}
+              <div className="space-y-2.5 mb-5">
+                {[
+                  { label: '1 — ' + sample.home_team_name, pct: Math.round(sample.home_win_probability * 100), color: 'bg-gold-500' },
+                  { label: 'X — Beraberlik', pct: Math.round(sample.draw_probability * 100), color: 'bg-navy-500' },
+                  { label: '2 — ' + sample.away_team_name, pct: Math.round(sample.away_win_probability * 100), color: 'bg-sky-500' },
+                ].map((row) => (
+                  <div key={row.label} className="flex items-center gap-3">
+                    <span className="text-xs text-navy-400 w-36 sm:w-44 truncate flex-shrink-0">{row.label}</span>
+                    <div className="flex-1 h-2 rounded-full bg-navy-700/60 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${row.color} transition-all duration-700`}
+                        style={{ width: `${row.pct}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-semibold text-white w-9 text-right flex-shrink-0">%{row.pct}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Confidence + date row */}
+              <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
+                {sample.calibration_confidence && (
+                  <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border ${
+                    sample.calibration_confidence === 'HIGH'
+                      ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
+                      : sample.calibration_confidence === 'MEDIUM'
+                      ? 'bg-gold-500/10 border-gold-500/25 text-gold-400'
+                      : 'bg-navy-600/40 border-navy-600/60 text-navy-400'
+                  }`}>
+                    {sample.calibration_confidence === 'HIGH' ? 'Yüksek Güven' : sample.calibration_confidence === 'MEDIUM' ? 'Orta Güven' : 'Düşük Güven'}
+                  </span>
+                )}
+                <span className="text-[11px] text-navy-500 ml-auto">
+                  {new Date(sample.calibrated_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })} kalibrasyonu
+                </span>
+              </div>
+
+              <p className="text-xs text-navy-400 leading-relaxed mb-5">
+                Next59 bu maçta olasılık, skor beklentisi ve senaryo baskısını birlikte okur.
+              </p>
+
+              <Link
+                to="/world-cup-2026"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-gold-400 hover:text-gold-300 transition-colors"
+              >
+                Tüm WC2026 senaryolarını gör
+                <ChevronRight className="w-4 h-4" />
+              </Link>
+            </div>
+          )}
+        </div>
+
         {/* AI readiness banner */}
         <div className="mt-12 bg-gradient-to-r from-navy-800/60 via-navy-800/80 to-navy-800/60 border border-navy-700/50 rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-5">
           <div className="w-12 h-12 rounded-xl bg-gold-500/10 border border-gold-500/20 flex items-center justify-center flex-shrink-0">
@@ -168,3 +277,6 @@ export default function Wc2026Widget() {
     </section>
   );
 }
+
+
+export default Wc2026Widget
