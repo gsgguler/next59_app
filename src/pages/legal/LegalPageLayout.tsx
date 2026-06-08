@@ -44,7 +44,8 @@ export default function LegalPageLayout({ title, lastUpdated, children }: LegalP
             <a href="mailto:legal@next59.com" className="text-slate-600 hover:text-slate-800 hover:underline transition-colors">
               legal@next59.com
             </a>{' '}
-            adresinden bize ulaşabilirsiniz.
+            adresinden bize ulaşabilirsiniz. Bu metin, mevzuat ve hizmet kapsamındaki
+            değişikliklere göre güncellenebilir.
           </p>
         </div>
       </main>

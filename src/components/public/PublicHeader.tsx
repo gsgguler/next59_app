@@ -56,6 +56,20 @@ const NAV: NavItem[] = [
     ],
   },
   {
+    label: 'İçerikler',
+    to: '/senaryolar',
+    children: [
+      { label: 'Senaryolar', to: '/senaryolar' },
+      { label: 'Favori Neden Kaybeder?', to: '/senaryolar/favori-neden-kaybeder' },
+      { label: 'Geçmiş Maç Okumaları', to: '/senaryolar/gecmis-mac-okumalari' },
+      { label: 'Maç Hikayeleri', to: '/senaryolar/mac-hikayeleri' },
+      { label: 'Yazılar', to: '/yazilar' },
+      { label: 'Analizler', to: '/yazilar/analizler' },
+      { label: 'Dünya Kupası 2026', to: '/yazilar/dunya-kupasi-2026' },
+      { label: 'Editör Notları', to: '/yazilar/editor-notlari' },
+    ],
+  },
+  {
     label: 'World Cup',
     to: '/world-cup-2026',
     children: [
