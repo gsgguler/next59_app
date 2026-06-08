@@ -1266,6 +1266,15 @@ function ActionBtn({
 
 // ── Tab: Overview ──────────────────────────────────────────────────────────────
 
+type MatchAction = 'readiness' | 'prediction' | 'brain' | 'scenario';
+
+const MATCH_ACTION_RPC: Record<MatchAction, string> = {
+  readiness: 'ml_assess_upcoming_match_readiness',
+  prediction: 'ml_generate_prematch_prediction',
+  brain: 'ml_generate_prematch_brain_package',
+  scenario: 'ml_generate_full_prematch_package',
+};
+
 function OverviewTab({
   readiness,
   predictions,
@@ -1294,7 +1303,7 @@ function OverviewTab({
   enrichmentHealth: EnrichmentHealth;
   liveEngineHealth: LiveEngineHealth;
   liveMemoryHealth: LiveMemoryHealth;
-  onAction: (action: string, matchId: string) => void;
+  onAction: (action: MatchAction, matchId: string) => void;
   actionLoading: Record<string, string>;
 }) {
   const predMap = new Map(predictions.map(p => [p.match_id, p]));
@@ -2464,25 +2473,15 @@ export default function DailyMonitorPage() {
   };
 
   // ── Actions ──
-  async function handleAction(action: string, matchId: string) {
+  async function handleAction(action: MatchAction, matchId: string) {
     setActionLoading(prev => ({ ...prev, [matchId]: action }));
     setActionMsg(null);
     try {
-      let rpcName = '';
+      const rpcName = MATCH_ACTION_RPC[action];
       const params: Record<string, unknown> = { p_match_id: matchId };
-      if (action === 'readiness') {
-        rpcName = 'ml_assess_upcoming_match_readiness';
-      } else if (action === 'prediction') {
-        rpcName = 'ml_generate_prematch_prediction';
-        params.p_triggered_by = 'admin_daily_monitor';
-      } else if (action === 'brain') {
-        rpcName = 'ml_generate_prematch_brain_package';
-        params.p_triggered_by = 'admin_daily_monitor';
-      } else if (action === 'scenario') {
-        rpcName = 'ml_generate_full_prematch_package';
+      if (action !== 'readiness') {
         params.p_triggered_by = 'admin_daily_monitor';
       }
-      if (!rpcName) return;
       const { error } = await supabase.rpc(rpcName, params);
       if (error) {
         setActionMsg({ text: `Hata (${action}): ${error.message}`, ok: false });
