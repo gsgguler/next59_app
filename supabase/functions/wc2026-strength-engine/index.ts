@@ -80,6 +80,14 @@ interface TeamStats {
   goalsAgainst: number;
 }
 
+interface SquadSignals {
+  squadDepthScore: number;       // 0.90–1.02
+  availabilityRatio: number;     // 0–1
+  unavailableCount: number;
+  availabilityRiskScore: number; // 0–0.05
+  squadAdjustmentFactor: number; // 0.95–1.03
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -168,6 +176,53 @@ Deno.serve(async (req: Request) => {
       apiIdToUuid.set(t.api_football_id, { id: t.id, name: t.name });
     }
     log.push(`Teams with internal UUIDs: ${apiIdToUuid.size}`);
+
+    // ═══════════════════════════════════════
+    // PHASE 1.5 — LOAD SQUAD SIGNALS
+    // ═══════════════════════════════════════
+
+    // Load probable squads (position counts per team)
+    const { data: probableSquads } = await supabase
+      .from("wc2026_probable_squads")
+      .select("api_football_team_id, squad_json, squad_type")
+      .eq("squad_type", "full_squad");
+
+    // Map: api_football_team_id → position counts
+    const squadCountByTeam = new Map<number, { gk: number; def: number; mid: number; att: number; total: number }>();
+    for (const row of probableSquads ?? []) {
+      const players: Array<{ position?: string }> = row.squad_json ?? [];
+      const counts = { gk: 0, def: 0, mid: 0, att: 0, total: players.length };
+      for (const p of players) {
+        const pos = (p.position ?? "").toLowerCase();
+        if (pos === "goalkeeper") counts.gk++;
+        else if (pos === "defender") counts.def++;
+        else if (pos === "midfielder") counts.mid++;
+        else if (pos === "attacker") counts.att++;
+      }
+      squadCountByTeam.set(row.api_football_team_id, counts);
+    }
+
+    // Load availability: count unavailable players per team
+    const { data: unavailablePlayers } = await supabase
+      .from("wc2026_player_pool")
+      .select("api_football_team_id, availability_status")
+      .in("availability_status", ["injured", "suspended", "unavailable"]);
+
+    const unavailableByTeam = new Map<number, number>();
+    const totalPoolByTeam = new Map<number, number>();
+    for (const p of unavailablePlayers ?? []) {
+      unavailableByTeam.set(p.api_football_team_id, (unavailableByTeam.get(p.api_football_team_id) ?? 0) + 1);
+    }
+
+    // Load total pool size per team for ratio computation
+    const { data: allPoolPlayers } = await supabase
+      .from("wc2026_player_pool")
+      .select("api_football_team_id");
+    for (const p of allPoolPlayers ?? []) {
+      totalPoolByTeam.set(p.api_football_team_id, (totalPoolByTeam.get(p.api_football_team_id) ?? 0) + 1);
+    }
+
+    log.push(`Squad data loaded: ${squadCountByTeam.size} teams with squad info`);
 
     // ═══════════════════════════════════════
     // PHASE 2 — FETCH LAST 30 FIXTURES PER TEAM
@@ -356,6 +411,55 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Compute squad depth + availability adjustment signals
+    function computeSquadSignals(apiTeamId: number): SquadSignals {
+      const counts = squadCountByTeam.get(apiTeamId);
+      const unavailable = unavailableByTeam.get(apiTeamId) ?? 0;
+      const totalPool = totalPoolByTeam.get(apiTeamId) ?? 0;
+
+      // Squad depth score
+      let depthScore = 1.00;
+      if (counts) {
+        if (counts.gk < 3) depthScore -= 0.02;
+        if (counts.def < 6) depthScore -= 0.02;
+        if (counts.mid < 6) depthScore -= 0.02;
+        if (counts.att < 4) depthScore -= 0.02;
+        if (counts.total < 23) depthScore -= 0.03;
+      } else {
+        // No squad data — treat as full depth (neutral, no bonus/penalty)
+        depthScore = 1.00;
+      }
+      depthScore = clamp(depthScore, 0.90, 1.02);
+
+      // Availability ratio + risk
+      const availabilityRatio = totalPool > 0 ? (totalPool - unavailable) / totalPool : 1.0;
+      let availabilityRiskScore = 0;
+      if (unavailable <= 2) availabilityRiskScore = 0;
+      else if (unavailable <= 4) availabilityRiskScore = 0.015;
+      else availabilityRiskScore = 0.03;
+      if (availabilityRatio < 0.85) availabilityRiskScore = Math.max(availabilityRiskScore, 0.05);
+
+      const squadAdjustmentFactor = clamp(
+        1 + (depthScore - 1) * 0.5 - availabilityRiskScore,
+        0.95,
+        1.03,
+      );
+
+      return {
+        squadDepthScore: parseFloat(depthScore.toFixed(4)),
+        availabilityRatio: parseFloat(availabilityRatio.toFixed(4)),
+        unavailableCount: unavailable,
+        availabilityRiskScore: parseFloat(availabilityRiskScore.toFixed(4)),
+        squadAdjustmentFactor: parseFloat(squadAdjustmentFactor.toFixed(4)),
+      };
+    }
+
+    function injuryAdjustedSI(apiTeamId: number): number {
+      const base = strengthIndex(apiTeamId);
+      const signals = computeSquadSignals(apiTeamId);
+      return parseFloat((base * signals.squadAdjustmentFactor).toFixed(2));
+    }
+
     // ═══════════════════════════════════════
     // PHASE 5 — UPSERT TEAM CALIBRATION PROFILES
     // ═══════════════════════════════════════
@@ -367,6 +471,8 @@ Deno.serve(async (req: Request) => {
 
       const si = strengthIndex(apiTeamId);
       const normalizedSI = parseFloat((si / 1500).toFixed(4));
+      const signals = computeSquadSignals(apiTeamId);
+      const adjSI = parseFloat((si * signals.squadAdjustmentFactor).toFixed(2));
 
       let confLabel: string;
       if (stats.matchCount >= 20) confLabel = "high";
@@ -386,12 +492,17 @@ Deno.serve(async (req: Request) => {
           form_data_source: "api-football",
           historical_elo_rating: parseFloat(stats.elo.toFixed(2)),
           wc2026_team_strength_index: normalizedSI,
+          squad_depth_score: signals.squadDepthScore,
+          availability_ratio: signals.availabilityRatio,
+          unavailable_player_count: signals.unavailableCount,
+          availability_risk_score: signals.availabilityRiskScore,
+          injury_adjusted_strength_index: parseFloat((adjSI / 1500).toFixed(4)),
           wc2026_scenario_confidence: stats.matchCount >= 10 ? 0.70 : stats.matchCount >= 5 ? 0.50 : 0.30,
           wc2026_late_goal_risk: clamp(0.30 + (2.0 - stats.defenseScore) * 0.10, 0.10, 0.70),
           wc2026_chaos_probability: clamp(0.25 + (1.0 - stats.form5) * 0.20, 0.10, 0.60),
           wc2026_fatigue_risk: 0.30, // default; updated post-group stage
           calibration_confidence: confLabel,
-          calibration_formula_version: "strength_engine_v1",
+          calibration_formula_version: "strength_engine_v2",
           calibrated_at: new Date().toISOString(),
           data_coverage_flags: { has_recent_form: stats.totalMatches >= 5, elo_calculated: stats.matchCount > 0 },
         });
@@ -473,8 +584,8 @@ Deno.serve(async (req: Request) => {
       const hStats = teamStats.get(hId);
       const aStats = teamStats.get(aId);
 
-      const hSI = strengthIndex(hId);
-      const aSI = strengthIndex(aId);
+      const hSI = injuryAdjustedSI(hId);
+      const aSI = injuryAdjustedSI(aId);
       const siDiff = hSI - aSI;
 
       // 1X2 probabilities from strength difference
@@ -550,7 +661,7 @@ Deno.serve(async (req: Request) => {
           wc2026_fatigue_risk: parseFloat(fatigueRisk.toFixed(3)),
           calibration_confidence: confLabel,
           missing_data_warnings: missingWarnings.length > 0 ? missingWarnings : [],
-          calibration_formula_version: "strength_engine_v1",
+          calibration_formula_version: "strength_engine_v2",
           calibrated_at: new Date().toISOString(),
         });
 
@@ -607,14 +718,22 @@ Deno.serve(async (req: Request) => {
 
     // Build ELO rankings
     const rankings = [...teamStats.entries()]
-      .map(([apiId, s]) => ({
-        api_id: apiId,
-        name: apiIdToUuid.get(apiId)?.name ?? apiIdToName.get(apiId) ?? `Team ${apiId}`,
-        elo: parseFloat(s.elo.toFixed(1)),
-        form5: s.form5,
-        match_count: s.matchCount,
-        strength_index: parseFloat(strengthIndex(apiId).toFixed(1)),
-      }))
+      .map(([apiId, s]) => {
+        const baseSI = parseFloat(strengthIndex(apiId).toFixed(1));
+        const adjSI = parseFloat(injuryAdjustedSI(apiId).toFixed(1));
+        const signals = computeSquadSignals(apiId);
+        return {
+          api_id: apiId,
+          name: apiIdToUuid.get(apiId)?.name ?? apiIdToName.get(apiId) ?? `Team ${apiId}`,
+          elo: parseFloat(s.elo.toFixed(1)),
+          form5: s.form5,
+          match_count: s.matchCount,
+          base_strength_index: baseSI,
+          squad_adjustment_factor: signals.squadAdjustmentFactor,
+          unavailable: signals.unavailableCount,
+          strength_index: adjSI,
+        };
+      })
       .sort((a, b) => b.strength_index - a.strength_index);
 
     return new Response(
