@@ -98,6 +98,7 @@ import BrainOrkestrasiPage from './pages/admin/tahmin-motoru/BrainOrkestrasiPage
 import NeDedikNeOlduPage from './pages/admin/tahmin-motoru/NeDedikNeOlduPage';
 import ZekaGrafigiPage from './pages/admin/tahmin-motoru/ZekaGrafigiPage';
 import MacTahminPage from './pages/public/MacTahminPage';
+import PublicPredictionsPage from './pages/public/PublicPredictionsPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import PlaceholderPage from './pages/PlaceholderPage';
@@ -115,6 +116,8 @@ export default function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/mac/:matchId" element={<MatchDetailPage />} />
                 <Route path="/mac/:matchId/tahmin" element={<MacTahminPage />} />
+                <Route path="/tahminler" element={<PublicPredictionsPage />} />
+                <Route path="/tahminler/:id" element={<PredictionDetailPage />} />
                 <Route path="/world-cup-2026" element={<WorldCup2026Page />} />
                 <Route path="/world-cup/tarihce" element={<WorldCupHistoryPage />} />
                 <Route path="/world-cup/tarihce/mac/:matchId" element={<WcMatchDetailPage />} />

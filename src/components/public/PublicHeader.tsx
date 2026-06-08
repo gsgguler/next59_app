@@ -67,6 +67,7 @@ const NAV: NavItem[] = [
       { label: 'Analizler', to: '/yazilar/analizler' },
       { label: 'Dünya Kupası 2026', to: '/yazilar/dunya-kupasi-2026' },
       { label: 'Editör Notları', to: '/yazilar/editor-notlari' },
+      { label: 'Tahminler', to: '/tahminler' },
     ],
   },
   {
