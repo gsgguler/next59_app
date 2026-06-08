@@ -277,6 +277,3 @@ export default function Wc2026Widget() {
     </section>
   );
 }
-
-
-export default Wc2026Widget
