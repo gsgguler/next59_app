@@ -49,8 +49,8 @@
   .bg-surface-inner { background-color: #142d4a; }
 
   /* Semantic text tokens */
-  .text-readable-muted { color: #8baacf; }
-  .text-readable-subtle { color: #a0bdd9; }
+  .text-readable-muted { color: #9ab5d0; }
+  .text-readable-subtle { color: #b8cfe3; }
 
   /* Semantic border tokens */
   .border-readable-soft { border-color: rgba(102, 144, 195, 0.12); }
@@ -116,3 +116,31 @@
     transform: translateY(0);
   }
 }
+
+/*
+  Text-navy readability overrides — declared outside @layer so they always
+  take precedence over Tailwind's @layer utilities (unlayered CSS wins in CSS cascade).
+  navy-300 text: #6690c3 (~3.8:1 on dark) → #bed4ea (~11:1)
+  navy-400 text: #336baf (~1.8:1 on dark) → #9ab5d0 (~7:1)
+  navy-500 text: #0d4a8a (~1.5:1 on dark) → #7b9cbc (~5:1)
+  navy-600 text: #0b3d72 (~1.3:1 on dark) → #6a90ae (~6:1)
+*/
+.text-navy-300 { color: #bed4ea; }
+.text-navy-400 { color: #9ab5d0; }
+.text-navy-500 { color: #7b9cbc; }
+.text-navy-600 { color: #6a90ae; }
+
+.hover\:text-navy-300:hover { color: #bed4ea; }
+.hover\:text-navy-400:hover { color: #9ab5d0; }
+.hover\:text-navy-500:hover { color: #7b9cbc; }
+.hover\:text-navy-600:hover { color: #6a90ae; }
+
+.group:hover .group-hover\:text-navy-300 { color: #bed4ea; }
+.group:hover .group-hover\:text-navy-400 { color: #9ab5d0; }
+.group:hover .group-hover\:text-navy-500 { color: #7b9cbc; }
+.group:hover .group-hover\:text-navy-600 { color: #6a90ae; }
+
+.focus\:text-navy-300:focus { color: #bed4ea; }
+.focus\:text-navy-400:focus { color: #9ab5d0; }
+.focus\:text-navy-500:focus { color: #7b9cbc; }
+.focus\:text-navy-600:focus { color: #6a90ae; }
