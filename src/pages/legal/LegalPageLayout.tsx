@@ -41,7 +41,7 @@ export default function LegalPageLayout({ title, lastUpdated, children }: LegalP
         <div className="mt-8 text-center">
           <p className="text-xs text-gray-400">
             Sorularınız için{' '}
-            <a href="mailto:legal@next59.com" className="text-navy-400 hover:text-navy-300 hover:underline transition-colors">
+            <a href="mailto:legal@next59.com" className="text-slate-600 hover:text-slate-800 hover:underline transition-colors">
               legal@next59.com
             </a>{' '}
             adresinden bize ulaşabilirsiniz.

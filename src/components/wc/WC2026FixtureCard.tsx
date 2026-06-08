@@ -91,7 +91,7 @@ function ProbBar({ scenario }: { scenario: WcScenarioData }) {
 
   return (
     <div className="mt-3 pt-3 border-t border-navy-800/60">
-      <p className="text-xs text-slate-500 mb-2">Model senaryosu <span className="text-slate-600">— bahis tavsiyesi değil</span></p>
+      <p className="text-xs text-slate-400 mb-2">Model senaryosu <span className="text-slate-400">— bahis tavsiyesi değil</span></p>
       <div className="h-2 rounded-full overflow-hidden flex gap-px bg-navy-800">
         <div
           className={`rounded-l-full transition-all ${leading === 'home' ? 'bg-champagne' : 'bg-navy-600'}`}
@@ -110,7 +110,7 @@ function ProbBar({ scenario }: { scenario: WcScenarioData }) {
         <span className={leading === 'home' ? 'text-champagne font-semibold' : 'text-slate-400'}>
           {hp}% Ev
         </span>
-        <span className={leading === 'draw' ? 'text-champagne/70 font-semibold' : 'text-slate-500'}>
+        <span className={leading === 'draw' ? 'text-champagne/70 font-semibold' : 'text-slate-400'}>
           {dp}% Ber.
         </span>
         <span className={leading === 'away' ? 'text-sky-400 font-semibold' : 'text-slate-400'}>

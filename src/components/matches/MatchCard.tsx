@@ -133,9 +133,9 @@ export default function MatchCard({ match }: { match: Match }) {
           <div className="grid grid-cols-2 gap-3 pt-3">
             {match.round && (
               <div className="flex items-start gap-2">
-                <Tag className="w-3.5 h-3.5 text-slate-500 mt-0.5 shrink-0" />
+                <Tag className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Tur</p>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wide">Tur</p>
                   <p className="text-xs text-slate-300 mt-0.5">{match.round}</p>
                 </div>
               </div>
@@ -143,9 +143,9 @@ export default function MatchCard({ match }: { match: Match }) {
 
             {seasonCode && (
               <div className="flex items-start gap-2">
-                <Calendar className="w-3.5 h-3.5 text-slate-500 mt-0.5 shrink-0" />
+                <Calendar className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Sezon</p>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wide">Sezon</p>
                   <p className="text-xs text-slate-300 mt-0.5">{seasonCode}</p>
                 </div>
               </div>
@@ -155,7 +155,7 @@ export default function MatchCard({ match }: { match: Match }) {
               <div className="flex items-start gap-2 col-span-2">
                 <div className="w-3.5 h-3.5 shrink-0" />
                 <div>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Turnuva</p>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wide">Turnuva</p>
                   <p className="text-xs text-slate-300 mt-0.5">{match.competition_season.competition.name}</p>
                 </div>
               </div>
