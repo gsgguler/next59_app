@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ChevronRight, Loader2, BarChart3, TrendingUp } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { resolveTeamName } from '../../lib/teamDisplay';
 
 interface TeamInfo {
   name: string;
   short_name: string | null;
   code: string | null;
+  team_display_names?: Array<{ display_name: string; locale: string; is_primary: boolean }>;
 }
 
 interface PredictionData {
@@ -74,10 +76,6 @@ function teamCode(t: TeamInfo | null): string {
   return t?.code ?? t?.name?.slice(0, 3).toUpperCase() ?? '???';
 }
 
-function teamName(t: TeamInfo | null, fallback: string): string {
-  return t?.short_name ?? t?.name ?? fallback;
-}
-
 export default function PublicPredictionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [prediction, setPrediction] = useState<PredictionData | null>(null);
@@ -98,8 +96,8 @@ export default function PublicPredictionDetailPage() {
         odds_fair, explanation_json, published_at, created_at,
         match:matches!predictions_match_id_fkey(
           id, match_date, match_time, status_short, round, home_score_ft, away_score_ft,
-          home_team:teams!matches_home_team_id_fkey(name, short_name, code),
-          away_team:teams!matches_away_team_id_fkey(name, short_name, code),
+          home_team:teams!matches_home_team_id_fkey(name, short_name, code, team_display_names(display_name, locale, is_primary)),
+          away_team:teams!matches_away_team_id_fkey(name, short_name, code, team_display_names(display_name, locale, is_primary)),
           competition_season:competition_seasons!matches_competition_season_id_fkey(
             season_code,
             competition:competitions(name, short_name, code)
@@ -166,8 +164,8 @@ export default function PublicPredictionDetailPage() {
   }
 
   const match = prediction.match;
-  const homeName = teamName(match?.home_team ?? null, 'Ev Sahibi');
-  const awayName = teamName(match?.away_team ?? null, 'Konuk');
+  const homeName = resolveTeamName(match?.home_team ?? null, 'Ev Sahibi');
+  const awayName = resolveTeamName(match?.away_team ?? null, 'Konuk');
   const compName = match?.competition_season?.competition?.name ?? '';
   const typeLabel = TYPE_LABELS[prediction.prediction_type] ?? prediction.prediction_type;
   const outcomeLabel = prediction.predicted_outcome
@@ -287,7 +285,7 @@ function MatchPanel({
           <div className="w-14 h-14 rounded-full bg-navy-600 flex items-center justify-center mx-auto mb-2">
             <span className="text-sm font-bold">{teamCode(homeTeam)}</span>
           </div>
-          <p className="font-semibold text-sm">{teamName(homeTeam, 'Ev Sahibi')}</p>
+          <p className="font-semibold text-sm">{resolveTeamName(homeTeam, 'Ev Sahibi')}</p>
         </div>
 
         <div className="text-center px-4">
@@ -302,7 +300,7 @@ function MatchPanel({
           <div className="w-14 h-14 rounded-full bg-navy-600 flex items-center justify-center mx-auto mb-2">
             <span className="text-sm font-bold">{teamCode(awayTeam)}</span>
           </div>
-          <p className="font-semibold text-sm">{teamName(awayTeam, 'Konuk')}</p>
+          <p className="font-semibold text-sm">{resolveTeamName(awayTeam, 'Konuk')}</p>
         </div>
       </div>
 

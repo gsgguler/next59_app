@@ -12,8 +12,20 @@ export interface HomeMatch {
   round: string | null;
   home_score_ft: number | null;
   away_score_ft: number | null;
-  home_team: { name: string; short_name: string | null; code: string | null; logo_url: string | null } | null;
-  away_team: { name: string; short_name: string | null; code: string | null; logo_url: string | null } | null;
+  home_team: {
+    name: string;
+    short_name: string | null;
+    code: string | null;
+    logo_url: string | null;
+    team_display_names?: Array<{ display_name: string; locale: string; is_primary: boolean }>;
+  } | null;
+  away_team: {
+    name: string;
+    short_name: string | null;
+    code: string | null;
+    logo_url: string | null;
+    team_display_names?: Array<{ display_name: string; locale: string; is_primary: boolean }>;
+  } | null;
   competition_season: {
     season_code: string;
     competition: { name: string; short_name: string | null; code: string } | null;
@@ -30,8 +42,8 @@ async function fetchMatchPage([, page, limit, statusFilter]: FetchKey): Promise<
     .from('matches')
     .select(
       `id, match_date, match_time, status_short, round, home_score_ft, away_score_ft,
-       home_team:teams!matches_home_team_id_fkey(name, short_name, code, logo_url),
-       away_team:teams!matches_away_team_id_fkey(name, short_name, code, logo_url),
+       home_team:teams!matches_home_team_id_fkey(name, short_name, code, logo_url, team_display_names(display_name, locale, is_primary)),
+       away_team:teams!matches_away_team_id_fkey(name, short_name, code, logo_url, team_display_names(display_name, locale, is_primary)),
        competition_season:competition_seasons!matches_competition_season_id_fkey(
          season_code, competition:competitions(name, short_name, code)
        )`,

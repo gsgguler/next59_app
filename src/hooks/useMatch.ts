@@ -39,8 +39,8 @@ export function useMatch(matchId: string | undefined): UseMatchResult {
           match_date, match_time, timezone, timestamp,
           status_short, status_long, status_elapsed,
           home_score_ft, away_score_ft, round, result,
-          home_team:teams!matches_home_team_id_fkey(id, name, short_name, code, logo_url),
-          away_team:teams!matches_away_team_id_fkey(id, name, short_name, code, logo_url),
+          home_team:teams!matches_home_team_id_fkey(id, name, short_name, code, logo_url, team_display_names(display_name, locale, is_primary)),
+          away_team:teams!matches_away_team_id_fkey(id, name, short_name, code, logo_url, team_display_names(display_name, locale, is_primary)),
           venue:venues!matches_venue_id_fkey(id, name, city, capacity)
         `)
         .eq('id', matchId)

@@ -1,3 +1,9 @@
+export interface DbTeamDisplayName {
+  display_name: string;
+  locale: string;
+  is_primary: boolean;
+}
+
 export interface DbTeam {
   id: string;
   country_id: string | null;
@@ -9,6 +15,7 @@ export interface DbTeam {
   venue_id: string | null;
   founded: number | null;
   created_at: string;
+  team_display_names?: DbTeamDisplayName[];
 }
 
 export interface DbVenue {

@@ -23,12 +23,17 @@ const STATUS_MAP: Record<string, UIMatch['status']> = {
   canc: 'finished',
 };
 
+function resolveDisplayName(raw: DbTeam): string {
+  const tr = raw?.team_display_names?.find((d) => d.locale === 'tr-TR' && d.is_primary);
+  return tr?.display_name ?? raw?.short_name ?? raw?.name ?? 'Bilinmiyor';
+}
+
 function transformTeam(raw: DbTeam): UITeam {
-  const name = raw?.name ?? 'Bilinmiyor';
+  const name = resolveDisplayName(raw);
   return {
     id: raw?.id ?? '',
     name,
-    short_name: raw?.short_name ?? raw?.code ?? name,
+    short_name: name,
     country_code: raw?.code ?? '',
     fifa_code: raw?.code ?? '',
   };

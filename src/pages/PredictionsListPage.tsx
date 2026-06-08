@@ -19,8 +19,18 @@ interface PredictionItem {
   is_elite_only: boolean;
   created_at: string;
   match: {
-    home_team: { name: string; short_name: string | null; code: string | null } | null;
-    away_team: { name: string; short_name: string | null; code: string | null } | null;
+    home_team: {
+      name: string;
+      short_name: string | null;
+      code: string | null;
+      team_display_names?: Array<{ display_name: string; locale: string; is_primary: boolean }>;
+    } | null;
+    away_team: {
+      name: string;
+      short_name: string | null;
+      code: string | null;
+      team_display_names?: Array<{ display_name: string; locale: string; is_primary: boolean }>;
+    } | null;
   } | null;
 }
 
@@ -51,8 +61,8 @@ export default function PredictionsListPage() {
         `id, prediction_type, predicted_outcome, confidence, odds_fair,
          is_elite_only, created_at,
          match:matches!predictions_match_id_fkey(
-           home_team:teams!matches_home_team_id_fkey(name, short_name, code),
-           away_team:teams!matches_away_team_id_fkey(name, short_name, code)
+           home_team:teams!matches_home_team_id_fkey(name, short_name, code, team_display_names(display_name, locale, is_primary)),
+           away_team:teams!matches_away_team_id_fkey(name, short_name, code, team_display_names(display_name, locale, is_primary))
          )`,
         { count: 'exact' },
       )

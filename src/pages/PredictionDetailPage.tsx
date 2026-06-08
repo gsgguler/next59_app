@@ -3,6 +3,14 @@ import { useParams, Link } from 'react-router-dom';
 import { ChevronRight, Loader2, MessageSquare, BarChart3 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import PredictionCard from '../components/predictions/PredictionCard';
+import { resolveTeamName } from '../lib/teamDisplay';
+
+interface TeamInfo {
+  name: string;
+  short_name: string | null;
+  code: string | null;
+  team_display_names?: Array<{ display_name: string; locale: string; is_primary: boolean }>;
+}
 
 interface PredictionData {
   id: string;
@@ -22,8 +30,8 @@ interface PredictionData {
     round: string | null;
     home_score_ft: number | null;
     away_score_ft: number | null;
-    home_team: { name: string; short_name: string | null; code: string | null } | null;
-    away_team: { name: string; short_name: string | null; code: string | null } | null;
+    home_team: TeamInfo | null;
+    away_team: TeamInfo | null;
     competition_season: {
       season_code: string;
       competition: { name: string; short_name: string | null; code: string } | null;
@@ -48,8 +56,8 @@ export default function PredictionDetailPage() {
           odds_fair, explanation_json, is_elite_only, created_at,
           match:matches!predictions_match_id_fkey(
             id, match_date, match_time, status_short, round, home_score_ft, away_score_ft,
-            home_team:teams!matches_home_team_id_fkey(name, short_name, code),
-            away_team:teams!matches_away_team_id_fkey(name, short_name, code),
+            home_team:teams!matches_home_team_id_fkey(name, short_name, code, team_display_names(display_name, locale, is_primary)),
+            away_team:teams!matches_away_team_id_fkey(name, short_name, code, team_display_names(display_name, locale, is_primary)),
             competition_season:competition_seasons!matches_competition_season_id_fkey(
               season_code,
               competition:competitions(name, short_name, code)
@@ -94,8 +102,8 @@ export default function PredictionDetailPage() {
   }
 
   const match = prediction.match;
-  const homeName = match?.home_team?.short_name ?? match?.home_team?.name ?? 'Ev Sahibi';
-  const awayName = match?.away_team?.short_name ?? match?.away_team?.name ?? 'Konuk';
+  const homeName = resolveTeamName(match?.home_team, 'Ev Sahibi');
+  const awayName = resolveTeamName(match?.away_team, 'Konuk');
   const compName = match?.competition_season?.competition?.name ?? '';
 
   return (
@@ -177,8 +185,8 @@ function MatchSummaryCard({
   homeGoals,
   awayGoals,
 }: {
-  homeTeam: { name: string; short_name: string | null; code: string | null } | null;
-  awayTeam: { name: string; short_name: string | null; code: string | null } | null;
+  homeTeam: TeamInfo | null;
+  awayTeam: TeamInfo | null;
   matchDate: string;
   matchTime: string | null;
   statusShort: string;
@@ -226,7 +234,7 @@ function MatchSummaryCard({
           <div className="w-14 h-14 rounded-full bg-navy-600 flex items-center justify-center mx-auto mb-2">
             <span className="text-sm font-bold">{homeTeam?.code ?? homeTeam?.name?.slice(0, 3).toUpperCase() ?? '???'}</span>
           </div>
-          <p className="font-semibold text-sm">{homeTeam?.short_name ?? homeTeam?.name ?? 'Ev Sahibi'}</p>
+          <p className="font-semibold text-sm">{resolveTeamName(homeTeam, 'Ev Sahibi')}</p>
         </div>
 
         <div className="text-center px-4">
@@ -243,7 +251,7 @@ function MatchSummaryCard({
           <div className="w-14 h-14 rounded-full bg-navy-600 flex items-center justify-center mx-auto mb-2">
             <span className="text-sm font-bold">{awayTeam?.code ?? awayTeam?.name?.slice(0, 3).toUpperCase() ?? '???'}</span>
           </div>
-          <p className="font-semibold text-sm">{awayTeam?.short_name ?? awayTeam?.name ?? 'Konuk'}</p>
+          <p className="font-semibold text-sm">{resolveTeamName(awayTeam, 'Konuk')}</p>
         </div>
       </div>
 

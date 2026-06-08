@@ -1,5 +1,13 @@
 import { Link } from 'react-router-dom';
 import { Lock, ChevronRight } from 'lucide-react';
+import { resolveTeamName } from '../../lib/teamDisplay';
+
+interface TeamInfo {
+  name: string;
+  short_name: string | null;
+  code: string | null;
+  team_display_names?: Array<{ display_name: string; locale: string; is_primary: boolean }>;
+}
 
 interface PredictionListCardProps {
   prediction: {
@@ -10,8 +18,8 @@ interface PredictionListCardProps {
     is_elite_only: boolean;
     created_at: string;
     match: {
-      home_team: { name: string; short_name: string | null; code: string | null } | null;
-      away_team: { name: string; short_name: string | null; code: string | null } | null;
+      home_team: TeamInfo | null;
+      away_team: TeamInfo | null;
     } | null;
   };
   userTier: string;
@@ -23,8 +31,8 @@ export default function PredictionListCard({ prediction, userTier }: PredictionL
   const pct = Math.round(prediction.confidence * 100);
   const homeCode = prediction.match?.home_team?.code ?? prediction.match?.home_team?.name?.slice(0, 3).toUpperCase() ?? '???';
   const awayCode = prediction.match?.away_team?.code ?? prediction.match?.away_team?.name?.slice(0, 3).toUpperCase() ?? '???';
-  const homeName = prediction.match?.home_team?.short_name ?? prediction.match?.home_team?.name ?? '';
-  const awayName = prediction.match?.away_team?.short_name ?? prediction.match?.away_team?.name ?? '';
+  const homeName = resolveTeamName(prediction.match?.home_team);
+  const awayName = resolveTeamName(prediction.match?.away_team);
 
   const typeLabel: Record<string, string> = {
     match_result: 'Mac Sonucu',

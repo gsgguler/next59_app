@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Clock, Eye, ChevronDown, Calendar, Tag } from 'lucide-react';
 import type { Match } from '../../pages/MatchListPage';
 import ShareMatchCard from '../ShareMatchCard';
+import { resolveTeamName } from '../../lib/teamDisplay';
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
   ns:   { label: 'Planlı',       color: 'text-blue-300',   bg: 'bg-blue-900/40 border-blue-700/50' },
@@ -77,7 +78,7 @@ export default function MatchCard({ match }: { match: Match }) {
         <div className="flex items-center justify-between gap-2">
           <div className="flex-1 min-w-0">
             <TeamDisplay
-              name={match.home_team?.short_name ?? match.home_team?.name ?? 'Ev Sahibi'}
+              name={resolveTeamName(match.home_team, 'Ev Sahibi')}
               code={match.home_team?.code ?? match.home_team?.name?.slice(0, 3).toUpperCase() ?? '???'}
               side="home"
             />
@@ -102,7 +103,7 @@ export default function MatchCard({ match }: { match: Match }) {
 
           <div className="flex-1 min-w-0">
             <TeamDisplay
-              name={match.away_team?.short_name ?? match.away_team?.name ?? 'Konuk'}
+              name={resolveTeamName(match.away_team, 'Konuk')}
               code={match.away_team?.code ?? match.away_team?.name?.slice(0, 3).toUpperCase() ?? '???'}
               side="away"
             />
@@ -187,8 +188,8 @@ export default function MatchCard({ match }: { match: Match }) {
 
       <ShareMatchCard
         matchId={match.id}
-        homeTeam={match.home_team?.short_name ?? match.home_team?.name ?? 'Ev Sahibi'}
-        awayTeam={match.away_team?.short_name ?? match.away_team?.name ?? 'Konuk'}
+        homeTeam={resolveTeamName(match.home_team, 'Ev Sahibi')}
+        awayTeam={resolveTeamName(match.away_team, 'Konuk')}
         prediction=""
         probability=""
         matchDate={match.match_date ?? ''}
