@@ -110,7 +110,7 @@ function TeamSearchBox({
           onChange={(e) => setQ(e.target.value)}
           onFocus={() => setFocused(true)}
           onBlur={() => setTimeout(() => setFocused(false), 200)}
-          className="w-full bg-navy-900 border border-navy-700 text-white text-sm rounded-xl pl-9 pr-4 py-2.5 placeholder-navy-500 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all"
+          className="w-full bg-navy-900 border border-navy-700 text-white text-sm rounded-xl pl-9 pr-4 py-2.5 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all"
         />
       </div>
       {focused && q.length >= 2 && (

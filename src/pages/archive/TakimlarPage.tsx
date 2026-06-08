@@ -101,7 +101,7 @@ export default function TakimlarPage() {
               placeholder="Takım adı girin (en az 2 karakter)..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full bg-navy-900 border border-navy-700 text-white text-sm rounded-xl pl-9 pr-4 py-3 placeholder-navy-500 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all"
+              className="w-full bg-navy-900 border border-navy-700 text-white text-sm rounded-xl pl-9 pr-4 py-3 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all"
               autoFocus
             />
           </div>

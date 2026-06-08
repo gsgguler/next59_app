@@ -97,7 +97,7 @@ function TeamPastWC({ teamCode, teamNameEn }: { teamCode: string; teamNameEn: st
     <div className="text-center py-8">
       <Globe className="w-8 h-8 mx-auto mb-2 text-navy-700"/>
       <p className="text-sm text-slate-300">Dünya Kupası geçmiş kaydı bulunamadı.</p>
-      <p className="text-xs text-slate-500 mt-1">({dbName} olarak arandı)</p>
+      <p className="text-xs text-slate-400 mt-1">({dbName} olarak arandı)</p>
     </div>
   );
 
@@ -217,7 +217,7 @@ function H2HPastWC({ homeCode, awayCode, homeName, awayName }: {
     <div className="text-center py-8">
       <Swords className="w-8 h-8 mx-auto mb-2 text-navy-700"/>
       <p className="text-sm text-slate-300">Bu iki takım daha önce Dünya Kupası'nda karşılaşmamış.</p>
-      <p className="text-xs text-slate-500 mt-1">({hn} vs {an})</p>
+      <p className="text-xs text-slate-400 mt-1">({hn} vs {an})</p>
     </div>
   );
 
@@ -555,7 +555,7 @@ function WcPredictionPanel({
 
       {/* 1X2 Probability Bar */}
       <div>
-        <p className="text-xs text-slate-400 mb-2">Senaryo Olasılıkları <span className="text-slate-500">— bahis tavsiyesi değildir</span></p>
+        <p className="text-xs text-slate-400 mb-2">Senaryo Olasılıkları <span className="text-slate-400">— bahis tavsiyesi değildir</span></p>
         <div className="flex items-end justify-between mb-2">
           <div className="text-center">
             <div className={`text-lg font-bold tabular-nums ${leading === 'home' ? 'text-champagne' : 'text-white'}`}>{hp}%</div>
@@ -604,7 +604,7 @@ function WcPredictionPanel({
             {homeProfile ? (
               <TeamStrengthRow profile={homeProfile} side="home" />
             ) : (
-              <div className="text-xs text-slate-500 italic">Veri yok</div>
+              <div className="text-xs text-slate-400 italic">Veri yok</div>
             )}
             <div className="text-center px-2">
               <div className="text-xs text-slate-400 mb-1">Güç Farkı</div>
@@ -615,7 +615,7 @@ function WcPredictionPanel({
             {awayProfile ? (
               <TeamStrengthRow profile={awayProfile} side="away" />
             ) : (
-              <div className="text-xs text-slate-500 italic">Veri yok</div>
+              <div className="text-xs text-slate-400 italic">Veri yok</div>
             )}
           </div>
         </div>
@@ -649,7 +649,7 @@ function WcPredictionPanel({
         </div>
       </div>
 
-      <p className="text-xs text-slate-500 leading-relaxed pt-1 border-t border-navy-800/40">
+      <p className="text-xs text-slate-400 leading-relaxed pt-1 border-t border-navy-800/40">
         Bu tahminler istatistiksel modelden üretilmiştir. Kesin sonuç iddiası taşımaz. Bahis tavsiyesi değildir.
       </p>
     </div>

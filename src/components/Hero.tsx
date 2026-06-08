@@ -288,7 +288,7 @@ export function Hero() {
                     placeholder="e-posta adresiniz"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-navy-800 border border-navy-700 text-white text-sm rounded-lg pl-9 pr-3 py-2.5 placeholder-navy-500 focus:outline-none focus:ring-1 focus:ring-gold-500/40 focus:border-gold-500/40 transition-all"
+                    className="w-full bg-navy-800 border border-navy-700 text-white text-sm rounded-lg pl-9 pr-3 py-2.5 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-gold-500/40 focus:border-gold-500/40 transition-all"
                   />
                 </div>
                 <button

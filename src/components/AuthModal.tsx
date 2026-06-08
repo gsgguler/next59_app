@@ -101,7 +101,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'register' }:
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Adınız"
-                className="w-full bg-navy-800 border border-navy-600 text-white rounded-lg px-4 py-3 text-sm placeholder-navy-500 focus:outline-none focus:ring-2 focus:ring-champagne/50 focus:border-champagne transition-all"
+                className="w-full bg-navy-800 border border-navy-600 text-white rounded-lg px-4 py-3 text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-champagne/50 focus:border-champagne transition-all"
               />
             </div>
           )}
@@ -118,7 +118,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'register' }:
               onChange={(e) => setEmail(e.target.value)}
               placeholder="E-posta adresiniz"
               required
-              className="w-full bg-navy-800 border border-navy-600 text-white rounded-lg px-4 py-3 text-sm placeholder-navy-500 focus:outline-none focus:ring-2 focus:ring-champagne/50 focus:border-champagne transition-all"
+              className="w-full bg-navy-800 border border-navy-600 text-white rounded-lg px-4 py-3 text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-champagne/50 focus:border-champagne transition-all"
             />
           </div>
 
@@ -135,7 +135,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'register' }:
               placeholder="Şifreniz"
               required
               minLength={6}
-              className="w-full bg-navy-800 border border-navy-600 text-white rounded-lg px-4 py-3 text-sm placeholder-navy-500 focus:outline-none focus:ring-2 focus:ring-champagne/50 focus:border-champagne transition-all"
+              className="w-full bg-navy-800 border border-navy-600 text-white rounded-lg px-4 py-3 text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-champagne/50 focus:border-champagne transition-all"
             />
           </div>
 
