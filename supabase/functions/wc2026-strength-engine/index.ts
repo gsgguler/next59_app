@@ -180,7 +180,10 @@ Deno.serve(async (req: Request) => {
     // team_id (API int) → list of finished fixtures
     const teamFixtures = new Map<number, FixtureResponse[]>();
 
+    const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
     for (const apiTeamId of apiTeamIds) {
+      if (apiCallsUsed > 0) await delay(1800); // stay under 10 req/min free-tier limit
       try {
         const res = await callApi(`/fixtures?team=${apiTeamId}&last=30`);
         apiCallsUsed++;
