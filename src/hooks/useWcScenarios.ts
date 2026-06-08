@@ -44,6 +44,7 @@ export interface WcTeamProfile {
   recent_goal_diff_avg: number;
   recent_matches_available: number;
   wc2026_team_strength_index: number;
+  injury_adjusted_strength_index: number | null;
   wc2026_late_goal_risk: number;
   wc2026_chaos_probability: number;
   wc2026_fatigue_risk: number;

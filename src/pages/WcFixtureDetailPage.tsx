@@ -396,7 +396,7 @@ function RiskBar({ value, label, color = 'amber' }: { value: number; label: stri
 function TeamStrengthRow({ profile, side }: { profile: WcTeamProfile; side: 'home' | 'away' }) {
   const isHome = side === 'home';
   const elo = Math.round(profile.historical_elo_rating);
-  const si = Math.round(profile.wc2026_team_strength_index);
+  const si = Math.round(profile.injury_adjusted_strength_index ?? profile.wc2026_team_strength_index);
   return (
     <div className={`flex flex-col gap-1.5 ${isHome ? 'items-start' : 'items-end'}`}>
       <div className={`flex items-center gap-1.5 ${isHome ? '' : 'flex-row-reverse'}`}>
@@ -404,7 +404,7 @@ function TeamStrengthRow({ profile, side }: { profile: WcTeamProfile; side: 'hom
         <span className="text-sm font-bold text-white tabular-nums">{elo}</span>
       </div>
       <div className={`flex items-center gap-1.5 ${isHome ? '' : 'flex-row-reverse'}`}>
-        <span className="text-xs text-slate-400">Güç Endeksi</span>
+        <span className="text-xs text-slate-400">Form + Kadro Güç Endeksi</span>
         <span className="text-sm font-semibold text-champagne tabular-nums">{si}</span>
       </div>
       <div className={`flex items-center gap-1.5 ${isHome ? '' : 'flex-row-reverse'}`}>
