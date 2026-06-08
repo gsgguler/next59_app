@@ -2262,11 +2262,15 @@ export default function DailyMonitorPage() {
         ? lrData : rrData;
     setSyncRun(newestRun);
 
-    // 10. Evaluation health summary
+    // 10. Evaluation health summary (last 30 days, capped at 2 000 rows)
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     const { data: ehData, error: ehErr } = await supabase
       .schema('model_lab')
       .from('prediction_evaluations')
-      .select('was_correct, false_confidence, brier_score, evaluated_at');
+      .select('was_correct, false_confidence, brier_score, evaluated_at')
+      .gte('evaluated_at', thirtyDaysAgo)
+      .order('evaluated_at', { ascending: false })
+      .limit(2000);
     if (ehErr) {
       captureError(ehErr, { context: 'DailyMonitor.prediction_evaluations' });
       errors.push(`eval_health: ${ehErr.message}`);
