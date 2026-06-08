@@ -35,8 +35,8 @@ export default function PredictionListCard({ prediction, userTier }: PredictionL
   const awayName = resolveTeamName(prediction.match?.away_team);
 
   const typeLabel: Record<string, string> = {
-    match_result: 'Mac Sonucu',
-    over_under: 'Gol Ustu/Alti',
+    match_result: 'Maç Sonucu',
+    over_under: 'Gol Üstü/Altı',
     btts: 'KG Var/Yok',
   };
 
@@ -64,7 +64,7 @@ export default function PredictionListCard({ prediction, userTier }: PredictionL
                 ? 'text-gold-700 bg-gold-50 border-gold-200'
                 : 'text-emerald-700 bg-emerald-50 border-emerald-200'
             }`}>
-              {prediction.is_elite_only ? 'Elite' : 'Ucretsiz'}
+              {prediction.is_elite_only ? 'Elite' : 'Ücretsiz'}
             </span>
           </div>
           {hasAccess ? (
@@ -83,7 +83,7 @@ export default function PredictionListCard({ prediction, userTier }: PredictionL
             <>
               <div className="text-right hidden sm:block">
                 <p className="text-lg font-bold text-gray-900">%{pct}</p>
-                <span className="text-[10px] text-gray-500">guven</span>
+                <span className="text-[10px] text-gray-500">güven</span>
               </div>
               <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-navy-500 transition-colors" />
             </>

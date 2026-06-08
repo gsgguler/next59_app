@@ -10,6 +10,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import CookieBanner from '../components/legal/CookieBanner';
+import Wc2026Widget from '../components/landing/Wc2026Widget';
 
 const features = [
   {
@@ -174,6 +175,8 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      <Wc2026Widget />
 
       {/* Editorial stance */}
       <section className="py-16 bg-navy-900/50">
