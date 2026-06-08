@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { TrendingUp, Loader2, Sparkles, ChevronLeft, ChevronRight, BarChart3 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import SEO from '../../components/seo/SEO';
 
 const PAGE_SIZE = 20;
 
@@ -110,10 +111,6 @@ export default function PublicPredictionsPage() {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
 
-  useEffect(() => {
-    document.title = 'Yayınlanmış Tahminler — Next59';
-  }, []);
-
   const fetchPage = useCallback(async (p: number) => {
     setLoading(true);
     const from = p * PAGE_SIZE;
@@ -147,6 +144,11 @@ export default function PublicPredictionsPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+      <SEO
+        title="Yayınlanmış Futbol Tahminleri — Next59"
+        description="Next59'un yayınlanmış, tamamlanmış ve herkese açık futbol tahminleri."
+        canonical="/tahminler"
+      />
       {/* Header */}
       <div className="space-y-1">
         <div className="flex items-center gap-2">

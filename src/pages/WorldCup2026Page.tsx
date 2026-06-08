@@ -14,6 +14,7 @@ import { COUNTRY_BY_FIFA } from '../data/worldCup2026Countries';
 import { WC2026FixtureCard } from '../components/wc/WC2026FixtureCard';
 import { useWcScenarios } from '../hooks/useWcScenarios';
 import Countdown from '../components/Countdown';
+import SEO from '../components/seo/SEO';
 
 // ---------------------------------------------------------------------------
 // Filter options
@@ -202,8 +203,8 @@ export default function WorldCup2026Page() {
   const { scenarios } = useWcScenarios();
 
   useEffect(() => {
-    document.title = 'World Cup 2026 Fikstür & Gruplar — Next59';
-  }, []);
+    setVisibleDates(INITIAL_DATES);
+  }, [teamSearch, stageFilter, groupFilter, cityFilter]);
 
   const filtered = useMemo(() => {
     let list = [...ALL_WC2026_FIXTURES];
@@ -251,6 +252,11 @@ export default function WorldCup2026Page() {
 
   return (
     <div className="min-h-screen">
+      <SEO
+        title="2026 Dünya Kupası Fikstürü ve Senaryoları — Next59"
+        description="2026 Dünya Kupası fikstürü, gruplar, maç tarihleri ve Next59 model senaryoları."
+        canonical="/world-cup-2026"
+      />
       {/* ── Hero ── */}
       <section className="relative overflow-hidden bg-gradient-to-b from-navy-950 via-navy-900 to-navy-950 py-20 sm:py-28">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">

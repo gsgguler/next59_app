@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BookMarked, ChevronRight, Search } from 'lucide-react';
+import SEO from '../../components/seo/SEO';
 
 const terms = [
   { term: 'FT', def: 'Full Time — Maç sonu. 90 dakika veya uzatmalar dahil nihai skor.' },
@@ -22,7 +23,6 @@ const terms = [
 
 export default function SozlukPage() {
   const [q, setQ] = useState('');
-  useEffect(() => { document.title = 'Sözlük | Futbol Analitiği | Next59'; }, []);
 
   const filtered = terms.filter(
     (t) =>
@@ -32,6 +32,11 @@ export default function SozlukPage() {
 
   return (
     <div className="min-h-screen bg-navy-950">
+      <SEO
+        title="Futbol Analitiği Sözlüğü — Next59"
+        description="Futbol analitiği, xG, ELO, pres, tempo ve model terimlerini açıklayan Next59 sözlüğü."
+        canonical="/futbol-analitigi/sozluk"
+      />
       <div className="border-b border-navy-800/60">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-8">
           <div className="flex items-center gap-2 text-xs text-readable-muted mb-4">

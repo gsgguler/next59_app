@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import CookieBanner from '../components/legal/CookieBanner';
 import Wc2026Widget from '../components/landing/Wc2026Widget';
+import SEO from '../components/seo/SEO';
 
 const features = [
   {
@@ -55,6 +56,11 @@ const howItWorks = [
 export default function LandingPage() {
   return (
     <>
+      <SEO
+        title="Next59 — AI Destekli Futbol Senaryo Motoru"
+        description="Next59, futbol maçlarını olasılık, senaryo baskısı ve model kalibrasyonu ile analiz eden yapay zekâ destekli futbol platformudur."
+        canonical="/"
+      />
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-navy-950 via-navy-900/50 to-navy-950" />

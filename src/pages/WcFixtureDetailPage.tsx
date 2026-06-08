@@ -13,6 +13,7 @@ import { COUNTRY_BY_FIFA } from '../data/worldCup2026Countries';
 import { supabase } from '../lib/supabase';
 import { STAGE_LABELS, stageOrder, type WcMatch } from './WorldCupHistoryPage';
 import type { WcScenarioData, WcTeamProfile } from '../hooks/useWcScenarios';
+import SEO from '../components/seo/SEO';
 
 const userTZ = getUserTimeZone();
 
@@ -671,7 +672,6 @@ export default function WcFixtureDetailPage() {
 
   useEffect(() => {
     if (!fixture) { navigate('/world-cup-2026', { replace: true }); return; }
-    document.title = `${fixture.home_team} vs ${fixture.away_team} · WC 2026 — Next59`;
   }, [fixture, navigate]);
 
   if (!fixture) return null;
@@ -698,6 +698,11 @@ export default function WcFixtureDetailPage() {
 
   return (
     <div className="min-h-screen">
+      <SEO
+        title={isTBD ? 'WC 2026 Maç Senaryosu — Next59' : `${fixture.home_team} - ${fixture.away_team} Maç Senaryosu — Next59`}
+        description={isTBD ? '2026 Dünya Kupası maçı için Next59 olasılık ve senaryo analizi.' : `${fixture.home_team} - ${fixture.away_team} maçı için Next59 olasılık, skor beklentisi ve senaryo analizi.`}
+        canonical={`/world-cup-2026/mac/${fixtureId ?? ''}`}
+      />
       {/* ── Hero ── */}
       <section className="relative overflow-hidden bg-gradient-to-b from-navy-950 via-navy-900 to-navy-950 py-12 sm:py-16">
         <div className="absolute inset-0 pointer-events-none">

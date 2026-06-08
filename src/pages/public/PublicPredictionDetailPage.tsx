@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { ChevronRight, Loader2, BarChart3, TrendingUp } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { resolveTeamName } from '../../lib/teamDisplay';
+import SEO from '../../components/seo/SEO';
 
 interface TeamInfo {
   name: string;
@@ -81,10 +82,8 @@ export default function PublicPredictionDetailPage() {
   const [prediction, setPrediction] = useState<PredictionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-
-  useEffect(() => {
-    document.title = 'Yayınlanmış Analiz — Next59';
-  }, []);
+  const [pageTitle, setPageTitle] = useState('Yayınlanmış Analiz — Next59');
+  const [pageDesc, setPageDesc] = useState("Next59'un yayınlanmış futbol analizlerinden biri. Tahmin sonucu, güven ve model açıklaması.");
 
   useEffect(() => {
     if (!id) { setNotFound(true); setLoading(false); return; }
@@ -119,7 +118,8 @@ export default function PublicPredictionDetailPage() {
           const outcomeLabel = p.predicted_outcome
             ? (OUTCOME_LABELS[p.predicted_outcome] ?? p.predicted_outcome)
             : 'Tahmin';
-          document.title = `${outcomeLabel} — Next59`;
+          setPageTitle(`${outcomeLabel} — Next59`);
+          setPageDesc(`Next59'un yayınlanmış futbol analizlerinden biri. Tahmin sonucu, güven ve model açıklaması.`);
         }
         setLoading(false);
       });
@@ -128,6 +128,7 @@ export default function PublicPredictionDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
+        <SEO title={pageTitle} description={pageDesc} canonical={`/tahminler/${id ?? ''}`} />
         <Loader2 className="w-8 h-8 text-navy-500 animate-spin" />
       </div>
     );
@@ -174,6 +175,7 @@ export default function PublicPredictionDetailPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
+      <SEO title={pageTitle} description={pageDesc} canonical={`/tahminler/${id ?? ''}`} />
       <nav className="flex items-center gap-1.5 text-sm text-gray-400 flex-wrap">
         <Link to="/" className="hover:text-gray-600 transition-colors">Ana Sayfa</Link>
         <ChevronRight className="w-3.5 h-3.5" />
@@ -374,3 +376,6 @@ function PredictionPanel({
     </div>
   );
 }
+
+
+export default PublicPredictionDetailPage

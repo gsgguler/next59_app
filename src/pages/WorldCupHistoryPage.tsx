@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Trophy, Calendar, MapPin, Search, ChevronDown, Shield, Swords } from 'lucide-react';
 import { supabaseWcHistory } from '../lib/supabase';
+import SEO from '../components/seo/SEO';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -224,10 +225,6 @@ export default function WorldCupHistoryPage() {
   const [stageFilter, setStageFilter] = useState('');
 
   useEffect(() => {
-    document.title = 'Dünya Kupası Tarihi (1930–2022) — Next59';
-  }, []);
-
-  useEffect(() => {
     supabaseWcHistory
       .from('wch_editions')
       .select('edition_year,host_country,champion,total_matches,total_teams,start_date,end_date')
@@ -300,6 +297,11 @@ export default function WorldCupHistoryPage() {
 
   return (
     <div className="min-h-screen">
+      <SEO
+        title="Dünya Kupası Tarihi ve Şampiyonlar — Next59"
+        description="1930'dan bugüne Dünya Kupası turnuvaları, şampiyonlar ve tarihsel arşiv."
+        canonical="/world-cup/tarihce"
+      />
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-b from-navy-950 via-navy-900 to-navy-950 py-14 sm:py-20">
         <div className="absolute inset-0 pointer-events-none">
