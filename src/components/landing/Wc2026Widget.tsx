@@ -1,23 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Globe, ChevronRight, Zap, Trophy } from 'lucide-react';
+import { WC2026_COUNTRIES } from '../../data/worldCup2026Countries';
 
 const WC2026_START = new Date('2026-06-11T20:00:00-06:00'); // Mexico City opener
 
-const GROUPS: { label: string; teams: string[] }[] = [
-  { label: 'A', teams: ['Meksika', 'Ekvador', 'Slovenya', 'Yeni Zelanda'] },
-  { label: 'B', teams: ['ABD', 'Panama', 'Venezuela', 'Paraguay'] },
-  { label: 'C', teams: ['Kanada', 'Hollanda', 'Fas', 'Azerbaycan'] },
-  { label: 'D', teams: ['Fransa', 'Arnavutluk', 'S. Arabistan', 'Mozambik'] },
-  { label: 'E', teams: ['Brezilya', 'Norveç', 'Japonya', 'Tanzanya'] },
-  { label: 'F', teams: ['Almanya', 'Kolombiya', 'Özbekistan', 'Yengeç Adaları'] },
-  { label: 'G', teams: ['Portekiz', 'Çekya', 'Benin', 'Guatemala'] },
-  { label: 'H', teams: ['İspanya', 'Uruguay', 'Kazakistan', 'Irak'] },
-  { label: 'I', teams: ['Arjantin', 'Danimarka', 'Şili', 'Sudan'] },
-  { label: 'J', teams: ['İngiltere', 'Sırbistan', 'G. Kore', 'Kenya'] },
-  { label: 'K', teams: ['Hollanda', 'Senegal', 'Türkiye', 'Ürdün'] },
-  { label: 'L', teams: ['Belçika', 'İsviçre', 'İran', 'Çad'] },
-];
+// Derive groups directly from the canonical data source
+const GROUP_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'] as const;
+const TEAMS_PER_GROUP = 4;
+
+const GROUPS: { label: string; teams: string[] }[] = GROUP_LABELS.map((label, i) => ({
+  label,
+  teams: WC2026_COUNTRIES.slice(i * TEAMS_PER_GROUP, (i + 1) * TEAMS_PER_GROUP).map((c) => c.name_tr),
+}));
 
 interface TimeLeft {
   days: number;
@@ -51,12 +46,10 @@ function useCountdown(target: Date): TimeLeft {
 function CountdownUnit({ value, label }: { value: number; label: string }) {
   return (
     <div className="flex flex-col items-center gap-1">
-      <div className="relative">
-        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-navy-800/80 border border-navy-600/60 flex items-center justify-center">
-          <span className="text-2xl sm:text-3xl font-bold text-white tabular-nums leading-none">
-            {String(value).padStart(2, '0')}
-          </span>
-        </div>
+      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-navy-800/80 border border-navy-600/60 flex items-center justify-center">
+        <span className="text-2xl sm:text-3xl font-bold text-white tabular-nums leading-none">
+          {String(value).padStart(2, '0')}
+        </span>
       </div>
       <span className="text-[10px] sm:text-xs text-navy-400 font-medium uppercase tracking-wider">{label}</span>
     </div>
@@ -68,7 +61,6 @@ export default function Wc2026Widget() {
 
   return (
     <section className="py-20 sm:py-28 relative overflow-hidden">
-      {/* Background accent */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-navy-900/30 to-transparent pointer-events-none" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-gold-500/5 rounded-full blur-3xl pointer-events-none" />
 
@@ -117,7 +109,7 @@ export default function Wc2026Widget() {
         </div>
 
         {/* Groups grid */}
-        <div className="mb-12">
+        <div className="mb-3">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-sm font-semibold text-navy-300 uppercase tracking-wider">Grup Aşaması</h3>
             <span className="text-xs text-navy-500 flex items-center gap-1">
@@ -148,10 +140,13 @@ export default function Wc2026Widget() {
               </div>
             ))}
           </div>
+          <p className="text-[11px] text-navy-600 mt-4 text-center">
+            Grup bilgileri resmi kura sonucuna göre gösterilir; play-off kontenjanları sonuçlandıkça güncellenir.
+          </p>
         </div>
 
         {/* AI readiness banner */}
-        <div className="bg-gradient-to-r from-navy-800/60 via-navy-800/80 to-navy-800/60 border border-navy-700/50 rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-5">
+        <div className="mt-12 bg-gradient-to-r from-navy-800/60 via-navy-800/80 to-navy-800/60 border border-navy-700/50 rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-5">
           <div className="w-12 h-12 rounded-xl bg-gold-500/10 border border-gold-500/20 flex items-center justify-center flex-shrink-0">
             <Globe className="w-6 h-6 text-gold-400" />
           </div>
