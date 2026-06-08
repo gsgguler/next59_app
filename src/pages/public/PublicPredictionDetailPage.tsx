@@ -376,6 +376,3 @@ function PredictionPanel({
     </div>
   );
 }
-
-
-export default PublicPredictionDetailPage
