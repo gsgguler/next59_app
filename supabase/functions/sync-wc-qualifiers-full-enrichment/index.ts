@@ -336,6 +336,7 @@ async function runSyncDetails(
         const statsArr = (statsData as { response?: unknown[] }).response ?? [];
         if (statsArr.length === 0) {
           report.empty_endpoints++;
+          hasStats = true; // mark as checked — API has no stats for this fixture
         } else {
           hasStats = true;
           for (const teamStat of statsArr as Array<{

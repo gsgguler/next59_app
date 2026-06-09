@@ -13,7 +13,7 @@ import {
 import { COUNTRY_BY_FIFA } from '../data/worldCup2026Countries';
 import { supabase } from '../lib/supabase';
 import { STAGE_LABELS, stageOrder, type WcMatch } from './WorldCupHistoryPage';
-import type { WcScenarioData, WcTeamProfile, WcQualifierStats } from '../hooks/useWcScenarios';
+import type { WcScenarioData, WcTeamProfile } from '../hooks/useWcScenarios';
 import SEO from '../components/seo/SEO';
 
 const userTZ = getUserTimeZone();
@@ -429,14 +429,39 @@ function Wc90MinPanel({ data }: { data: Wc90MinData }) {
   );
 }
 
+// ── Enriched qualifier stats from wc_qualifier_team_summary ──────────────────
+
+interface WcEnrichedQualifier {
+  team_name: string;
+  confederation: string;
+  matches_played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  goals_for: number;
+  goals_against: number;
+  goal_difference: number;
+  points: number;
+  win_rate: number;
+  goals_for_per_match: number;
+  goals_against_per_match: number;
+  avg_possession_pct: number | null;
+  avg_total_shots: number | null;
+  avg_shots_on_goal: number | null;
+  avg_corners: number | null;
+  avg_yellow_cards: number | null;
+  total_xg: number | null;
+  xg_per_match: number | null;
+}
+
 // ── Prediction Panel ──────────────────────────────────────────────────────────
 
 interface WcScenarioState {
   scenario: WcScenarioData | null;
   homeProfile: WcTeamProfile | null;
   awayProfile: WcTeamProfile | null;
-  homeQualifier: WcQualifierStats | null;
-  awayQualifier: WcQualifierStats | null;
+  homeQualifier: WcEnrichedQualifier | null;
+  awayQualifier: WcEnrichedQualifier | null;
   scenario90: Wc90MinData | null;
   calibratedAt: string | null;
 }
@@ -510,9 +535,18 @@ function TeamStrengthRow({ profile, side }: { profile: WcTeamProfile; side: 'hom
   );
 }
 
-function UefaQualifierPanel({ stats, teamName, side }: {
-  stats: WcQualifierStats;
-  teamName: string;
+const CONF_BADGE: Record<string, { label: string; cls: string }> = {
+  UEFA: { label: 'UEFA', cls: 'bg-blue-900/50 text-blue-300 border-blue-700/40' },
+  CONMEBOL: { label: 'CONMEBOL', cls: 'bg-emerald-900/50 text-emerald-300 border-emerald-700/40' },
+  CONCACAF: { label: 'CONCACAF', cls: 'bg-amber-900/50 text-amber-300 border-amber-700/40' },
+  CAF: { label: 'CAF', cls: 'bg-orange-900/50 text-orange-300 border-orange-700/40' },
+  AFC: { label: 'AFC', cls: 'bg-red-900/50 text-red-300 border-red-700/40' },
+  OFC: { label: 'OFC', cls: 'bg-teal-900/50 text-teal-300 border-teal-700/40' },
+  Intercontinental: { label: 'Playoff', cls: 'bg-purple-900/40 text-purple-300 border-purple-700/40' },
+};
+
+function EnrichedQualifierPanel({ stats, side }: {
+  stats: WcEnrichedQualifier;
   side: 'home' | 'away';
 }) {
   const isHome = side === 'home';
@@ -520,12 +554,17 @@ function UefaQualifierPanel({ stats, teamName, side }: {
   const gd = stats.goal_difference;
   const gdLabel = gd > 0 ? `+${gd}` : `${gd}`;
   const gdColor = gd > 0 ? 'text-emerald-400' : gd < 0 ? 'text-red-400' : 'text-slate-400';
+  const badge = CONF_BADGE[stats.confederation];
 
   return (
     <div className={`flex flex-col gap-1 ${isHome ? 'items-start' : 'items-end'}`}>
-      <span className="text-xs font-semibold text-slate-300 mb-0.5 truncate max-w-[120px]">{teamName}</span>
+      {badge && (
+        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${badge.cls} mb-0.5`}>
+          {badge.label}
+        </span>
+      )}
       <div className={`flex items-center gap-1 flex-wrap ${isHome ? '' : 'justify-end'}`}>
-        <span className="text-xs bg-navy-800 px-1.5 py-0.5 rounded text-slate-200 font-mono">{stats.played}O</span>
+        <span className="text-xs bg-navy-800 px-1.5 py-0.5 rounded text-slate-200 font-mono">{stats.matches_played}O</span>
         <span className="text-xs bg-emerald-900/50 px-1.5 py-0.5 rounded text-emerald-300 font-mono">{stats.wins}G</span>
         <span className="text-xs bg-navy-800 px-1.5 py-0.5 rounded text-slate-300 font-mono">{stats.draws}B</span>
         <span className="text-xs bg-red-900/40 px-1.5 py-0.5 rounded text-red-300 font-mono">{stats.losses}M</span>
@@ -542,8 +581,29 @@ function UefaQualifierPanel({ stats, teamName, side }: {
             style={{ width: `${winPct}%` }}
           />
         </div>
-        <span className="text-xs tabular-nums text-slate-300 font-mono">{winPct}% galibiyet</span>
+        <span className="text-xs tabular-nums text-slate-300 font-mono">{winPct}% G</span>
       </div>
+      {stats.avg_total_shots != null && (
+        <div className={`flex items-center gap-1 text-xs text-slate-400 ${isHome ? '' : 'flex-row-reverse'}`}>
+          <span className="text-slate-500">Şut:</span>
+          <span className="font-mono text-slate-300">{stats.avg_total_shots.toFixed(1)}</span>
+          {stats.avg_shots_on_goal != null && (
+            <span className="text-slate-500">({stats.avg_shots_on_goal.toFixed(1)} isab.)</span>
+          )}
+        </div>
+      )}
+      {stats.avg_possession_pct != null && (
+        <div className={`flex items-center gap-1 text-xs text-slate-400 ${isHome ? '' : 'flex-row-reverse'}`}>
+          <span className="text-slate-500">Top:</span>
+          <span className="font-mono text-slate-300">{stats.avg_possession_pct.toFixed(0)}%</span>
+        </div>
+      )}
+      {stats.xg_per_match != null && (
+        <div className={`flex items-center gap-1 text-xs ${isHome ? '' : 'flex-row-reverse'}`}>
+          <span className="text-slate-500">xG:</span>
+          <span className="font-mono text-sky-300 font-semibold">{stats.xg_per_match.toFixed(2)}/maç</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -609,13 +669,16 @@ function WcPredictionPanel({
       const homeProfile = (profiles ?? []).find(p => p.api_football_team_id === wf.home_api_team_id) ?? null;
       const awayProfile = (profiles ?? []).find(p => p.api_football_team_id === wf.away_api_team_id) ?? null;
 
-      // Fetch qualifier stats and 90-min narrative in parallel
+      // Fetch qualifier stats from wc_qualifier_team_summary (all confederations)
+      // and 90-min narrative in parallel
       const teamIds = [wf.home_api_team_id, wf.away_api_team_id].filter(Boolean);
-      const [{ data: qualRows }, { data: scenario90Row }] = await Promise.all([
+      const teamIdStrings = teamIds.map(String);
+      const [{ data: enrichedRows }, { data: scenario90Row }] = await Promise.all([
         supabase
-          .from('wc2026_uefa_qualifier_team_stats')
-          .select('team_name_en,team_name_tr,api_football_team_id,played,wins,draws,losses,goals_for,goals_against,goal_difference,points,win_rate,goals_per_game,gd_per_game')
-          .in('api_football_team_id', teamIds),
+          .from('wc_qualifier_team_summary')
+          .select('provider_team_id,team_name,confederation,matches_played,wins,draws,losses,goals_for,goals_against,goal_difference,points,win_rate,goals_for_per_match,goals_against_per_match,avg_possession_pct,avg_total_shots,avg_shots_on_goal,avg_corners,avg_yellow_cards,total_xg,xg_per_match')
+          .eq('provider', 'api_football')
+          .in('provider_team_id', teamIdStrings),
         supabase
           .from('wc2026_match_90min_scenarios')
           .select('tempo_profile,first_15_story,minutes_15_30_story,minutes_30_45_story,minutes_45_60_story,minutes_60_75_story,minutes_75_90_story,key_match_triggers,confidence_label')
@@ -625,24 +688,38 @@ function WcPredictionPanel({
           .maybeSingle(),
       ]);
 
-      const qualMap = new Map<number, WcQualifierStats>();
-      for (const row of qualRows ?? []) {
-        if (row.api_football_team_id) {
-          qualMap.set(row.api_football_team_id, {
-            ...row,
-            win_rate: Number(row.win_rate),
-            goals_per_game: Number(row.goals_per_game),
-            gd_per_game: Number(row.gd_per_game),
-          } as WcQualifierStats);
-        }
+      const enrichedMap = new Map<string, WcEnrichedQualifier>();
+      for (const row of enrichedRows ?? []) {
+        enrichedMap.set(row.provider_team_id, {
+          team_name: row.team_name,
+          confederation: row.confederation,
+          matches_played: row.matches_played,
+          wins: row.wins,
+          draws: row.draws,
+          losses: row.losses,
+          goals_for: row.goals_for,
+          goals_against: row.goals_against,
+          goal_difference: row.goal_difference,
+          points: row.points,
+          win_rate: Number(row.win_rate),
+          goals_for_per_match: Number(row.goals_for_per_match),
+          goals_against_per_match: Number(row.goals_against_per_match),
+          avg_possession_pct: row.avg_possession_pct != null ? Number(row.avg_possession_pct) : null,
+          avg_total_shots: row.avg_total_shots != null ? Number(row.avg_total_shots) : null,
+          avg_shots_on_goal: row.avg_shots_on_goal != null ? Number(row.avg_shots_on_goal) : null,
+          avg_corners: row.avg_corners != null ? Number(row.avg_corners) : null,
+          avg_yellow_cards: row.avg_yellow_cards != null ? Number(row.avg_yellow_cards) : null,
+          total_xg: row.total_xg != null ? Number(row.total_xg) : null,
+          xg_per_match: row.xg_per_match != null ? Number(row.xg_per_match) : null,
+        });
       }
 
       setState({
         scenario: scenRow as WcScenarioData | null,
         homeProfile: homeProfile as WcTeamProfile | null,
         awayProfile: awayProfile as WcTeamProfile | null,
-        homeQualifier: qualMap.get(wf.home_api_team_id) ?? null,
-        awayQualifier: qualMap.get(wf.away_api_team_id) ?? null,
+        homeQualifier: enrichedMap.get(String(wf.home_api_team_id)) ?? null,
+        awayQualifier: enrichedMap.get(String(wf.away_api_team_id)) ?? null,
         scenario90: scenario90Row as Wc90MinData | null,
         calibratedAt: run.completed_at ?? null,
       });
@@ -787,15 +864,15 @@ function WcPredictionPanel({
         </div>
       )}
 
-      {/* UEFA Qualifier Stats */}
+      {/* Qualifier Stats — all confederations */}
       {(homeQualifier || awayQualifier) && (
         <div className="border border-navy-800/40 rounded-lg p-4 bg-navy-900/20">
           <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 text-center">
-            UEFA Eleme Performansı
+            Eleme Performansı
           </div>
           <div className="flex items-start justify-between gap-2">
             {homeQualifier ? (
-              <UefaQualifierPanel stats={homeQualifier} teamName={homeQualifier.team_name_tr} side="home" />
+              <EnrichedQualifierPanel stats={homeQualifier} side="home" />
             ) : (
               <div className="text-xs text-slate-500 italic">—</div>
             )}
@@ -803,7 +880,7 @@ function WcPredictionPanel({
               <span className="text-xs text-slate-500">vs</span>
             </div>
             {awayQualifier ? (
-              <UefaQualifierPanel stats={awayQualifier} teamName={awayQualifier.team_name_tr} side="away" />
+              <EnrichedQualifierPanel stats={awayQualifier} side="away" />
             ) : (
               <div className="text-xs text-slate-500 italic">—</div>
             )}
