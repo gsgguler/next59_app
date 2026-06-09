@@ -783,12 +783,14 @@ async function runSyncSportmonksGaps(
 
   if (!smKey) return { ...report, errors: ["SPORTMONKS_API_KEY not configured"] };
 
-  // Target: finished fixtures where API-Football has no real stats
+  // Target: finished fixtures where AF checked the endpoint but returned 0 rows (stats_empty=true)
+  // These are distinct from stats_available=false AND stats_empty=false (unchecked fixtures)
   let query = supabase
     .from("wc_qualifier_fixtures")
     .select("provider_fixture_id, fixture_date, home_team_name, away_team_name, home_score, away_score, confederation")
     .eq("provider", "api_football")
     .eq("stats_available", false)
+    .eq("stats_empty", true)
     .in("status_short", ["FT", "AET", "PEN"]);
 
   if (opts.confederation) query = query.eq("confederation", opts.confederation);
@@ -797,7 +799,8 @@ async function runSyncSportmonksGaps(
   query = query.limit(opts.maxFixtures);
 
   const { data: gaps, error: gapErr } = await query;
-  if (gapErr || !gaps?.length) return { ...report, errors: [gapErr?.message ?? "no gaps"] };
+  if (gapErr) return { ...report, errors: [gapErr.message] };
+  if (!gaps?.length) return { ...report, message: "no gaps to fill" };
 
   // Group by date to batch SM calls
   const byDate = new Map<string, typeof gaps>();
