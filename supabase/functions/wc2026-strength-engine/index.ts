@@ -225,6 +225,23 @@ Deno.serve(async (req: Request) => {
     log.push(`Squad data loaded: ${squadCountByTeam.size} teams with squad info`);
 
     // ═══════════════════════════════════════
+    // PHASE 1.6 — LOAD UEFA QUALIFIER FORM FACTORS
+    // ═══════════════════════════════════════
+    const { data: qualifierData } = await supabase
+      .from("wc2026_uefa_qualifier_team_stats")
+      .select("api_football_team_id, win_rate")
+      .eq("wc2026_qualified", true)
+      .not("api_football_team_id", "is", null);
+
+    const qualifierFactorByTeam = new Map<number, number>();
+    for (const q of qualifierData ?? []) {
+      const winRate = parseFloat(q.win_rate);
+      const factor = Math.max(0.97, Math.min(1.03, 1.0 + (winRate - 0.55) * 0.04));
+      qualifierFactorByTeam.set(q.api_football_team_id, factor);
+    }
+    log.push(`Qualifier factors loaded: ${qualifierFactorByTeam.size} teams`);
+
+    // ═══════════════════════════════════════
     // PHASE 2 — FETCH LAST 30 FIXTURES PER TEAM
     // ═══════════════════════════════════════
 
@@ -457,7 +474,9 @@ Deno.serve(async (req: Request) => {
     function injuryAdjustedSI(apiTeamId: number): number {
       const base = strengthIndex(apiTeamId);
       const signals = computeSquadSignals(apiTeamId);
-      return parseFloat((base * signals.squadAdjustmentFactor).toFixed(2));
+      const squadAdj = base * signals.squadAdjustmentFactor;
+      const qualFactor = qualifierFactorByTeam.get(apiTeamId) ?? 1.0;
+      return parseFloat((squadAdj * qualFactor).toFixed(2));
     }
 
     // ═══════════════════════════════════════
@@ -555,6 +574,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Also upsert team_strength_ratings for teams with internal UUIDs
+    let ratingsUpserted = 0;
     for (const [apiTeamId, stats] of teamStats) {
       const internal = apiIdToUuid.get(apiTeamId);
       if (!internal) continue;
