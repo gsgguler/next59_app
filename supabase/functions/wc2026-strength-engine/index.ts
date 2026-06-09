@@ -11,6 +11,8 @@ const corsHeaders = {
 const API_BASE = "https://v3.football.api-sports.io";
 // WC 2026 host nation API-Football team IDs
 const WC_HOST_API_IDS = new Set([2384, 16, 5529]); // USA, Mexico, Canada
+// Host team → venue country code (ISO 2-letter)
+const HOST_TEAM_COUNTRY = new Map<number, string>([[2384, "US"], [16, "MX"], [5529, "CA"]]);
 
 function getSupabase() {
   return createClient(
@@ -176,6 +178,22 @@ Deno.serve(async (req: Request) => {
       apiIdToUuid.set(t.api_football_id, { id: t.id, name: t.name });
     }
     log.push(`Teams with internal UUIDs: ${apiIdToUuid.size}`);
+
+    // ═══════════════════════════════════════
+    // PHASE 1.4 — LOAD FIXTURE VENUE COUNTRIES
+    // ═══════════════════════════════════════
+    const { data: venueRows } = await supabase
+      .from("wc2026_fixtures")
+      .select("api_football_fixture_id, wc2026_venues!venue_id(country_code_host)")
+      .not("venue_id", "is", null);
+
+    const fixtureVenueCountry = new Map<number, string>();
+    for (const row of venueRows ?? []) {
+      const cc = (row as { api_football_fixture_id: number; wc2026_venues: { country_code_host: string } | null })
+        .wc2026_venues?.country_code_host;
+      if (cc) fixtureVenueCountry.set(row.api_football_fixture_id, cc);
+    }
+    log.push(`Venue country codes loaded: ${fixtureVenueCountry.size} fixtures`);
 
     // ═══════════════════════════════════════
     // PHASE 1.5 — LOAD SQUAD SIGNALS
@@ -418,13 +436,11 @@ Deno.serve(async (req: Request) => {
     function strengthIndex(apiTeamId: number): number {
       const s = teamStats.get(apiTeamId);
       if (!s) return 750;
-      const venueBonus = WC_HOST_API_IDS.has(apiTeamId) ? 0.1 : 0.0;
       return (
         s.elo * 0.40 +
         s.form5 * 1500 * 0.25 +
         s.attackScore * 750 * 0.15 +
-        s.defenseScore * 750 * 0.15 +
-        venueBonus * 1500 * 0.05
+        s.defenseScore * 750 * 0.15
       );
     }
 
@@ -521,7 +537,7 @@ Deno.serve(async (req: Request) => {
           wc2026_chaos_probability: clamp(0.25 + (1.0 - stats.form5) * 0.20, 0.10, 0.60),
           wc2026_fatigue_risk: 0.30, // default; updated post-group stage
           calibration_confidence: confLabel,
-          calibration_formula_version: "strength_engine_v2_qualifier",
+          calibration_formula_version: "strength_engine_v2_qualifier_venue",
           calibrated_at: new Date().toISOString(),
           data_coverage_flags: { has_recent_form: stats.totalMatches >= 5, elo_calculated: stats.matchCount > 0 },
         });
@@ -627,6 +643,10 @@ Deno.serve(async (req: Request) => {
     // ═══════════════════════════════════════
 
     let scenariosInserted = 0;
+    let scenariosWithHomeAdv = 0;
+    let scenariosNeutral = 0;
+    const homeAdvExamples: string[] = [];
+    const neutralExamples: string[] = [];
     const samplePredictions: unknown[] = [];
 
     for (const fixture of wcFixtures as WcFixture[]) {
@@ -643,7 +663,27 @@ Deno.serve(async (req: Request) => {
 
       const hSI = injuryAdjustedSI(hId);
       const aSI = injuryAdjustedSI(aId);
-      const siDiff = hSI - aSI;
+
+      // Venue-aware home advantage: only host nations playing in their own country get +60
+      const venueCountry = fixtureVenueCountry.get(fixture.api_football_fixture_id) ?? null;
+      const homeHA = venueCountry && HOST_TEAM_COUNTRY.get(hId) === venueCountry ? 60 : 0;
+      const awayHA = venueCountry && HOST_TEAM_COUNTRY.get(aId) === venueCountry ? 60 : 0;
+      const effectiveSiDiff = (hSI + homeHA) - (aSI + awayHA);
+
+      if (homeHA > 0 || awayHA > 0) {
+        scenariosWithHomeAdv++;
+        if (homeAdvExamples.length < 3) {
+          const who = homeHA > 0 ? fixture.home_team_name : fixture.away_team_name;
+          homeAdvExamples.push(`${who} +60 in ${fixture.home_team_name} vs ${fixture.away_team_name} (venue:${venueCountry})`);
+        }
+      } else {
+        scenariosNeutral++;
+        if (neutralExamples.length < 2) {
+          neutralExamples.push(`${fixture.home_team_name} vs ${fixture.away_team_name} (venue:${venueCountry ?? "null"})`);
+        }
+      }
+
+      const siDiff = effectiveSiDiff;
 
       // 1X2 probabilities from strength difference
       let rawH = 0.33 + (siDiff / 400) * 0.15;
@@ -718,7 +758,7 @@ Deno.serve(async (req: Request) => {
           wc2026_fatigue_risk: parseFloat(fatigueRisk.toFixed(3)),
           calibration_confidence: confLabel,
           missing_data_warnings: missingWarnings.length > 0 ? missingWarnings : [],
-          calibration_formula_version: "strength_engine_v2_qualifier",
+          calibration_formula_version: "strength_engine_v2_qualifier_venue",
           calibrated_at: new Date().toISOString(),
         });
 
@@ -742,6 +782,10 @@ Deno.serve(async (req: Request) => {
     }
 
     log.push(`Match scenarios inserted: ${scenariosInserted}`);
+    log.push(`scenarios_with_full_home_advantage: ${scenariosWithHomeAdv}`);
+    log.push(`scenarios_with_zero_home_advantage: ${scenariosNeutral}`);
+    if (homeAdvExamples.length > 0) log.push(`home_adv_examples: ${homeAdvExamples.join(" | ")}`);
+    if (neutralExamples.length > 0) log.push(`neutral_examples: ${neutralExamples.join(" | ")}`);
 
     // ═══════════════════════════════════════
     // PHASE 7 — FINALIZE RUN RECORDS
