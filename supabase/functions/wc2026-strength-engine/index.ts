@@ -516,8 +516,45 @@ Deno.serve(async (req: Request) => {
 
     log.push(`Team calibration profiles inserted: ${teamProfilesInserted}`);
 
+    // ═══════════════════════════════════════
+    // PHASE 5.5 — APPLY UEFA QUALIFIER FORM FACTOR
+    // ═══════════════════════════════════════
+    const { data: qualRows } = await supabase
+      .from("wc2026_uefa_qualifier_team_stats")
+      .select("api_football_team_id, win_rate")
+      .eq("wc2026_qualified", true)
+      .not("api_football_team_id", "is", null);
+
+    if (qualRows && qualRows.length > 0) {
+      let qualApplied = 0;
+      for (const q of qualRows) {
+        const winRate = parseFloat(q.win_rate);
+        const formFactor = Math.max(0.97, Math.min(1.03, 1.0 + (winRate - 0.55) * 0.04));
+
+        const { data: profiles } = await supabase
+          .from("wc2026_team_calibration_profiles")
+          .select("id, wc2026_team_strength_index")
+          .eq("calibration_run_id", calibrationRunId)
+          .eq("api_football_team_id", q.api_football_team_id);
+
+        for (const profile of profiles ?? []) {
+          const adjustedSI = parseFloat(
+            (parseFloat(profile.wc2026_team_strength_index) * formFactor).toFixed(4)
+          );
+          await supabase
+            .from("wc2026_team_calibration_profiles")
+            .update({
+              qualifier_form_factor: parseFloat(formFactor.toFixed(4)),
+              injury_adjusted_strength_index: adjustedSI,
+            })
+            .eq("id", profile.id);
+          qualApplied++;
+        }
+      }
+      log.push(`Qualifier form factor applied: ${qualApplied} profiles updated`);
+    }
+
     // Also upsert team_strength_ratings for teams with internal UUIDs
-    let ratingsUpserted = 0;
     for (const [apiTeamId, stats] of teamStats) {
       const internal = apiIdToUuid.get(apiTeamId);
       if (!internal) continue;
