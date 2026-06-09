@@ -12,7 +12,7 @@ import {
 import { COUNTRY_BY_FIFA } from '../data/worldCup2026Countries';
 import { supabase } from '../lib/supabase';
 import { STAGE_LABELS, stageOrder, type WcMatch } from './WorldCupHistoryPage';
-import type { WcScenarioData, WcTeamProfile } from '../hooks/useWcScenarios';
+import type { WcScenarioData, WcTeamProfile, WcQualifierStats } from '../hooks/useWcScenarios';
 import SEO from '../components/seo/SEO';
 
 const userTZ = getUserTimeZone();
@@ -343,6 +343,8 @@ interface WcScenarioState {
   scenario: WcScenarioData | null;
   homeProfile: WcTeamProfile | null;
   awayProfile: WcTeamProfile | null;
+  homeQualifier: WcQualifierStats | null;
+  awayQualifier: WcQualifierStats | null;
   calibratedAt: string | null;
 }
 
@@ -415,6 +417,44 @@ function TeamStrengthRow({ profile, side }: { profile: WcTeamProfile; side: 'hom
   );
 }
 
+function UefaQualifierPanel({ stats, teamName, side }: {
+  stats: WcQualifierStats;
+  teamName: string;
+  side: 'home' | 'away';
+}) {
+  const isHome = side === 'home';
+  const winPct = Math.round(stats.win_rate * 100);
+  const gd = stats.goal_difference;
+  const gdLabel = gd > 0 ? `+${gd}` : `${gd}`;
+  const gdColor = gd > 0 ? 'text-emerald-400' : gd < 0 ? 'text-red-400' : 'text-slate-400';
+
+  return (
+    <div className={`flex flex-col gap-1 ${isHome ? 'items-start' : 'items-end'}`}>
+      <span className="text-xs font-semibold text-slate-300 mb-0.5 truncate max-w-[120px]">{teamName}</span>
+      <div className={`flex items-center gap-1 flex-wrap ${isHome ? '' : 'justify-end'}`}>
+        <span className="text-xs bg-navy-800 px-1.5 py-0.5 rounded text-slate-200 font-mono">{stats.played}O</span>
+        <span className="text-xs bg-emerald-900/50 px-1.5 py-0.5 rounded text-emerald-300 font-mono">{stats.wins}G</span>
+        <span className="text-xs bg-navy-800 px-1.5 py-0.5 rounded text-slate-300 font-mono">{stats.draws}B</span>
+        <span className="text-xs bg-red-900/40 px-1.5 py-0.5 rounded text-red-300 font-mono">{stats.losses}M</span>
+      </div>
+      <div className={`flex items-center gap-2 ${isHome ? '' : 'flex-row-reverse'}`}>
+        <span className="text-xs text-slate-400">{stats.goals_for}–{stats.goals_against}</span>
+        <span className={`text-xs font-semibold ${gdColor}`}>{gdLabel}</span>
+        <span className="text-xs text-champagne font-bold">{stats.points} pts</span>
+      </div>
+      <div className={`flex items-center gap-1.5 ${isHome ? '' : 'flex-row-reverse'}`}>
+        <div className="w-16 h-1.5 bg-navy-800 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full ${winPct >= 70 ? 'bg-emerald-500' : winPct >= 50 ? 'bg-amber-400' : 'bg-red-400'}`}
+            style={{ width: `${winPct}%` }}
+          />
+        </div>
+        <span className="text-xs tabular-nums text-slate-300 font-mono">{winPct}% galibiyet</span>
+      </div>
+    </div>
+  );
+}
+
 function WcPredictionPanel({
   matchNo,
   isTBD,
@@ -427,7 +467,8 @@ function WcPredictionPanel({
   awayTeamName: string;
 }) {
   const [state, setState] = useState<WcScenarioState>({
-    scenario: null, homeProfile: null, awayProfile: null, calibratedAt: null,
+    scenario: null, homeProfile: null, awayProfile: null,
+    homeQualifier: null, awayQualifier: null, calibratedAt: null,
   });
   const [loading, setLoading] = useState(true);
 
@@ -475,10 +516,31 @@ function WcPredictionPanel({
       const homeProfile = (profiles ?? []).find(p => p.api_football_team_id === wf.home_api_team_id) ?? null;
       const awayProfile = (profiles ?? []).find(p => p.api_football_team_id === wf.away_api_team_id) ?? null;
 
+      // Fetch qualifier stats for these two teams (UEFA only — nulls for non-UEFA)
+      const teamIds = [wf.home_api_team_id, wf.away_api_team_id].filter(Boolean);
+      const { data: qualRows } = await supabase
+        .from('wc2026_uefa_qualifier_team_stats')
+        .select('team_name_en,team_name_tr,api_football_team_id,played,wins,draws,losses,goals_for,goals_against,goal_difference,points,win_rate,goals_per_game,gd_per_game')
+        .in('api_football_team_id', teamIds);
+
+      const qualMap = new Map<number, WcQualifierStats>();
+      for (const row of qualRows ?? []) {
+        if (row.api_football_team_id) {
+          qualMap.set(row.api_football_team_id, {
+            ...row,
+            win_rate: Number(row.win_rate),
+            goals_per_game: Number(row.goals_per_game),
+            gd_per_game: Number(row.gd_per_game),
+          } as WcQualifierStats);
+        }
+      }
+
       setState({
         scenario: scenRow as WcScenarioData | null,
         homeProfile: homeProfile as WcTeamProfile | null,
         awayProfile: awayProfile as WcTeamProfile | null,
+        homeQualifier: qualMap.get(wf.home_api_team_id) ?? null,
+        awayQualifier: qualMap.get(wf.away_api_team_id) ?? null,
         calibratedAt: run.completed_at ?? null,
       });
       setLoading(false);
@@ -512,7 +574,7 @@ function WcPredictionPanel({
     );
   }
 
-  const { scenario, homeProfile, awayProfile, calibratedAt } = state;
+  const { scenario, homeProfile, awayProfile, homeQualifier, awayQualifier, calibratedAt } = state;
 
   if (!scenario) {
     return (
@@ -617,6 +679,30 @@ function WcPredictionPanel({
               <TeamStrengthRow profile={awayProfile} side="away" />
             ) : (
               <div className="text-xs text-slate-400 italic">Veri yok</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* UEFA Qualifier Stats */}
+      {(homeQualifier || awayQualifier) && (
+        <div className="border border-navy-800/40 rounded-lg p-4 bg-navy-900/20">
+          <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 text-center">
+            UEFA Eleme Performansı
+          </div>
+          <div className="flex items-start justify-between gap-2">
+            {homeQualifier ? (
+              <UefaQualifierPanel stats={homeQualifier} teamName={homeQualifier.team_name_tr} side="home" />
+            ) : (
+              <div className="text-xs text-slate-500 italic">—</div>
+            )}
+            <div className="text-center px-1 flex flex-col items-center gap-1 pt-5">
+              <span className="text-xs text-slate-500">vs</span>
+            </div>
+            {awayQualifier ? (
+              <UefaQualifierPanel stats={awayQualifier} teamName={awayQualifier.team_name_tr} side="away" />
+            ) : (
+              <div className="text-xs text-slate-500 italic">—</div>
             )}
           </div>
         </div>

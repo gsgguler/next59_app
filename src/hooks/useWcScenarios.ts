@@ -45,6 +45,7 @@ export interface WcTeamProfile {
   recent_matches_available: number;
   wc2026_team_strength_index: number;
   injury_adjusted_strength_index: number | null;
+  qualifier_form_factor: number | null;
   wc2026_late_goal_risk: number;
   wc2026_chaos_probability: number;
   wc2026_fatigue_risk: number;
@@ -54,9 +55,27 @@ export interface WcTeamProfile {
   calibrated_at: string;
 }
 
+export interface WcQualifierStats {
+  team_name_en: string;
+  team_name_tr: string;
+  api_football_team_id: number;
+  played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  goals_for: number;
+  goals_against: number;
+  goal_difference: number;
+  points: number;
+  win_rate: number;
+  goals_per_game: number;
+  gd_per_game: number;
+}
+
 interface UseWcScenariosResult {
   scenarios: Map<number, WcScenarioData>;
   teamProfiles: Map<number, WcTeamProfile>;
+  qualifierStats: Map<number, WcQualifierStats>;
   loading: boolean;
   error: string | null;
   calibratedAt: string | null;
@@ -65,6 +84,7 @@ interface UseWcScenariosResult {
 export function useWcScenarios(): UseWcScenariosResult {
   const [scenarios, setScenarios] = useState<Map<number, WcScenarioData>>(new Map());
   const [teamProfiles, setTeamProfiles] = useState<Map<number, WcTeamProfile>>(new Map());
+  const [qualifierStats, setQualifierStats] = useState<Map<number, WcQualifierStats>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [calibratedAt, setCalibratedAt] = useState<string | null>(null);
@@ -131,9 +151,30 @@ export function useWcScenarios(): UseWcScenariosResult {
           profileMap.set(row.api_football_team_id, row as WcTeamProfile);
         }
 
+        // 5. Fetch UEFA qualifier stats
+        const { data: qualifierRows, error: qualErr } = await supabase
+          .from('wc2026_uefa_qualifier_team_stats')
+          .select('team_name_en,team_name_tr,api_football_team_id,played,wins,draws,losses,goals_for,goals_against,goal_difference,points,win_rate,goals_per_game,gd_per_game')
+          .not('api_football_team_id', 'is', null);
+
+        if (qualErr) throw new Error(qualErr.message);
+
+        const qualMap = new Map<number, WcQualifierStats>();
+        for (const row of qualifierRows ?? []) {
+          if (row.api_football_team_id) {
+            qualMap.set(row.api_football_team_id, {
+              ...row,
+              win_rate: Number(row.win_rate),
+              goals_per_game: Number(row.goals_per_game),
+              gd_per_game: Number(row.gd_per_game),
+            } as WcQualifierStats);
+          }
+        }
+
         if (!cancelled) {
           setScenarios(scenarioMap);
           setTeamProfiles(profileMap);
+          setQualifierStats(qualMap);
           setCalibratedAt(run.completed_at ?? null);
           setLoading(false);
         }
@@ -149,5 +190,5 @@ export function useWcScenarios(): UseWcScenariosResult {
     return () => { cancelled = true; };
   }, []);
 
-  return { scenarios, teamProfiles, loading, error, calibratedAt };
+  return { scenarios, teamProfiles, qualifierStats, loading, error, calibratedAt };
 }
