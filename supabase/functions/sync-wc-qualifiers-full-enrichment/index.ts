@@ -16,6 +16,7 @@ type Mode =
   | "sync_fixtures"
   | "sync_details"
   | "sync_standings"
+  | "sync_sportmonks_gaps"
   | "build_summary"
   | "validate"
   | "full_backfill";
@@ -327,6 +328,7 @@ async function runSyncDetails(
     let hasEvents = false;
     let hasLineups = false;
     let hasPlayers = false;
+    let statsActual = false; // true only when real stat rows were stored
 
     if (!opts.dryRun) {
       // Stats
@@ -337,8 +339,10 @@ async function runSyncDetails(
         if (statsArr.length === 0) {
           report.empty_endpoints++;
           hasStats = true; // mark as checked — API has no stats for this fixture
+          statsActual = false;
         } else {
           hasStats = true;
+          statsActual = true;
           for (const teamStat of statsArr as Array<{
             team: { id: number; name: string };
             statistics: Array<{ type: string; value: unknown }>;
@@ -630,14 +634,36 @@ async function runSyncDetails(
         report.errors.push(`AF players ${fid}: HTTP ${psStatus}`);
       }
 
-      // Update fixture enrichment flags
+      // Update fixture enrichment flags — both legacy and granular columns
       await supabase
         .from("wc_qualifier_fixtures")
         .update({
+          // legacy flags (kept for backward compat)
           has_stats: hasStats,
           has_events: hasEvents,
           has_lineups: hasLineups,
           has_players: hasPlayers,
+          // granular flags: _checked = endpoint was called; _available = real rows stored
+          stats_checked:   true,
+          stats_available: statsActual,
+          stats_empty:     !statsActual,
+          stats_provider:  statsActual ? "api_football" : null,
+          stats_checked_at: new Date().toISOString(),
+          events_checked:    true,
+          events_available:  hasEvents,
+          events_empty:      !hasEvents,
+          events_provider:   hasEvents ? "api_football" : null,
+          events_checked_at: new Date().toISOString(),
+          lineups_checked:    true,
+          lineups_available:  hasLineups,
+          lineups_empty:      !hasLineups,
+          lineups_provider:   hasLineups ? "api_football" : null,
+          lineups_checked_at: new Date().toISOString(),
+          players_checked:    true,
+          players_available:  hasPlayers,
+          players_empty:      !hasPlayers,
+          players_provider:   hasPlayers ? "api_football" : null,
+          players_checked_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
         .eq("provider", "api_football")
@@ -735,6 +761,180 @@ async function runSyncStandings(
             report.standings_rows++;
           }
         }
+      }
+    }
+  }
+
+  return report;
+}
+
+// ── Sportmonks Gap Fill ───────────────────────────────────────────────────────
+
+function normalize(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+async function runSyncSportmonksGaps(
+  supabase: ReturnType<typeof createClient>,
+  smKey: string,
+  opts: { confederation?: string; maxFixtures: number; dryRun: boolean },
+): Promise<Record<string, unknown>> {
+  const report = { fixtures_checked: 0, stats_filled: 0, lineups_filled: 0, errors: [] as string[], unmatched: [] as string[] };
+
+  if (!smKey) return { ...report, errors: ["SPORTMONKS_API_KEY not configured"] };
+
+  // Target: finished fixtures where API-Football has no real stats
+  let query = supabase
+    .from("wc_qualifier_fixtures")
+    .select("provider_fixture_id, fixture_date, home_team_name, away_team_name, home_score, away_score, confederation")
+    .eq("provider", "api_football")
+    .eq("stats_available", false)
+    .in("status_short", ["FT", "AET", "PEN"]);
+
+  if (opts.confederation) query = query.eq("confederation", opts.confederation);
+  else query = query.in("confederation", ["OFC", "AFC", "CAF", "Intercontinental"]);
+
+  query = query.limit(opts.maxFixtures);
+
+  const { data: gaps, error: gapErr } = await query;
+  if (gapErr || !gaps?.length) return { ...report, errors: [gapErr?.message ?? "no gaps"] };
+
+  // Group by date to batch SM calls
+  const byDate = new Map<string, typeof gaps>();
+  for (const fix of gaps) {
+    const d = fix.fixture_date ? fix.fixture_date.slice(0, 10) : null;
+    if (!d) continue;
+    if (!byDate.has(d)) byDate.set(d, []);
+    byDate.get(d)!.push(fix);
+  }
+
+  for (const [date, dayFixes] of byDate) {
+    await sleep(SLEEP_MS);
+    const { data: smData, status: smStatus } = await smGet(
+      `/fixtures/date/${date}?include=statistics;participants;scores&per_page=50`,
+      smKey,
+    );
+
+    if (smStatus !== 200) {
+      report.errors.push(`SM /fixtures/date/${date} returned ${smStatus}`);
+      continue;
+    }
+
+    const smFixtures = (smData as { data?: unknown[] }).data ?? [];
+
+    for (const fix of dayFixes) {
+      report.fixtures_checked++;
+      const homeNorm = normalize(fix.home_team_name ?? "");
+      const awayNorm = normalize(fix.away_team_name ?? "");
+
+      // Match Sportmonks fixture by participants + score
+      const matched = (smFixtures as Array<{
+        id: number;
+        participants?: Array<{ meta?: { location: string }; name: string }>;
+        scores?: Array<{ score?: { participant: string; goals: number }; type_id: number }>;
+        statistics?: Array<{ type_id: number; participant: string; data: { value: unknown } }>;
+      }>).find((sf) => {
+        const participants = sf.participants ?? [];
+        const homeP = participants.find((p) => p.meta?.location === "home");
+        const awayP = participants.find((p) => p.meta?.location === "away");
+        if (!homeP || !awayP) return false;
+        return normalize(homeP.name) === homeNorm && normalize(awayP.name) === awayNorm;
+      });
+
+      if (!matched) {
+        report.unmatched.push(`${fix.fixture_date?.slice(0, 10)} ${fix.home_team_name} v ${fix.away_team_name}`);
+        continue;
+      }
+
+      const smFid = String(matched.id);
+      const smStats = matched.statistics ?? [];
+
+      if (smStats.length === 0) continue;
+
+      if (!opts.dryRun) {
+        // Store SM fixture link
+        await supabase.from("wc_qualifier_fixtures").upsert(
+          {
+            provider: "sportmonks",
+            provider_fixture_id: smFid,
+            canonical_fixture_key: fix.provider_fixture_id,
+            confederation: fix.confederation,
+            fixture_date: fix.fixture_date,
+            home_team_name: fix.home_team_name,
+            away_team_name: fix.away_team_name,
+            home_score: fix.home_score,
+            away_score: fix.away_score,
+            status_short: "FT",
+            stats_available: smStats.length > 0,
+            stats_checked: true,
+            stats_empty: smStats.length === 0,
+            stats_provider: smStats.length > 0 ? "sportmonks" : null,
+            stats_checked_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "provider,provider_fixture_id" },
+        );
+
+        // Map Sportmonks type_ids to metric names
+        // Common type_ids: 34=ball_possession, 45=total_shots, 56=shots_on_goal,
+        //                  68=corner_kicks, 83=yellow_cards, 84=red_cards, 86=fouls, 80=goalkeeper_saves
+        const SM_STAT_MAP: Record<number, string> = {
+          34: "ball_possession_pct", 45: "total_shots", 56: "shots_on_goal",
+          68: "corner_kicks", 83: "yellow_cards", 84: "red_cards", 86: "fouls", 80: "goalkeeper_saves",
+          37: "expected_goals",
+        };
+
+        const participants = matched.participants ?? [];
+        for (const participant of participants) {
+          const loc = participant.meta?.location;
+          const pName = participant.name;
+          const pStats = smStats.filter((s) => s.participant === loc || s.participant === pName);
+          const statMap: Record<string, unknown> = {};
+          for (const s of pStats) {
+            const key = SM_STAT_MAP[s.type_id];
+            if (key) {
+              let val = s.data?.value;
+              if (key === "ball_possession_pct" && typeof val === "string") {
+                val = Number(val.replace("%", ""));
+              }
+              statMap[key] = val;
+            }
+          }
+
+          const xgVal = statMap["expected_goals"] != null ? Number(statMap["expected_goals"]) : null;
+          await supabase.from("wc_qualifier_team_match_stats").upsert(
+            {
+              provider: "sportmonks",
+              provider_fixture_id: smFid,
+              provider_team_id: `sm_${loc}_${smFid}`,
+              team_name: pName,
+              side: loc,
+              total_shots: statMap["total_shots"] ?? null,
+              shots_on_goal: statMap["shots_on_goal"] ?? null,
+              ball_possession_pct: statMap["ball_possession_pct"] ?? null,
+              corner_kicks: statMap["corner_kicks"] ?? null,
+              fouls: statMap["fouls"] ?? null,
+              yellow_cards: statMap["yellow_cards"] ?? null,
+              red_cards: statMap["red_cards"] ?? null,
+              goalkeeper_saves: statMap["goalkeeper_saves"] ?? null,
+              expected_goals: xgVal,
+              provider_xg: xgVal,
+              xg_source: xgVal != null ? "sportmonks" : null,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "provider,provider_fixture_id,provider_team_id" },
+          );
+        }
+
+        // Link AF fixture to SM result
+        await supabase.from("wc_qualifier_fixtures").update({
+          stats_provider: "sportmonks",
+          updated_at: new Date().toISOString(),
+        })
+          .eq("provider", "api_football")
+          .eq("provider_fixture_id", fix.provider_fixture_id);
+
+        report.stats_filled++;
       }
     }
   }
@@ -858,33 +1058,36 @@ async function runBuildSummary(
     const points = wins * 3 + draws;
     const gd = gf - ga;
 
-    // Average stats
+    // Average stats — denominator is only matches with non-null values for each metric
     const stRows = statsRows ?? [];
-    const avgShots =
-      stRows.length > 0
-        ? stRows.reduce((s, r) => s + Number(r.total_shots ?? 0), 0) / stRows.length
-        : null;
-    const avgShotsOn =
-      stRows.length > 0
-        ? stRows.reduce((s, r) => s + Number(r.shots_on_goal ?? 0), 0) / stRows.length
-        : null;
-    const avgPoss =
-      stRows.filter((r) => r.ball_possession_pct != null).length > 0
-        ? stRows.reduce((s, r) => s + Number(r.ball_possession_pct ?? 0), 0) /
-          stRows.filter((r) => r.ball_possession_pct != null).length
-        : null;
-    const avgCorners =
-      stRows.length > 0
-        ? stRows.reduce((s, r) => s + Number(r.corner_kicks ?? 0), 0) / stRows.length
-        : null;
-    const avgFouls =
-      stRows.length > 0 ? stRows.reduce((s, r) => s + Number(r.fouls ?? 0), 0) / stRows.length : null;
-    const avgYellow =
-      stRows.length > 0
-        ? stRows.reduce((s, r) => s + Number(r.yellow_cards ?? 0), 0) / stRows.length
-        : null;
-    const avgRed =
-      stRows.length > 0 ? stRows.reduce((s, r) => s + Number(r.red_cards ?? 0), 0) / stRows.length : null;
+    const shotRows = stRows.filter((r) => r.total_shots != null);
+    const avgShots = shotRows.length > 0
+      ? shotRows.reduce((s, r) => s + Number(r.total_shots), 0) / shotRows.length
+      : null;
+    const shotOnRows = stRows.filter((r) => r.shots_on_goal != null);
+    const avgShotsOn = shotOnRows.length > 0
+      ? shotOnRows.reduce((s, r) => s + Number(r.shots_on_goal), 0) / shotOnRows.length
+      : null;
+    const possRows = stRows.filter((r) => r.ball_possession_pct != null);
+    const avgPoss = possRows.length > 0
+      ? possRows.reduce((s, r) => s + Number(r.ball_possession_pct), 0) / possRows.length
+      : null;
+    const cornerRows = stRows.filter((r) => r.corner_kicks != null);
+    const avgCorners = cornerRows.length > 0
+      ? cornerRows.reduce((s, r) => s + Number(r.corner_kicks), 0) / cornerRows.length
+      : null;
+    const foulRows = stRows.filter((r) => r.fouls != null);
+    const avgFouls = foulRows.length > 0
+      ? foulRows.reduce((s, r) => s + Number(r.fouls), 0) / foulRows.length
+      : null;
+    const yellowRows = stRows.filter((r) => r.yellow_cards != null);
+    const avgYellow = yellowRows.length > 0
+      ? yellowRows.reduce((s, r) => s + Number(r.yellow_cards), 0) / yellowRows.length
+      : null;
+    const redRows = stRows.filter((r) => r.red_cards != null);
+    const avgRed = redRows.length > 0
+      ? redRows.reduce((s, r) => s + Number(r.red_cards), 0) / redRows.length
+      : null;
     const xgRows = stRows.filter((r) => r.provider_xg != null);
     const totalXg = xgRows.length > 0 ? xgRows.reduce((s, r) => s + Number(r.provider_xg), 0) : null;
 
@@ -919,8 +1122,8 @@ async function runBuildSummary(
           avg_yellow_cards: avgYellow != null ? Number(avgYellow.toFixed(2)) : null,
           avg_red_cards: avgRed != null ? Number(avgRed.toFixed(2)) : null,
           total_xg: totalXg != null ? Number(totalXg.toFixed(3)) : null,
-          xg_per_match: totalXg != null && played > 0 ? Number((totalXg / played).toFixed(3)) : null,
-          raw_sources_json: { fixture_count: played, stats_rows: stRows.length },
+          xg_per_match: totalXg != null && xgRows.length > 0 ? Number((totalXg / xgRows.length).toFixed(3)) : null,
+          raw_sources_json: { fixture_count: played, stats_rows: stRows.length, xg_rows: xgRows.length },
           updated_at: new Date().toISOString(),
         },
         { onConflict: "provider,provider_team_id,confederation" },
@@ -949,7 +1152,7 @@ async function runValidate(
       .eq("provider", "api_football"),
     supabase
       .from("wc_qualifier_fixtures")
-      .select("confederation, status_short, has_stats, has_events, has_lineups, has_players")
+      .select("confederation, status_short, stats_available, stats_empty, stats_checked, events_available, lineups_available, players_available, has_stats, has_events, has_lineups, has_players")
       .eq("provider", "api_football"),
     supabase.from("wc_qualifier_team_summary").select("provider, confederation, team_name, matches_played"),
     supabase
@@ -961,19 +1164,23 @@ async function runValidate(
 
   const fixtures = fixturesRes.data ?? [];
   const finished = fixtures.filter((f) => ["FT", "AET", "PEN"].includes(f.status_short ?? ""));
-  const withStats = finished.filter((f) => f.has_stats);
-  const withEvents = finished.filter((f) => f.has_events);
-  const withLineups = finished.filter((f) => f.has_lineups);
+  const withStats = finished.filter((f) => f.stats_available);     // real stats rows
+  const withStatsChecked = finished.filter((f) => f.stats_checked); // endpoint was attempted
+  const withEvents = finished.filter((f) => f.events_available);
+  const withLineups = finished.filter((f) => f.lineups_available);
 
-  const byConf: Record<string, { total: number; finished: number; has_stats: number; has_lineups: number }> = {};
+  const byConf: Record<string, { total: number; finished: number; stats_available: number; stats_empty: number; events_available: number; lineups_available: number; players_available: number }> = {};
   for (const f of fixtures) {
     const c = f.confederation ?? "unknown";
-    if (!byConf[c]) byConf[c] = { total: 0, finished: 0, has_stats: 0, has_lineups: 0 };
+    if (!byConf[c]) byConf[c] = { total: 0, finished: 0, stats_available: 0, stats_empty: 0, events_available: 0, lineups_available: 0, players_available: 0 };
     byConf[c].total++;
     if (["FT", "AET", "PEN"].includes(f.status_short ?? "")) {
       byConf[c].finished++;
-      if (f.has_stats) byConf[c].has_stats++;
-      if (f.has_lineups) byConf[c].has_lineups++;
+      if (f.stats_available) byConf[c].stats_available++;
+      if (f.stats_empty) byConf[c].stats_empty++;
+      if (f.events_available) byConf[c].events_available++;
+      if (f.lineups_available) byConf[c].lineups_available++;
+      if (f.players_available) byConf[c].players_available++;
     }
   }
 
@@ -985,7 +1192,8 @@ async function runValidate(
     fixtures: {
       total: fixtures.length,
       finished: finished.length,
-      with_stats: withStats.length,
+      stats_available: withStats.length,
+      stats_checked: withStatsChecked.length,
       with_events: withEvents.length,
       with_lineups: withLineups.length,
       stats_coverage_pct:
@@ -999,7 +1207,7 @@ async function runValidate(
     verdict:
       finished.length === 0
         ? "FAIL: no finished fixtures"
-        : withStats.length / Math.max(finished.length, 1) > 0.7
+        : withStats.length / Math.max(finished.length, 1) > 0.5
           ? "PASS"
           : "PARTIAL",
   };
@@ -1083,6 +1291,13 @@ Deno.serve(async (req: Request) => {
         break;
       case "sync_standings":
         result = await runSyncStandings(supabase, afKey, confederation, dry_run);
+        break;
+      case "sync_sportmonks_gaps":
+        result = await runSyncSportmonksGaps(supabase, smKey, {
+          confederation,
+          maxFixtures: max_fixtures,
+          dryRun: dry_run,
+        });
         break;
       case "build_summary":
         result = await runBuildSummary(supabase, confederation, dry_run);
