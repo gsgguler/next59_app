@@ -521,7 +521,7 @@ Deno.serve(async (req: Request) => {
           wc2026_chaos_probability: clamp(0.25 + (1.0 - stats.form5) * 0.20, 0.10, 0.60),
           wc2026_fatigue_risk: 0.30, // default; updated post-group stage
           calibration_confidence: confLabel,
-          calibration_formula_version: "strength_engine_v2",
+          calibration_formula_version: "strength_engine_v2_qualifier",
           calibrated_at: new Date().toISOString(),
           data_coverage_flags: { has_recent_form: stats.totalMatches >= 5, elo_calculated: stats.matchCount > 0 },
         });
@@ -718,7 +718,7 @@ Deno.serve(async (req: Request) => {
           wc2026_fatigue_risk: parseFloat(fatigueRisk.toFixed(3)),
           calibration_confidence: confLabel,
           missing_data_warnings: missingWarnings.length > 0 ? missingWarnings : [],
-          calibration_formula_version: "strength_engine_v2",
+          calibration_formula_version: "strength_engine_v2_qualifier",
           calibrated_at: new Date().toISOString(),
         });
 
