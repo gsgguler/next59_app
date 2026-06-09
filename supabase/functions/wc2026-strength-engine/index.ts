@@ -14,6 +14,150 @@ const WC_HOST_API_IDS = new Set([2384, 16, 5529]); // USA, Mexico, Canada
 // Host team → venue country code (ISO 2-letter)
 const HOST_TEAM_COUNTRY = new Map<number, string>([[2384, "US"], [16, "MX"], [5529, "CA"]]);
 
+// ─── 90-Minute Narrative Generator ───────────────────────────────────────────
+
+interface NarrativeInput {
+  homeName: string;
+  awayName: string;
+  siDiff: number; // effectiveSiDiff (venue-aware)
+  pHome: number;
+  pDraw: number;
+  pAway: number;
+  predictedHome: number;
+  predictedAway: number;
+  hForm: number;
+  aForm: number;
+  hAttack: number;
+  aAttack: number;
+  hDef: number;
+  aDef: number;
+  lateGoalRisk: number;
+  chaosProbability: number;
+  fatigueRisk: number;
+  hasVenueAdv: boolean;
+  venueAdvTeam: string | null;
+  confLabel: string;
+}
+
+interface NarrativeOutput {
+  tempo_profile: string;
+  first_15_story: string;
+  minutes_15_30_story: string;
+  minutes_30_45_story: string;
+  minutes_45_60_story: string;
+  minutes_60_75_story: string;
+  minutes_75_90_story: string;
+  key_match_triggers: string[];
+  tactical_notes: Record<string, string>;
+  risk_notes: Record<string, string>;
+}
+
+function generate90MinNarrative(inp: NarrativeInput): NarrativeOutput {
+  const { homeName, awayName, siDiff, pHome, pAway, hForm, aForm, hAttack,
+          aAttack, hDef, aDef, lateGoalRisk, chaosProbability, fatigueRisk,
+          hasVenueAdv, venueAdvTeam, confLabel } = inp;
+
+  const absD = Math.abs(siDiff);
+  const favoriteName = siDiff > 30 ? homeName : siDiff < -30 ? awayName : null;
+  const underdogName = siDiff > 30 ? awayName : siDiff < -30 ? homeName : null;
+  const highTempoForms = hForm > 0.65 || aForm > 0.65;
+  const bothHighForm = hForm > 0.65 && aForm > 0.65;
+
+  // Tempo profile
+  let tempo_profile: string;
+  if (absD > 250) tempo_profile = "Baskılı";
+  else if (absD > 120) tempo_profile = "Kontrollü Baskı";
+  else if (absD < 40) tempo_profile = bothHighForm ? "Dengeli / Yüksek Tempo" : "Dengeli";
+  else tempo_profile = "Hafif Favori";
+
+  // First 15
+  let first_15_story: string;
+  if (hasVenueAdv && venueAdvTeam) {
+    first_15_story = `${venueAdvTeam} kendi sahasının avantajıyla ilk düdükten itibaren baskıyı yükseltebilir. Tribün desteği tempoya yansıyacak.`;
+  } else if (favoriteName && absD > 150) {
+    first_15_story = `${favoriteName} ilk dakikalardan itibaren topu kontrol altına almak isteyecek. ${underdogName} savunma kompaktlığını korumak zorunda.`;
+  } else if (bothHighForm) {
+    first_15_story = `Her iki takım da form zirvesinde. İlk 15 dakika uçuşkan ve tempolu geçebilir; top kayıpları hızla kontra atağa dönüşebilir.`;
+  } else {
+    first_15_story = `İlk 15 dakikada her iki takımın rakibini ölçmesi ve temkinli başlaması bekleniyor. Ani geçiş ataklarına dikkat edilmeli.`;
+  }
+
+  // 15–30
+  let minutes_15_30_story: string;
+  if (favoriteName && pHome > 0.48 && siDiff > 0) {
+    minutes_15_30_story = `${homeName} orta alanda üstünlük kurmaya çalışacak. Kanat bölgelerinden gelen tehditler ve standart pozisyonlar ilk gol için kapı aralayabilir.`;
+  } else if (favoriteName && pAway > 0.48) {
+    minutes_15_30_story = `${awayName} kontra atak silahını kullanmaya hazır. Savunma hattı arkasındaki boşluklar kritik tehdit noktaları olacak.`;
+  } else {
+    minutes_15_30_story = `Her iki takım da orta alanda hakimiyet mücadelesi veriyor. İlk ciddi pozisyon maçın psikolojik dengesini belirleyecek.`;
+  }
+
+  // 30–45
+  let minutes_30_45_story: string;
+  const firstHalfGoalHigh = hAttack + aAttack > 2.6;
+  if (firstHalfGoalHigh) {
+    minutes_30_45_story = `İki takımın da atak skoru yüksek. İlk yarının son bölümünde gol beklentisi artıyor; duran toplar ve penaltı bölgesindeki hareketler belirleyici olabilir.`;
+  } else {
+    minutes_30_45_story = `İlk yarının kapanış bölümünde duran top tehdidi öne çıkabilir. Her gol maçın tüm profilini köklü biçimde değiştirecek.`;
+  }
+
+  // 45–60
+  let minutes_45_60_story: string;
+  if (favoriteName && absD > 100) {
+    minutes_45_60_story = `${favoriteName} ikinci yarı başında tempoya yeniden güç katabilir. İlk 10 dakika soyunma odasından çıkan talimatlar kadar belirleyici olacak.`;
+  } else {
+    minutes_45_60_story = `İkinci yarı açılışında teknik direktör tercihleri ve ilk değişiklikler oyunun rengini belirleyecek. Her iki taraf da açılış fırsatını değerlendirmek isteyecek.`;
+  }
+
+  // 60–75
+  let minutes_60_75_story: string;
+  if (chaosProbability > 0.38) {
+    minutes_60_75_story = `60–75. dakika aralığı "kaos penceresi" olarak öne çıkıyor. Yedek oyuncuların ritim bozması ve beklenmedik pozisyonlar maçın kaderini değiştirebilir.`;
+  } else if (fatigueRisk > 0.30) {
+    minutes_60_75_story = `Kadro derinliği bu bölgede kritik avantaja dönüşebilir. Fiziksel açıdan üstün takım baskıyı sürdürebilirken rakip yorgunlukla mücadele edecek.`;
+  } else {
+    minutes_60_75_story = `60–75. dakika yorgunluk eşiğinin ilk belirdiği dönem. Orta saha mücadelesi ve kare oyun kalitesi bu bölgede belirleyici önem kazanacak.`;
+  }
+
+  // 75–90
+  let minutes_75_90_story: string;
+  if (lateGoalRisk > 0.48) {
+    minutes_75_90_story = `Geç gol ihtimali belirgin biçimde yüksek. Son 15 dakikada maç açık kalabilir; her iki taraf için de pozisyon üretme fırsatı devam edecek.`;
+  } else if (chaosProbability > 0.35 && underdogName) {
+    minutes_75_90_story = `${underdogName} son dakikada sürprize kapı aralayabilir. Risk alma davranışı artar; savunma hatası ya da üst direk hamlesi maçı değiştirebilir.`;
+  } else {
+    minutes_75_90_story = `Son 15 dakika risk yönetimi ve takım disipliniyle şekillenecek. Yorgunluk kart riskini artırabilir; pozisyon savunması ve çıkış topu kritik önem taşıyacak.`;
+  }
+
+  // Key triggers
+  const key_match_triggers: string[] = [];
+  if (hasVenueAdv && venueAdvTeam) key_match_triggers.push(`${venueAdvTeam} ev avantajı (+60 güç endeksi etkisi)`);
+  if (lateGoalRisk > 0.45) key_match_triggers.push("Yüksek geç gol riski");
+  if (chaosProbability > 0.35) key_match_triggers.push("Kaos penceresi (60–75. dk)");
+  if (hDef < 0.85 || aDef < 0.85) key_match_triggers.push("Savunma zafiyeti mevcut");
+  if (hAttack > 1.4 || aAttack > 1.4) key_match_triggers.push("Yüksek atak gücü — erken gol riski");
+  if (confLabel === "low") key_match_triggers.push("Sınırlı veri — yüksek belirsizlik");
+
+  // Tactical notes
+  const tactical_notes: Record<string, string> = {
+    home_style: hForm > 0.65 ? "Aktif pressing, yüksek baskı" : hForm > 0.45 ? "Dengeli geçiş oyunu" : "Temkinli, kontra odaklı",
+    away_style: aForm > 0.65 ? "Aktif pressing, yüksek baskı" : aForm > 0.45 ? "Dengeli geçiş oyunu" : "Savunma bloku, kontra",
+    key_duel: `Orta saha hakimiyeti — ${favoriteName ?? "dengeli"} taraf lehine`,
+  };
+
+  // Risk notes
+  const risk_notes: Record<string, string> = {
+    late_goal: lateGoalRisk > 0.45 ? "Yüksek" : lateGoalRisk > 0.30 ? "Orta" : "Düşük",
+    chaos: chaosProbability > 0.38 ? "Yüksek" : chaosProbability > 0.25 ? "Orta" : "Düşük",
+    fatigue: fatigueRisk > 0.30 ? "Orta–Yüksek" : "Düşük",
+  };
+
+  return { tempo_profile, first_15_story, minutes_15_30_story, minutes_30_45_story,
+           minutes_45_60_story, minutes_60_75_story, minutes_75_90_story,
+           key_match_triggers, tactical_notes, risk_notes };
+}
+
+
 function getSupabase() {
   return createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -778,6 +922,40 @@ Deno.serve(async (req: Request) => {
             confidence: confLabel,
           });
         }
+
+        // Generate and insert 90-minute narrative scenario
+        const narrative = generate90MinNarrative({
+          homeName: fixture.home_team_name,
+          awayName: fixture.away_team_name,
+          siDiff,
+          pHome, pDraw, pAway,
+          predictedHome, predictedAway,
+          hForm, aForm,
+          hAttack, aAttack, hDef, aDef,
+          lateGoalRisk,
+          chaosProbability,
+          fatigueRisk,
+          hasVenueAdv: homeHA > 0 || awayHA > 0,
+          venueAdvTeam: homeHA > 0 ? fixture.home_team_name : awayHA > 0 ? fixture.away_team_name : null,
+          confLabel,
+        });
+        await supabase
+          .from("wc2026_match_90min_scenarios")
+          .upsert({
+            fixture_id: fixture.api_football_fixture_id,
+            calibration_run_id: calibrationRunId,
+            home_team_name: fixture.home_team_name,
+            away_team_name: fixture.away_team_name,
+            predicted_score: `${predictedHome}-${predictedAway}`,
+            home_win_probability: pHome,
+            draw_probability: pDraw,
+            away_win_probability: pAway,
+            strength_diff: parseFloat(siDiff.toFixed(2)),
+            ...narrative,
+            confidence_label: confLabel,
+            formula_version: "strength_engine_v2_qualifier_venue",
+            created_at: new Date().toISOString(),
+          }, { onConflict: "fixture_id,calibration_run_id" });
       }
     }
 

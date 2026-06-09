@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import {
   Trophy, MapPin, Calendar, Users, ArrowLeft, ChevronRight,
-  Shield, Clock, Swords, HelpCircle, Globe, BarChart3,
+  Shield, Clock, Swords, HelpCircle, Globe, BarChart3, Timer,
+  Zap, TrendingUp, AlertTriangle,
 } from 'lucide-react';
 import {
   ALL_WC2026_FIXTURES, VENUE_META, STAGE_LABELS_TR,
@@ -337,6 +338,97 @@ function GroupContext({ fixture, allFixtures }: { fixture: WC2026Fixture; allFix
   );
 }
 
+// ── 90-Minute Scenario Panel ──────────────────────────────────────────────────
+
+interface Wc90MinData {
+  tempo_profile: string | null;
+  first_15_story: string | null;
+  minutes_15_30_story: string | null;
+  minutes_30_45_story: string | null;
+  minutes_45_60_story: string | null;
+  minutes_60_75_story: string | null;
+  minutes_75_90_story: string | null;
+  key_match_triggers: string[] | null;
+  confidence_label: string | null;
+}
+
+const TIME_WINDOWS = [
+  { key: 'first_15_story'      as const, label: '0–15', color: 'text-sky-400',     bg: 'bg-sky-500/10'     },
+  { key: 'minutes_15_30_story' as const, label: '15–30', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+  { key: 'minutes_30_45_story' as const, label: '30–45', color: 'text-amber-400',   bg: 'bg-amber-500/10'   },
+  { key: 'minutes_45_60_story' as const, label: '45–60', color: 'text-sky-400',     bg: 'bg-sky-500/10'     },
+  { key: 'minutes_60_75_story' as const, label: '60–75', color: 'text-orange-400',  bg: 'bg-orange-500/10'  },
+  { key: 'minutes_75_90_story' as const, label: '75–90', color: 'text-red-400',     bg: 'bg-red-500/10'     },
+];
+
+function Wc90MinPanel({ data }: { data: Wc90MinData }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="border border-navy-800/60 rounded-xl overflow-hidden">
+      {/* Header */}
+      <button
+        onClick={() => setExpanded(v => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 bg-navy-800/30 hover:bg-navy-800/50 transition-colors"
+      >
+        <div className="flex items-center gap-2.5">
+          <Timer className="w-4 h-4 text-champagne shrink-0" />
+          <span className="text-sm font-bold text-white">90 Dakikanın Senaryosu</span>
+          {data.tempo_profile && (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-champagne/10 border border-champagne/20 text-champagne font-medium">
+              {data.tempo_profile}
+            </span>
+          )}
+        </div>
+        <ChevronRight className={`w-4 h-4 text-navy-400 transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`} />
+      </button>
+
+      {expanded && (
+        <div className="px-4 pb-4 pt-3 space-y-3 bg-navy-900/20">
+          {/* Time windows */}
+          <div className="space-y-2">
+            {TIME_WINDOWS.map(({ key, label, color, bg }) => {
+              const text = data[key];
+              if (!text) return null;
+              return (
+                <div key={key} className={`flex gap-3 rounded-lg p-3 ${bg} border border-white/5`}>
+                  <span className={`shrink-0 text-xs font-bold font-mono w-10 pt-0.5 ${color}`}>{label}'</span>
+                  <p className="text-xs text-slate-200 leading-relaxed">{text}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Key triggers */}
+          {data.key_match_triggers && data.key_match_triggers.length > 0 && (
+            <div className="pt-1">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Kritik Tetikleyiciler</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {data.key_match_triggers.map((t, i) => (
+                  <span key={i} className="text-xs px-2.5 py-1 rounded-full bg-navy-800 border border-navy-700 text-slate-300">
+                    {t}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Disclaimer */}
+          <div className="flex items-start gap-2 pt-1 border-t border-navy-800/40">
+            <AlertTriangle className="w-3.5 h-3.5 text-navy-500 shrink-0 mt-0.5" />
+            <p className="text-xs text-navy-500 leading-relaxed">
+              Bu senaryo dakika dakika tahmin değil; istatistiksel güç endekslerine dayanan akış projeksiyonudur.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Prediction Panel ──────────────────────────────────────────────────────────
 
 interface WcScenarioState {
@@ -345,6 +437,7 @@ interface WcScenarioState {
   awayProfile: WcTeamProfile | null;
   homeQualifier: WcQualifierStats | null;
   awayQualifier: WcQualifierStats | null;
+  scenario90: Wc90MinData | null;
   calibratedAt: string | null;
 }
 
@@ -468,7 +561,7 @@ function WcPredictionPanel({
 }) {
   const [state, setState] = useState<WcScenarioState>({
     scenario: null, homeProfile: null, awayProfile: null,
-    homeQualifier: null, awayQualifier: null, calibratedAt: null,
+    homeQualifier: null, awayQualifier: null, scenario90: null, calibratedAt: null,
   });
   const [loading, setLoading] = useState(true);
 
@@ -516,12 +609,21 @@ function WcPredictionPanel({
       const homeProfile = (profiles ?? []).find(p => p.api_football_team_id === wf.home_api_team_id) ?? null;
       const awayProfile = (profiles ?? []).find(p => p.api_football_team_id === wf.away_api_team_id) ?? null;
 
-      // Fetch qualifier stats for these two teams (UEFA only — nulls for non-UEFA)
+      // Fetch qualifier stats and 90-min narrative in parallel
       const teamIds = [wf.home_api_team_id, wf.away_api_team_id].filter(Boolean);
-      const { data: qualRows } = await supabase
-        .from('wc2026_uefa_qualifier_team_stats')
-        .select('team_name_en,team_name_tr,api_football_team_id,played,wins,draws,losses,goals_for,goals_against,goal_difference,points,win_rate,goals_per_game,gd_per_game')
-        .in('api_football_team_id', teamIds);
+      const [{ data: qualRows }, { data: scenario90Row }] = await Promise.all([
+        supabase
+          .from('wc2026_uefa_qualifier_team_stats')
+          .select('team_name_en,team_name_tr,api_football_team_id,played,wins,draws,losses,goals_for,goals_against,goal_difference,points,win_rate,goals_per_game,gd_per_game')
+          .in('api_football_team_id', teamIds),
+        supabase
+          .from('wc2026_match_90min_scenarios')
+          .select('tempo_profile,first_15_story,minutes_15_30_story,minutes_30_45_story,minutes_45_60_story,minutes_60_75_story,minutes_75_90_story,key_match_triggers,confidence_label')
+          .eq('fixture_id', wf.api_football_fixture_id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
 
       const qualMap = new Map<number, WcQualifierStats>();
       for (const row of qualRows ?? []) {
@@ -541,6 +643,7 @@ function WcPredictionPanel({
         awayProfile: awayProfile as WcTeamProfile | null,
         homeQualifier: qualMap.get(wf.home_api_team_id) ?? null,
         awayQualifier: qualMap.get(wf.away_api_team_id) ?? null,
+        scenario90: scenario90Row as Wc90MinData | null,
         calibratedAt: run.completed_at ?? null,
       });
       setLoading(false);
@@ -574,7 +677,7 @@ function WcPredictionPanel({
     );
   }
 
-  const { scenario, homeProfile, awayProfile, homeQualifier, awayQualifier, calibratedAt } = state;
+  const { scenario, homeProfile, awayProfile, homeQualifier, awayQualifier, scenario90, calibratedAt } = state;
 
   if (!scenario) {
     return (
@@ -719,6 +822,9 @@ function WcPredictionPanel({
         <RiskBar value={scenario.wc2026_fatigue_risk} label="Yorgunluk Riski" color="amber" />
         <RiskBar value={scenario.first_half_goal_probability} label="İlk Yarı Gol İhtimali" color="emerald" />
       </div>
+
+      {/* 90-Minute Narrative */}
+      {scenario90 && <Wc90MinPanel data={scenario90} />}
 
       {/* Tempo + Set piece */}
       <div className="grid grid-cols-2 gap-3">
