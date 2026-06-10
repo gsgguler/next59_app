@@ -115,8 +115,26 @@ function eventLabel(ev: WcEvent): string {
 
 // ── Match Events Timeline ─────────────────────────────────────────────────────
 
+function EventCard({ ev, align }: { ev: WcEvent; align: 'left' | 'right' }) {
+  const isGoal = ev.event_type.toLowerCase() === 'goal';
+  return (
+    <div className={`flex items-center gap-2 min-w-0 ${align === 'right' ? 'flex-row-reverse' : ''}`}>
+      <EventIcon type={ev.event_type} detail={ev.event_detail} />
+      <div className={`min-w-0 ${align === 'right' ? 'text-right' : 'text-left'}`}>
+        <span className={`text-xs leading-tight block truncate ${isGoal ? 'text-white font-semibold' : 'text-navy-200'}`}>
+          {ev.player_name ?? eventLabel(ev)}
+        </span>
+        <span className="text-[10px] text-navy-500 leading-tight block truncate">
+          {ev.player_name ? eventLabel(ev) : null}
+          {ev.assist_player_name && ` · yrd. ${ev.assist_player_name}`}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function EventsTimeline({
-  events,
+  events, homeTeamName, awayTeamName,
 }: { events: WcEvent[]; homeTeamName: string; awayTeamName: string }) {
   if (events.length === 0) return (
     <p className="text-sm text-navy-400 py-6 text-center">Bu maç için detaylı olay kaydı bulunmuyor.</p>
@@ -128,12 +146,10 @@ function EventsTimeline({
     return ea - eb;
   });
 
-  // Group events by half for section headers
   const withSection = sorted.map((ev) => ({
     ev,
     section: (ev.elapsed ?? 0) <= 45 || (ev.extra_time != null && (ev.elapsed ?? 0) === 45)
-      ? 'first'
-      : 'second',
+      ? 'first' : 'second',
   }));
 
   let lastSection = '';
@@ -142,6 +158,8 @@ function EventsTimeline({
     <div className="space-y-0.5">
       {withSection.map(({ ev, section }) => {
         const isGoal = ev.event_type.toLowerCase() === 'goal';
+        const isHome = ev.team_name === homeTeamName;
+        const isAway = ev.team_name === awayTeamName;
         const showHeader = section !== lastSection;
         lastSection = section;
 
@@ -156,28 +174,24 @@ function EventsTimeline({
                 <div className="h-px flex-1 bg-navy-800/60" />
               </div>
             )}
-            <div
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg ${
-                isGoal ? 'bg-emerald-500/5 border border-emerald-500/10' : 'hover:bg-navy-800/20'
-              } transition-colors`}
-            >
-              {/* Elapsed */}
-              <span className="shrink-0 w-10 text-xs font-mono font-bold text-navy-500 text-right">
-                {elapsedLabel(ev)}
-              </span>
+            <div className={`grid grid-cols-[1fr_auto_1fr] items-center gap-1 px-1 py-1.5 rounded-lg ${
+              isGoal ? 'bg-emerald-500/5 border border-emerald-500/10' : 'hover:bg-navy-800/20'
+            } transition-colors`}>
+              {/* Home side */}
+              <div className="min-w-0">
+                {isHome && <EventCard ev={ev} align="right" />}
+              </div>
 
-              {/* Icon */}
-              <EventIcon type={ev.event_type} detail={ev.event_detail} />
+              {/* Centre: elapsed */}
+              <div className="flex flex-col items-center shrink-0 w-12">
+                <span className={`text-xs font-mono font-bold tabular-nums ${isGoal ? 'text-emerald-400' : 'text-navy-500'}`}>
+                  {elapsedLabel(ev)}
+                </span>
+              </div>
 
-              {/* Content */}
-              <div className="flex-1 min-w-0">
-                <span className={`text-sm leading-tight block ${isGoal ? 'text-white font-semibold' : 'text-navy-200'} truncate`}>
-                  {ev.player_name ?? eventLabel(ev)}
-                </span>
-                <span className="text-xs text-navy-500 leading-tight block">
-                  {ev.player_name ? eventLabel(ev) : null}
-                  {ev.assist_player_name && ` · yrd. ${ev.assist_player_name}`}
-                </span>
+              {/* Away side */}
+              <div className="min-w-0">
+                {isAway && <EventCard ev={ev} align="left" />}
               </div>
             </div>
           </div>
