@@ -527,36 +527,76 @@ Deno.serve(async (req: Request) => {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const action: string = body.action ?? "run";
 
-    // ── Queue drain mode: process all pending queue items ──────────────────────
+    // ── Queue drain mode ───────────────────────────────────────────────────────
     if (action === "drain_queue") {
-      const { data: items } = await supabase
-        .from("wc2026_ai_narrative_queue")
-        .select("fixture_id, generation_mode")
-        .eq("status", "pending")
-        .order("queued_at");
+      // Batch limit: default 3, hard cap 5, caller-adjustable within cap
+      const rawBatch = typeof body.batch_limit === "number" ? body.batch_limit : 3;
+      const batchLimit = Math.max(1, Math.min(rawBatch, 5));
+      const workerId = `drain_${crypto.randomUUID()}`;
 
-      if (!items?.length) {
-        return new Response(JSON.stringify({ drained: 0, message: "No pending items" }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      let processedCount = 0, completedCount = 0, skippedCount = 0, failedCount = 0, retriedCount = 0;
+
+      while (processedCount < batchLimit) {
+        // Atomic claim: CTE + FOR UPDATE SKIP LOCKED — concurrent callers skip locked rows
+        const { data: claimed, error: claimErr } = await supabase.rpc(
+          "claim_next_wc2026_ai_narrative_job",
+          { p_worker_id: workerId }
+        );
+        if (claimErr || !claimed?.length) break;
+
+        const job = claimed[0] as {
+          id: string; fixture_id: string; generation_mode: string;
+          attempts: number; max_attempts: number;
+        };
+        processedCount++;
+
+        let result: Record<string, unknown> = {};
+        try {
+          result = await processFixture(
+            supabase, anthropicKey,
+            job.fixture_id, job.generation_mode as GenerationMode,
+            false // force always false for queue jobs
+          );
+        } catch {
+          result = { error: "Internal error" };
+        }
+
+        const isError = !!result.error;
+        const isSkip  = !isError && !!result.skipped;
+
+        if (!isError) {
+          if (isSkip) skippedCount++; else completedCount++;
+          await supabase.from("wc2026_ai_narrative_queue")
+            .update({ status: "done", completed_at: new Date().toISOString(), last_error: null })
+            .eq("id", job.id);
+        } else if (job.attempts >= job.max_attempts) {
+          // Exhausted retries
+          failedCount++;
+          await supabase.from("wc2026_ai_narrative_queue")
+            .update({ status: "failed", failed_at: new Date().toISOString(),
+                      last_error: String(result.error).slice(0, 500) })
+            .eq("id", job.id);
+        } else {
+          // Retry with backoff: 5m → 15m → 60m
+          retriedCount++;
+          const backoffMins = job.attempts === 1 ? 5 : job.attempts === 2 ? 15 : 60;
+          await supabase.from("wc2026_ai_narrative_queue")
+            .update({ status: "pending",
+                      last_error: String(result.error).slice(0, 500),
+                      next_retry_at: new Date(Date.now() + backoffMins * 60_000).toISOString(),
+                      claimed_at: null, claimed_by: null })
+            .eq("id", job.id);
+        }
       }
 
-      const results = [];
-      for (const item of items) {
-        await supabase
-          .from("wc2026_ai_narrative_queue")
-          .update({ status: "claimed", claimed_at: new Date().toISOString(), claimed_by: "drain_queue" })
-          .eq("fixture_id", item.fixture_id)
-          .eq("generation_mode", item.generation_mode)
-          .eq("status", "pending");
-
-        const result = await processFixture(supabase, anthropicKey, item.fixture_id, item.generation_mode as GenerationMode, false);
-        results.push(result);
-      }
-
-      return new Response(JSON.stringify({ drained: results.length, results }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(JSON.stringify({
+        processed_count: processedCount,
+        completed_count: completedCount,
+        skipped_count:   skippedCount,
+        failed_count:    failedCount,
+        retried_count:   retriedCount,
+        batch_limit_applied: batchLimit,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // ── Single fixture mode ────────────────────────────────────────────────────

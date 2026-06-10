@@ -1,0 +1,42 @@
+name: WC2026 AI Narrative — Drain Queue
+
+on:
+  schedule:
+    # Every 10 minutes. Adjust to */5 on match day windows.
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+    inputs:
+      batch_limit:
+        description: 'Number of jobs to process (1-5)'
+        required: false
+        default: '3'
+
+jobs:
+  drain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Drain AI narrative queue
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          ADMIN_JOB_SECRET: ${{ secrets.ADMIN_JOB_SECRET }}
+        run: |
+          BATCH="${{ github.event.inputs.batch_limit || '3' }}"
+          if [ -z "$SUPABASE_URL" ] || [ -z "$ADMIN_JOB_SECRET" ]; then
+            echo "ERROR: VITE_SUPABASE_URL or ADMIN_JOB_SECRET secret is not set."
+            exit 1
+          fi
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST "${SUPABASE_URL}/functions/v1/wc2026-ai-narrative-writer" \
+            -H "Content-Type: application/json" \
+            -H "X-Internal-Secret: ${ADMIN_JOB_SECRET}" \
+            -d "{\"action\":\"drain_queue\",\"batch_limit\":${BATCH}}")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+          echo "HTTP $HTTP_CODE"
+          echo "$BODY"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "ERROR: drain_queue returned HTTP $HTTP_CODE"
+            exit 1
+          fi
