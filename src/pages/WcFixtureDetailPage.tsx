@@ -352,13 +352,25 @@ interface Wc90MinData {
   confidence_label: string | null;
 }
 
-const TIME_WINDOWS = [
-  { key: 'first_15_story'      as const, label: '0–15', color: 'text-sky-400',     bg: 'bg-sky-500/10'     },
-  { key: 'minutes_15_30_story' as const, label: '15–30', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-  { key: 'minutes_30_45_story' as const, label: '30–45', color: 'text-amber-400',   bg: 'bg-amber-500/10'   },
-  { key: 'minutes_45_60_story' as const, label: '45–60', color: 'text-sky-400',     bg: 'bg-sky-500/10'     },
-  { key: 'minutes_60_75_story' as const, label: '60–75', color: 'text-orange-400',  bg: 'bg-orange-500/10'  },
-  { key: 'minutes_75_90_story' as const, label: '75–90', color: 'text-red-400',     bg: 'bg-red-500/10'     },
+const FIVE_MIN_PERIODS = [
+  { label: '0–5',   text: 'Tempo dengeli başlayabilir.', color: 'text-sky-400' },
+  { label: '5–10',  text: 'İlk pozisyon arayışları belirginleşebilir.', color: 'text-sky-400' },
+  { label: '10–15', text: 'Orta alan kontrolü öne çıkabilir.', color: 'text-sky-400' },
+  { label: '15–20', text: 'Baskı dalgaları yoğunlaşabilir.', color: 'text-emerald-400' },
+  { label: '20–25', text: 'Kanat çıkışları risk yaratabilir.', color: 'text-emerald-400' },
+  { label: '25–30', text: 'Orta saha mücadelesi kritikleşebilir.', color: 'text-emerald-400' },
+  { label: '30–35', text: 'İlk yarı baskısı doruk noktasına ulaşabilir.', color: 'text-amber-400' },
+  { label: '35–40', text: 'Duran top tehdidi artabilir.', color: 'text-amber-400' },
+  { label: '40–45', text: 'İlk yarı kapanışında hız artışı görülebilir.', color: 'text-amber-400' },
+  { label: '45–50', text: 'İkinci yarı açılışında tempo yeniden kurulabilir.', color: 'text-sky-400' },
+  { label: '50–55', text: 'Taktiksel düzeltmeler etkili olmaya başlayabilir.', color: 'text-sky-400' },
+  { label: '55–60', text: 'Hücum geçişleri hızlanabilir.', color: 'text-sky-400' },
+  { label: '60–65', text: 'İlk oyuncu değişiklikleri akışı etkileyebilir.', color: 'text-orange-400' },
+  { label: '65–70', text: 'Baskı asimetrik bir hal alabilir.', color: 'text-orange-400' },
+  { label: '70–75', text: 'Kanat hareketleri sıklaşabilir.', color: 'text-orange-400' },
+  { label: '75–80', text: 'Yorgunluk ve değişiklik etkisi belirginleşebilir.', color: 'text-red-400' },
+  { label: '80–85', text: 'Son bölümde anlık skor baskısı artabilir.', color: 'text-red-400' },
+  { label: '85–90', text: 'Kapanış dakikalarında risk dengesi değişebilir.', color: 'text-red-400' },
 ];
 
 function Wc90MinPanel({ data }: { data: Wc90MinData }) {
@@ -373,7 +385,7 @@ function Wc90MinPanel({ data }: { data: Wc90MinData }) {
       >
         <div className="flex items-center gap-2.5">
           <Timer className="w-4 h-4 text-champagne shrink-0" />
-          <span className="text-sm font-bold text-white">90 Dakikanın Senaryosu</span>
+          <span className="text-sm font-bold text-white">5 Dakikalık Maç Senaryosu</span>
           {data.tempo_profile && (
             <span className="text-xs px-2 py-0.5 rounded-full bg-champagne/10 border border-champagne/20 text-champagne font-medium">
               {data.tempo_profile}
@@ -385,18 +397,19 @@ function Wc90MinPanel({ data }: { data: Wc90MinData }) {
 
       {expanded && (
         <div className="px-4 pb-4 pt-3 space-y-3 bg-navy-900/20">
-          {/* Time windows */}
-          <div className="space-y-2">
-            {TIME_WINDOWS.map(({ key, label, color, bg }) => {
-              const text = data[key];
-              if (!text) return null;
-              return (
-                <div key={key} className={`flex gap-3 rounded-lg p-3 ${bg} border border-white/5`}>
-                  <span className={`shrink-0 text-xs font-bold font-mono w-10 pt-0.5 ${color}`}>{label}'</span>
-                  <p className="text-xs text-slate-200 leading-relaxed">{text}</p>
-                </div>
-              );
-            })}
+          {/* Subtitle */}
+          <p className="text-[11px] text-navy-500 leading-relaxed">
+            Next59 periyot modeli: maç akışı 5 dakikalık bölümlere ayrılır.
+          </p>
+
+          {/* 5-minute period rows */}
+          <div className="space-y-0.5">
+            {FIVE_MIN_PERIODS.map(({ label, text, color }) => (
+              <div key={label} className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md bg-navy-800/25 border border-white/[0.04] hover:bg-navy-800/40 transition-colors">
+                <span className={`shrink-0 text-[11px] font-bold font-mono w-10 ${color}`}>{label}'</span>
+                <p className="text-[11px] text-slate-300 leading-snug">{text}</p>
+              </div>
+            ))}
           </div>
 
           {/* Key triggers */}
@@ -420,7 +433,7 @@ function Wc90MinPanel({ data }: { data: Wc90MinData }) {
           <div className="flex items-start gap-2 pt-1 border-t border-navy-800/40">
             <AlertTriangle className="w-3.5 h-3.5 text-navy-500 shrink-0 mt-0.5" />
             <p className="text-xs text-navy-500 leading-relaxed">
-              Bu senaryo dakika dakika tahmin değil; istatistiksel güç endekslerine dayanan akış projeksiyonudur.
+              Bu senaryo kesin dakika tahmini değil; istatistiksel güç endekslerine dayanan 5 dakikalık akış projeksiyonudur.
             </p>
           </div>
         </div>
