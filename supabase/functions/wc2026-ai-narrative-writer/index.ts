@@ -45,6 +45,7 @@ interface PlayerPoolEntry {
   availability_status: string;
   injury_detail: string | null;
   suspension_detail: string | null;
+  api_football_player_id: number | null;
 }
 
 interface QualifierPlayerStat {
@@ -55,6 +56,19 @@ interface QualifierPlayerStat {
   assists: number | null;
   yellows: number;
   reds: number;
+}
+
+interface ClubStatEntry {
+  player_name: string;
+  season: number;
+  team_name: string;
+  appearances: number | null;
+  minutes: number | null;
+  goals: number | null;
+  assists: number | null;
+  rating: number | null;
+  cards_yellow: number | null;
+  cards_red: number | null;
 }
 
 interface VenuePsychology {
@@ -77,14 +91,177 @@ interface LineupHistoryEntry {
   starts: number;
 }
 
+interface OddsContext {
+  source: "live_db" | "manual_test_prior" | "unavailable";
+  home_pct: number;
+  draw_pct: number;
+  away_pct: number;
+  snapshot_time: string | null;
+  note: string;
+}
+
 // ── Authorization ─────────────────────────────────────────────────────────────
 
-// JWT-based auth intentionally removed. Public anon key must never authorize internal jobs.
 function isAuthorized(req: Request): boolean {
   const internalSecret = Deno.env.get("ADMIN_JOB_SECRET") ?? "";
-  if (!internalSecret) return false; // fail closed if env var not set
+  if (!internalSecret) return false;
   const headerSecret = req.headers.get("X-Internal-Secret") ?? "";
   return headerSecret.length > 0 && headerSecret === internalSecret;
+}
+
+// ── Gap 1: Live odds (match_odds table → manual prior fallback) ────────────────
+
+async function fetchLiveOdds(
+  supabase: ReturnType<typeof createClient>,
+  fixtureId: string,
+): Promise<OddsContext> {
+  const { data: rows } = await supabase
+    .from("match_odds")
+    .select("market, selection, odds, snapshot_time")
+    .eq("match_id", fixtureId)
+    .eq("market", "1X2")
+    .eq("is_main", true)
+    .order("snapshot_time", { ascending: false })
+    .limit(3);
+
+  if (rows?.length) {
+    const homeRow = rows.find((r: { selection: string }) => r.selection === "Home");
+    const drawRow = rows.find((r: { selection: string }) => r.selection === "Draw");
+    const awayRow = rows.find((r: { selection: string }) => r.selection === "Away");
+
+    if (homeRow && drawRow && awayRow) {
+      // Convert decimal odds to implied probability (no vig removal — raw implied)
+      const impliedHome = homeRow.odds > 0 ? 1 / homeRow.odds : 0;
+      const impliedDraw = drawRow.odds > 0 ? 1 / drawRow.odds : 0;
+      const impliedAway = awayRow.odds > 0 ? 1 / awayRow.odds : 0;
+      const sum = impliedHome + impliedDraw + impliedAway;
+
+      return {
+        source: "live_db",
+        home_pct: Math.round((impliedHome / sum) * 100),
+        draw_pct: Math.round((impliedDraw / sum) * 100),
+        away_pct: Math.round((impliedAway / sum) * 100),
+        snapshot_time: homeRow.snapshot_time ?? null,
+        note: "Live odds from match_odds table — vig-included implied probabilities",
+      };
+    }
+  }
+
+  // Fallback: documented manual test priors (Mexico vs South Africa WC opener)
+  return {
+    source: "manual_test_prior",
+    home_pct: 47,
+    draw_pct: 27,
+    away_pct: 26,
+    snapshot_time: null,
+    note: "No live bookmaker odds in DB for this WC2026 fixture. Manual test priors used — NOT real market odds. Confidence LOW.",
+  };
+}
+
+// ── Gap 2: Club season stats via api_football_player_id ───────────────────────
+
+async function fetchClubStats(
+  supabase: ReturnType<typeof createClient>,
+  pool: PlayerPoolEntry[],
+): Promise<Map<string, ClubStatEntry[]>> {
+  const playerIds = pool
+    .map(p => p.api_football_player_id)
+    .filter((id): id is number => id !== null);
+
+  if (!playerIds.length) return new Map();
+
+  const { data } = await supabase
+    .from("af_player_season_stats")
+    .select("api_football_player_id,player_name,team_name,season,appearances,minutes,goals_total,assists,rating,cards_yellow,cards_red")
+    .in("api_football_player_id", playerIds)
+    .in("season", [2023, 2024])
+    .not("minutes", "is", null)
+    .gt("minutes", 0)
+    .order("api_football_player_id")
+    .order("season", { ascending: false });
+
+  const resultMap = new Map<string, ClubStatEntry[]>();
+  if (!data?.length) return resultMap;
+
+  // Build player_id → pool_name lookup
+  const idToName = new Map<number, string>();
+  for (const p of pool) {
+    if (p.api_football_player_id) idToName.set(p.api_football_player_id, p.player_name);
+  }
+
+  for (const row of data) {
+    const poolName = idToName.get(row.api_football_player_id) ?? row.player_name;
+    const entry: ClubStatEntry = {
+      player_name: poolName,
+      season: row.season,
+      team_name: row.team_name ?? "?",
+      appearances: row.appearances ?? null,
+      minutes: row.minutes ?? null,
+      goals: row.goals_total ?? null,
+      assists: row.assists ?? null,
+      rating: row.rating ? parseFloat(row.rating) : null,
+      cards_yellow: row.cards_yellow ?? null,
+      cards_red: row.cards_red ?? null,
+    };
+    const existing = resultMap.get(poolName) ?? [];
+    existing.push(entry);
+    resultMap.set(poolName, existing);
+  }
+
+  return resultMap;
+}
+
+// ── Gap 2 helper: build compact club stats summary for AI ─────────────────────
+
+function summariseClubStats(
+  pool: PlayerPoolEntry[],
+  statsMap: Map<string, ClubStatEntry[]>,
+): { player: string; club_2024: ClubStatEntry | null; club_2023: ClubStatEntry | null }[] {
+  return pool.map(p => {
+    const entries = statsMap.get(p.player_name) ?? [];
+    const s2024 = entries.find(e => e.season === 2024) ?? null;
+    const s2023 = entries.find(e => e.season === 2023) ?? null;
+    return { player: p.player_name, club_2024: s2024, club_2023: s2023 };
+  }).filter(r => r.club_2024 !== null || r.club_2023 !== null);
+}
+
+// ── Gap 3: Infer probable XI from player pool (host teams — no lineup history) ─
+
+function inferXIFromPool(pool: PlayerPoolEntry[]): {
+  player_name: string;
+  position: string;
+  confidence: string;
+  slot: string;
+}[] {
+  const available = pool.filter(
+    p => !p.injury_detail && !p.suspension_detail
+  );
+
+  const gks  = available.filter(p => p.position === "Goalkeeper");
+  const defs = available.filter(p => p.position === "Defender");
+  const mids = available.filter(p => p.position === "Midfielder");
+  const atts = available.filter(p => p.position === "Attacker");
+
+  // 4-4-2 formation slots: 1 GK, 4 DEF, 4 MID, 2 ATT (adjust if fewer available)
+  const xi: { player_name: string; position: string; confidence: string; slot: string }[] = [];
+
+  const pick = (
+    group: PlayerPoolEntry[],
+    n: number,
+    slot: string,
+    posLabel: string,
+  ) => {
+    group.slice(0, n).forEach((p, i) =>
+      xi.push({ player_name: p.player_name, position: posLabel, confidence: "pool_inference", slot: `${slot}${i + 1}` })
+    );
+  };
+
+  pick(gks,  1, "GK",  "Goalkeeper");
+  pick(defs, 4, "DEF", "Defender");
+  pick(mids, 4, "MID", "Midfielder");
+  pick(atts, 2, "ATT", "Attacker");
+
+  return xi;
 }
 
 // ── Enrich: fetch player pools for both teams ─────────────────────────────────
@@ -96,18 +273,22 @@ async function fetchPlayerPools(
 ): Promise<{ home: PlayerPoolEntry[]; away: PlayerPoolEntry[] }> {
   const { data } = await supabase
     .from("wc2026_player_pool")
-    .select("player_name,position,availability_status,injury_detail,suspension_detail,api_football_team_id")
+    .select("player_name,position,availability_status,injury_detail,suspension_detail,api_football_player_id,api_football_team_id")
     .in("api_football_team_id", [homeTeamApiId, awayTeamApiId]);
 
-  const home = (data ?? [])
-    .filter((p: PlayerPoolEntry & { api_football_team_id: number }) => p.api_football_team_id === homeTeamApiId)
-    .map(({ player_name, position, availability_status, injury_detail, suspension_detail }: PlayerPoolEntry) =>
-      ({ player_name, position, availability_status, injury_detail, suspension_detail }));
+  type RawRow = PlayerPoolEntry & { api_football_team_id: number };
 
-  const away = (data ?? [])
-    .filter((p: PlayerPoolEntry & { api_football_team_id: number }) => p.api_football_team_id === awayTeamApiId)
-    .map(({ player_name, position, availability_status, injury_detail, suspension_detail }: PlayerPoolEntry) =>
-      ({ player_name, position, availability_status, injury_detail, suspension_detail }));
+  const toEntry = (r: RawRow): PlayerPoolEntry => ({
+    player_name: r.player_name,
+    position: r.position,
+    availability_status: r.availability_status,
+    injury_detail: r.injury_detail,
+    suspension_detail: r.suspension_detail,
+    api_football_player_id: r.api_football_player_id,
+  });
+
+  const home = (data ?? []).filter((p: RawRow) => p.api_football_team_id === homeTeamApiId).map(toEntry);
+  const away = (data ?? []).filter((p: RawRow) => p.api_football_team_id === awayTeamApiId).map(toEntry);
 
   return { home, away };
 }
@@ -118,49 +299,40 @@ async function fetchQualifierPlayerStats(
   supabase: ReturnType<typeof createClient>,
   providerTeamId: string,
 ): Promise<QualifierPlayerStat[]> {
-  const { data } = await supabase.rpc("get_qualifier_player_stats_aggregated", {
-    p_provider_team_id: providerTeamId,
-  }).maybeSingle();
+  const { data: rows } = await supabase
+    .from("wc_qualifier_player_match_stats")
+    .select("player_name,minutes,goals_total,assists,yellow_cards,red_cards")
+    .eq("provider_team_id", providerTeamId);
 
-  // Fallback: direct aggregate query via select (rpc may not exist yet)
-  if (!data) {
-    const { data: rows } = await supabase
-      .from("wc_qualifier_player_match_stats")
-      .select("player_name,minutes,goals_total,assists,yellow_cards,red_cards")
-      .eq("provider_team_id", providerTeamId);
+  if (!rows?.length) return [];
 
-    if (!rows?.length) return [];
-
-    const map = new Map<string, QualifierPlayerStat>();
-    for (const row of rows) {
-      const existing = map.get(row.player_name);
-      if (existing) {
-        existing.total_minutes = (existing.total_minutes ?? 0) + (row.minutes ?? 0);
-        existing.match_appearances += 1;
-        existing.goals = (existing.goals ?? 0) + (row.goals_total ?? 0);
-        existing.assists = (existing.assists ?? 0) + (row.assists ?? 0);
-        existing.yellows += row.yellow_cards ?? 0;
-        existing.reds += row.red_cards ?? 0;
-      } else {
-        map.set(row.player_name, {
-          player_name: row.player_name,
-          total_minutes: row.minutes ?? null,
-          match_appearances: 1,
-          goals: row.goals_total ?? null,
-          assists: row.assists ?? null,
-          yellows: row.yellow_cards ?? 0,
-          reds: row.red_cards ?? 0,
-        });
-      }
+  const map = new Map<string, QualifierPlayerStat>();
+  for (const row of rows) {
+    const existing = map.get(row.player_name);
+    if (existing) {
+      existing.total_minutes = (existing.total_minutes ?? 0) + (row.minutes ?? 0);
+      existing.match_appearances += 1;
+      existing.goals = (existing.goals ?? 0) + (row.goals_total ?? 0);
+      existing.assists = (existing.assists ?? 0) + (row.assists ?? 0);
+      existing.yellows += row.yellow_cards ?? 0;
+      existing.reds += row.red_cards ?? 0;
+    } else {
+      map.set(row.player_name, {
+        player_name: row.player_name,
+        total_minutes: row.minutes ?? null,
+        match_appearances: 1,
+        goals: row.goals_total ?? null,
+        assists: row.assists ?? null,
+        yellows: row.yellow_cards ?? 0,
+        reds: row.red_cards ?? 0,
+      });
     }
-
-    return Array.from(map.values())
-      .filter(p => p.total_minutes && p.total_minutes > 0)
-      .sort((a, b) => (b.total_minutes ?? 0) - (a.total_minutes ?? 0))
-      .slice(0, 15);
   }
 
-  return data ?? [];
+  return Array.from(map.values())
+    .filter(p => p.total_minutes && p.total_minutes > 0)
+    .sort((a, b) => (b.total_minutes ?? 0) - (a.total_minutes ?? 0))
+    .slice(0, 15);
 }
 
 // ── Enrich: infer probable XI from qualifier lineup history ───────────────────
@@ -178,13 +350,12 @@ async function fetchProbableXI(
 
   const map = new Map<string, LineupHistoryEntry>();
   for (const row of data) {
-    const key = row.player_name;
-    const existing = map.get(key);
+    const existing = map.get(row.player_name);
     if (existing) {
       existing.appearances += 1;
       if (row.is_starting) existing.starts += 1;
     } else {
-      map.set(key, {
+      map.set(row.player_name, {
         player_name: row.player_name,
         position: row.position ?? "?",
         appearances: 1,
@@ -213,7 +384,40 @@ async function fetchVenuePsychology(
   return data ?? null;
 }
 
-// ── Build enriched input snapshot ─────────────────────────────────────────────
+// ── Gap 4: Injury / availability status summary ───────────────────────────────
+
+function buildInjuryStatus(pool: PlayerPoolEntry[]): {
+  confirmed_injured: string[];
+  confirmed_suspended: string[];
+  availability_unknown_count: number;
+  sync_needed: boolean;
+  note: string;
+} {
+  const injured = pool
+    .filter(p => p.injury_detail)
+    .map(p => `${p.player_name} (${p.injury_detail})`);
+
+  const suspended = pool
+    .filter(p => p.suspension_detail)
+    .map(p => `${p.player_name} (${p.suspension_detail})`);
+
+  const unknownCount = pool.filter(p => p.availability_status === "unknown").length;
+  const syncNeeded = unknownCount > 0 && injured.length === 0 && suspended.length === 0;
+
+  return {
+    confirmed_injured: injured,
+    confirmed_suspended: suspended,
+    availability_unknown_count: unknownCount,
+    sync_needed: syncNeeded,
+    note: syncNeeded
+      ? `All ${unknownCount} player availability statuses are unknown — wc2026-injury-sync has not run for this squad. Do NOT invent injuries in narratives.`
+      : injured.length + suspended.length > 0
+        ? "Confirmed absences present — factor into narrative."
+        : "No confirmed absences.",
+  };
+}
+
+// ── Build data quality flags ──────────────────────────────────────────────────
 
 function buildDataQualityFlags(
   homeIsHost: boolean,
@@ -223,6 +427,9 @@ function buildDataQualityFlags(
   awayQualStats: QualifierPlayerStat[],
   probableXI: LineupHistoryEntry[],
   venuePsych: VenuePsychology | null,
+  oddsCtx: OddsContext,
+  homeClubStatsCoverage: number,
+  awayClubStatsCoverage: number,
 ): Record<string, unknown> {
   return {
     home_team_data_source: homeIsHost ? "host_nation_proxy" : "qualifier_official",
@@ -233,14 +440,19 @@ function buildDataQualityFlags(
     away_team_data_source: awayIsHost ? "host_nation_proxy" : "qualifier_official",
     away_team_confidence: awayIsHost ? 0.60 : 0.90,
     away_qualifier_path: awayIsHost
-      ? "NO_QUALIFIER — host nation auto-qualified; proxy stats from Nations League + Gold Cup 2024-25"
+      ? "NO_QUALIFIER — host nation auto-qualified"
       : "qualifier_official",
     home_pool_available: homePool.length > 0,
     away_pool_available: awayPool.length > 0,
+    home_probable_xi_source: homeIsHost ? "pool_position_inference_no_lineup_history" : "qualifier_lineup_history",
+    away_probable_xi_inferred: awayIsHost ? false : probableXI.length >= 9,
     away_qualifier_player_stats_available: awayQualStats.length > 0,
-    away_probable_xi_inferred: probableXI.length >= 9,
     venue_psychology_available: venuePsych !== null,
     official_lineup_available: false,
+    odds_source: oddsCtx.source,
+    odds_confidence: oddsCtx.source === "live_db" ? "high" : "low",
+    home_club_stats_players_found: homeClubStatsCoverage,
+    away_club_stats_players_found: awayClubStatsCoverage,
     host_nations_in_match: [
       ...(homeIsHost ? ["home"] : []),
       ...(awayIsHost ? ["away"] : []),
@@ -263,7 +475,9 @@ Bu üç takım için mevcut istatistikler resmi elemelerden değil, Nations Leag
 - Bu takımların verilerine confidence=0.60 uygula (eleme takımları için 0.90)
 - Eleme istatistiklerini karşılaştırırken bu asimetriyi mutlaka belirt
 - "Eleme performansı" yerine "son rekabetçi maç formu" ifadesini kullan
-- Mevcut XI veya kadro tahmini için eleme maç geçmişi YOK; sadece genel kadro bilgisi kullanılabilir
+- Ev sahibi takım için muhtemel XI, eleme maç geçmişinden DEĞİL, kadro pozisyonlarından çıkarılmıştır (pool_position_inference)
+- SAKATLIKLARDA: availability_status=unknown olan oyuncular için sakatlık ICAT ETME
+- ORANLAR: odds_source=manual_test_prior ise gerçek bahis oranları YOK — sadece model önceliklerine göre analiz yap
 `;
 
 const SYSTEM_PROMPT = `Sen futbol analistlerine özel bir maç yorumlama asistanısın.
@@ -309,14 +523,19 @@ async function callClaude(
 
   const finalInstruction = generationMode === "PRE_MATCH_FINAL"
     ? `Her periyot için mevcut metni (cur) geliştir.
-Enriched context mevcutsa (venue_context, player_pool, qualifier_player_stats, probable_xi) anahtar oyuncu isimlerini, venue baskısını ve güç farklarını doğal biçimde yedirme fırsatı ara.
-EV SAHİBİ KURALI: ev sahibi takım host_nation=true ise, eleme kadrosu verisi YOK — sadece genel kadro ve proxy form kullan; "eleme" demek yerine "son rekabetçi form" de.
-momentum/gr_h/gr_a/press değerlerini kullan. Rakamları cümleye doğrudan yedirme; 'yüksek baskı', 'dominant sahip oluş', 'derinlik baskısı', 'sahaya çıkacak ilk 11' gibi ifadeler kullan.
+venue_context, player_pool, qualifier_player_stats, probable_xi, club_stats mevcutsa:
+  - Kilit oyuncuları (özellikle SA için istatistiklerle desteklenen: Mokoena, Williams, Appollis vb.) doğal biçimde yedirme
+  - Venue baskısını (2240m altitude, %87 ev sahibi kalabalık) narratife yansıt
+  - Kulüp form bilgisi varsa (club_stats) oyuncu tarz ipuçları ver
+  - Meksika'nın ev sahibi avantajını ve SA'nın baskı altındaki psikolojisini (pressure_against=0.76) kullan
+EV SAHİBİ KURALI: Meksika = host_nation → eleme YOK, "son rekabetçi form" kullan, XI=pool_inference
+SAKATLIKLARDA: sync_needed=true ise sakatlık ICAT ETME
+ORANLAR: odds_source=manual_test_prior ise bahis oranına ATIFTA BULUNMA
 Format: [{"p":0,"t":"metin"},{"p":5,"t":"metin"},...] — tam 18 eleman`
     : `Her periyot için mevcut metni (cur) geliştir. momentum/gr_h/gr_a/press değerlerini
 kullan. Rakamları doğrudan cümleye yedirme, bunun yerine 'yüksek baskı', 'dominant sahip oluş',
 'tehlikeli bölge geçişleri' gibi ifadeler kullan.
-EV SAHİBİ KURALI: ev sahibi takım host_nation=true ise bu asimetriyi narratife yansıt.
+EV SAHİBİ KURALI: Meksika = host_nation → "son rekabetçi form" kullan, eleme referansı yapma.
 Format: [{"p":0,"t":"metin"},{"p":5,"t":"metin"},...] — tam 18 eleman`;
 
   const userMessage = JSON.stringify({
@@ -375,7 +594,6 @@ function runInternalSanityCheck(
   model_home_pct: number;
   model_draw_pct: number;
   model_away_pct: number;
-  // Labeled as manual test priors — NOT real market odds
   manual_test_prior_home_pct: number;
   manual_test_prior_draw_pct: number;
   manual_test_prior_away_pct: number;
@@ -485,7 +703,6 @@ async function processFixture(
   const currentVersion = (periods[0] as PeriodRow).scenario_version;
   const nextVersion = currentVersion + 1;
 
-  // ── Qualifier team model features ─────────────────────────────────────────
   const { data: awayQual } = await supabase
     .from("wc_qualifier_model_features")
     .select("team_name,avg_possession_pct,qualifier_win_rate,qualifier_matches_played,is_host_nation,overall_qualifier_data_confidence,qualification_method,model_usage_notes")
@@ -526,7 +743,6 @@ async function processFixture(
   let lineupConfidence: "official" | "squad_confirmed" | "unavailable" = "unavailable";
 
   if (generationMode === "PRE_MATCH_FINAL") {
-    // Check for official confirmed lineups first
     const { data: officialLineup } = await supabase
       .from("wc2026_lineups")
       .select("id")
@@ -543,7 +759,6 @@ async function processFixture(
         .order("team_name, jersey_number");
       lineupContext = { confidence: "official", players: lp ?? [] };
     } else {
-      // Fall back to probable squad summary
       const { data: squads } = await supabase
         .from("wc2026_probable_squads")
         .select("team_name, squad_type, player_count, goalkeeper_count, defender_count, midfielder_count, attacker_count, status, confidence_level")
@@ -572,57 +787,55 @@ async function processFixture(
   let enrichedContext: Record<string, unknown> | undefined;
 
   if (generationMode === "PRE_MATCH_FINAL") {
-    // Resolve api_football_team_id for both teams from player_pool
-    const { data: poolMeta } = await supabase
-      .from("wc2026_player_pool")
-      .select("api_football_team_id")
-      .in("api_football_team_id", [16, 1531]) // Mexico=16, South Africa=1531
-      .limit(1);
+    // Team API IDs for Mexico (16) and South Africa (1531)
+    // These are resolved from wc2026_player_pool which has api_football_team_id
+    const HOME_API_ID = 16;   // Mexico
+    const AWAY_API_ID = 1531; // South Africa
 
-    // Use fixture team names to look up api_football_team_id from player_pool
-    const { data: homePoolSample } = await supabase
-      .from("wc2026_player_pool")
-      .select("api_football_team_id")
-      .eq("api_football_team_id", 16)
-      .limit(1);
+    const [pools, venuePsych, oddsCtx] = await Promise.all([
+      fetchPlayerPools(supabase, HOME_API_ID, AWAY_API_ID),
+      fetchVenuePsychology(supabase, fixtureId),
+      fetchLiveOdds(supabase, fixtureId),
+    ]);
 
-    const { data: awayPoolSample } = await supabase
-      .from("wc2026_player_pool")
-      .select("api_football_team_id")
-      .eq("api_football_team_id", 1531)
-      .limit(1);
+    const homePools = pools.home;
+    const awayPools = pools.away;
 
-    const homeApiId = homePoolSample?.[0]?.api_football_team_id ?? null;
-    const awayApiId = awayPoolSample?.[0]?.api_football_team_id ?? null;
+    // Gap 4: Injury status for both squads
+    const homeInjuryStatus = buildInjuryStatus(homePools);
+    const awayInjuryStatus = buildInjuryStatus(awayPools);
 
-    // Fetch player pools if api IDs resolved
-    let homePools: PlayerPoolEntry[] = [];
-    let awayPools: PlayerPoolEntry[] = [];
-    if (homeApiId && awayApiId) {
-      const pools = await fetchPlayerPools(supabase, homeApiId, awayApiId);
-      homePools = pools.home;
-      awayPools = pools.away;
-    }
+    // Gap 2: Club season stats via api_football_player_id (run in parallel)
+    const [homeClubStats, awayClubStats] = await Promise.all([
+      fetchClubStats(supabase, homePools),
+      fetchClubStats(supabase, awayPools),
+    ]);
 
-    // SA qualifier player stats (provider_team_id = '1531')
+    const homeClubSummary = summariseClubStats(homePools, homeClubStats);
+    const awayClubSummary = summariseClubStats(awayPools, awayClubStats);
+
+    // SA qualifier player stats
     const awayQualPlayerStats = awayIsHost
       ? []
-      : await fetchQualifierPlayerStats(supabase, String(awayApiId ?? 1531));
+      : await fetchQualifierPlayerStats(supabase, String(AWAY_API_ID));
 
-    // SA probable XI from lineup history
+    // SA probable XI from qualifier lineup history; Mexico XI inferred from pool
     const awayProbableXI = awayIsHost
       ? []
-      : await fetchProbableXI(supabase, String(awayApiId ?? 1531));
+      : await fetchProbableXI(supabase, String(AWAY_API_ID));
 
-    // Venue psychology factors
-    const venuePsych = await fetchVenuePsychology(supabase, fixtureId);
+    // Gap 3: Mexico XI inferred from pool positions (no lineup history exists)
+    const homeInferredXI = homeIsHost
+      ? inferXIFromPool(homePools)
+      : [];
 
-    // Data quality flags
     const dataQualityFlags = buildDataQualityFlags(
       homeIsHost, awayIsHost,
       homePools, awayPools,
       awayQualPlayerStats, awayProbableXI,
-      venuePsych,
+      venuePsych, oddsCtx,
+      homeClubSummary.length,
+      awayClubSummary.length,
     );
 
     enrichedContext = {
@@ -631,7 +844,14 @@ async function processFixture(
         reason: "WC2026 host nations — auto-qualified, no official qualifying path",
         data_source: "proxy: CONCACAF Nations League + Gold Cup 2024-25",
         confidence_penalty: "0.60 vs 0.90 for qualifier teams",
-        narrative_instruction: "Do NOT reference qualifier campaigns for host nations. Use 'recent competitive form' instead.",
+        narrative_instruction: "Do NOT reference qualifier campaigns for host nations. Use 'recent competitive form' instead. Do NOT invent injuries when sync_needed=true.",
+      },
+      // Gap 1: Live odds with documented source
+      odds_context: {
+        ...oddsCtx,
+        warning: oddsCtx.source === "manual_test_prior"
+          ? "No live odds in DB. Manual priors are model test values only — do not reference in fan-facing narratives."
+          : undefined,
       },
       venue_context: venuePsych ? {
         altitude_factor: parseFloat(venuePsych.altitude_factor?.toString()),
@@ -649,8 +869,10 @@ async function processFixture(
           pressure: "SA faces 0.76 pressure-against score — high hostile environment pressure",
         },
       } : null,
-      home_player_pool: homeIsHost ? {
-        note: "Host nation — no qualifier lineup history. Player names from registered 26-man squad only.",
+      home_player_pool: {
+        note: homeIsHost
+          ? "Host nation — no qualifier lineup history. Squad names from 26-man pool only."
+          : "Qualifier team — pool available.",
         squad_count: homePools.length,
         players_by_position: {
           GK: homePools.filter(p => p.position === "Goalkeeper").map(p => p.player_name),
@@ -658,16 +880,9 @@ async function processFixture(
           MID: homePools.filter(p => p.position === "Midfielder").map(p => p.player_name),
           ATT: homePools.filter(p => p.position === "Attacker").map(p => p.player_name),
         },
-        unavailable: homePools.filter(p => p.injury_detail || p.suspension_detail).map(p => ({
-          name: p.player_name,
-          reason: p.injury_detail ?? p.suspension_detail,
-        })),
-      } : {
-        squad_count: homePools.length,
-        players: homePools,
+        injury_status: homeInjuryStatus,
       },
-      away_player_pool: awayIsHost ? {
-        note: "Host nation — no qualifier lineup history.",
+      away_player_pool: {
         squad_count: awayPools.length,
         players_by_position: {
           GK: awayPools.filter(p => p.position === "Goalkeeper").map(p => p.player_name),
@@ -675,18 +890,22 @@ async function processFixture(
           MID: awayPools.filter(p => p.position === "Midfielder").map(p => p.player_name),
           ATT: awayPools.filter(p => p.position === "Attacker").map(p => p.player_name),
         },
-      } : {
-        squad_count: awayPools.length,
-        players_by_position: {
-          GK: awayPools.filter(p => p.position === "Goalkeeper").map(p => p.player_name),
-          DEF: awayPools.filter(p => p.position === "Defender").map(p => p.player_name),
-          MID: awayPools.filter(p => p.position === "Midfielder").map(p => p.player_name),
-          ATT: awayPools.filter(p => p.position === "Attacker").map(p => p.player_name),
+        injury_status: awayInjuryStatus,
+      },
+      // Gap 2: Club stats (last 2 seasons) for players in both pools
+      club_stats: {
+        home_team: {
+          data_available: homeClubSummary.length > 0,
+          players_found: homeClubSummary.length,
+          note: "af_player_season_stats joined via api_football_player_id — seasons 2023 & 2024",
+          top_players: homeClubSummary.slice(0, 10),
         },
-        unavailable: awayPools.filter(p => p.injury_detail || p.suspension_detail).map(p => ({
-          name: p.player_name,
-          reason: p.injury_detail ?? p.suspension_detail,
-        })),
+        away_team: {
+          data_available: awayClubSummary.length > 0,
+          players_found: awayClubSummary.length,
+          note: "af_player_season_stats joined via api_football_player_id — seasons 2023 & 2024",
+          top_players: awayClubSummary.slice(0, 10),
+        },
       },
       qualifier_player_stats: awayQualPlayerStats.length ? {
         team: fixture.away_team_name,
@@ -703,23 +922,31 @@ async function processFixture(
         })),
       } : {
         team: fixture.away_team_name,
-        note: homeIsHost ? "Host nation — no qualifier path" : "No qualifier player stats available",
+        note: awayIsHost ? "Host nation — no qualifier path" : "No qualifier player stats available",
       },
-      probable_xi_inferred: awayProbableXI.length ? {
-        team: fixture.away_team_name,
-        source: "qualifier_lineup_history",
-        confidence: "inferred — official XI not yet announced",
-        players: awayProbableXI.slice(0, 11).map(p => ({
-          name: p.player_name,
-          pos: p.position,
-          starts: p.starts,
-          apps: p.appearances,
-        })),
-      } : null,
+      // Gap 3: Probable XI — SA from qualifier history; Mexico inferred from pool
+      probable_xi: {
+        home: homeIsHost ? {
+          team: fixture.home_team_name,
+          source: "pool_position_inference",
+          confidence: "LOW — no qualifier lineup history for host nation; positional inference only",
+          note: "Mexico had no qualifying matches. XI inferred from 26-man squad positions (4-4-2 shape).",
+          players: homeInferredXI,
+        } : null,
+        away: awayProbableXI.length ? {
+          team: fixture.away_team_name,
+          source: "qualifier_lineup_history",
+          confidence: "MEDIUM — inferred from CAF qualifier starts; official XI not yet announced",
+          players: awayProbableXI.slice(0, 11).map(p => ({
+            name: p.player_name,
+            pos: p.position,
+            starts: p.starts,
+            apps: p.appearances,
+          })),
+        } : null,
+      },
       data_quality_flags: dataQualityFlags,
     };
-
-    void poolMeta; // suppress unused warning
   }
 
   const sanity = runInternalSanityCheck(periods as PeriodRow[]);
@@ -759,7 +986,7 @@ async function processFixture(
       generation_mode: generationMode,
       provider: "anthropic",
       model_name: "claude-haiku-4-5",
-      prompt_version: "v3",
+      prompt_version: "v4",
       status: "running",
       started_at: startedAt,
       input_snapshot_json: {
@@ -856,7 +1083,6 @@ async function processFixture(
         .eq("id", aiRunId);
     }
 
-    // Mark queue item done
     await supabase
       .from("wc2026_ai_narrative_queue")
       .update({ status: "done" })
@@ -921,9 +1147,7 @@ Deno.serve(async (req: Request) => {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const action: string = body.action ?? "run";
 
-    // ── Queue drain mode ───────────────────────────────────────────────────────
     if (action === "drain_queue") {
-      // Batch limit: default 3, hard cap 5, caller-adjustable within cap
       const rawBatch = typeof body.batch_limit === "number" ? body.batch_limit : 3;
       const batchLimit = Math.max(1, Math.min(rawBatch, 5));
       const workerId = `drain_${crypto.randomUUID()}`;
@@ -931,7 +1155,6 @@ Deno.serve(async (req: Request) => {
       let processedCount = 0, completedCount = 0, skippedCount = 0, failedCount = 0, retriedCount = 0;
 
       while (processedCount < batchLimit) {
-        // Atomic claim: CTE + FOR UPDATE SKIP LOCKED — concurrent callers skip locked rows
         const { data: claimed, error: claimErr } = await supabase.rpc(
           "claim_next_wc2026_ai_narrative_job",
           { p_worker_id: workerId }
@@ -949,7 +1172,7 @@ Deno.serve(async (req: Request) => {
           result = await processFixture(
             supabase, anthropicKey,
             job.fixture_id, job.generation_mode as GenerationMode,
-            false // force always false for queue jobs
+            false
           );
         } catch {
           result = { error: "Internal error" };
@@ -964,14 +1187,12 @@ Deno.serve(async (req: Request) => {
             .update({ status: "done", completed_at: new Date().toISOString(), last_error: null })
             .eq("id", job.id);
         } else if (job.attempts >= job.max_attempts) {
-          // Exhausted retries
           failedCount++;
           await supabase.from("wc2026_ai_narrative_queue")
             .update({ status: "failed", failed_at: new Date().toISOString(),
                       last_error: String(result.error).slice(0, 500) })
             .eq("id", job.id);
         } else {
-          // Retry with backoff: 5m → 15m → 60m
           retriedCount++;
           const backoffMins = job.attempts === 1 ? 5 : job.attempts === 2 ? 15 : 60;
           await supabase.from("wc2026_ai_narrative_queue")
@@ -993,7 +1214,6 @@ Deno.serve(async (req: Request) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // ── Single fixture mode ────────────────────────────────────────────────────
     const force: boolean = body.force === true;
     const rawMode: string = body.generation_mode ?? "PRE_MATCH_INITIAL";
 
