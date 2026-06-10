@@ -116,7 +116,7 @@ function eventLabel(ev: WcEvent): string {
 // ── Match Events Timeline ─────────────────────────────────────────────────────
 
 function EventsTimeline({
-  events, homeTeamName, awayTeamName,
+  events,
 }: { events: WcEvent[]; homeTeamName: string; awayTeamName: string }) {
   if (events.length === 0) return (
     <p className="text-sm text-navy-400 py-6 text-center">Bu maç için detaylı olay kaydı bulunmuyor.</p>
@@ -128,61 +128,58 @@ function EventsTimeline({
     return ea - eb;
   });
 
+  // Group events by half for section headers
+  const withSection = sorted.map((ev) => ({
+    ev,
+    section: (ev.elapsed ?? 0) <= 45 || (ev.extra_time != null && (ev.elapsed ?? 0) === 45)
+      ? 'first'
+      : 'second',
+  }));
+
+  let lastSection = '';
+
   return (
-    <div className="space-y-1">
-      {sorted.map((ev) => {
-        const isHome = ev.team_name === homeTeamName;
-        const isAway = ev.team_name === awayTeamName;
+    <div className="space-y-0.5">
+      {withSection.map(({ ev, section }) => {
         const isGoal = ev.event_type.toLowerCase() === 'goal';
+        const showHeader = section !== lastSection;
+        lastSection = section;
 
         return (
-          <div
-            key={ev.id}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg ${isGoal ? 'bg-emerald-500/5 border border-emerald-500/10' : 'hover:bg-navy-800/20'} transition-colors`}
-          >
-            {/* Elapsed */}
-            <span className="shrink-0 w-10 text-xs font-mono font-bold text-navy-400 text-right">
-              {elapsedLabel(ev)}
-            </span>
-
-            {/* Home side */}
-            {isHome ? (
-              <div className="flex-1 flex items-center gap-2">
-                <EventIcon type={ev.event_type} detail={ev.event_detail} />
-                <div className="min-w-0">
-                  <span className={`text-sm leading-tight block ${isGoal ? 'text-white font-semibold' : 'text-navy-200'} truncate`}>
-                    {ev.player_name ?? '—'}
-                  </span>
-                  <span className="text-xs text-navy-400 leading-tight block">
-                    {eventLabel(ev)}
-                    {ev.assist_player_name && ` · yrd. ${ev.assist_player_name}`}
-                  </span>
-                </div>
+          <div key={ev.id}>
+            {showHeader && (
+              <div className="flex items-center gap-2 py-2 mt-2 first:mt-0">
+                <div className="h-px flex-1 bg-navy-800/60" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-navy-600">
+                  {section === 'first' ? '1. Yarı' : '2. Yarı'}
+                </span>
+                <div className="h-px flex-1 bg-navy-800/60" />
               </div>
-            ) : (
-              <div className="flex-1" />
             )}
+            <div
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg ${
+                isGoal ? 'bg-emerald-500/5 border border-emerald-500/10' : 'hover:bg-navy-800/20'
+              } transition-colors`}
+            >
+              {/* Elapsed */}
+              <span className="shrink-0 w-10 text-xs font-mono font-bold text-navy-500 text-right">
+                {elapsedLabel(ev)}
+              </span>
 
-            {/* Center divider */}
-            <div className="w-px h-8 bg-navy-800/60 shrink-0" />
+              {/* Icon */}
+              <EventIcon type={ev.event_type} detail={ev.event_detail} />
 
-            {/* Away side */}
-            {isAway ? (
-              <div className="flex-1 flex items-center justify-end gap-2">
-                <div className="min-w-0 text-right">
-                  <span className={`text-sm leading-tight block ${isGoal ? 'text-white font-semibold' : 'text-navy-200'} truncate`}>
-                    {ev.player_name ?? '—'}
-                  </span>
-                  <span className="text-xs text-navy-400 leading-tight block">
-                    {eventLabel(ev)}
-                    {ev.assist_player_name && ` · yrd. ${ev.assist_player_name}`}
-                  </span>
-                </div>
-                <EventIcon type={ev.event_type} detail={ev.event_detail} />
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                <span className={`text-sm leading-tight block ${isGoal ? 'text-white font-semibold' : 'text-navy-200'} truncate`}>
+                  {ev.player_name ?? eventLabel(ev)}
+                </span>
+                <span className="text-xs text-navy-500 leading-tight block">
+                  {ev.player_name ? eventLabel(ev) : null}
+                  {ev.assist_player_name && ` · yrd. ${ev.assist_player_name}`}
+                </span>
               </div>
-            ) : (
-              <div className="flex-1" />
-            )}
+            </div>
           </div>
         );
       })}
