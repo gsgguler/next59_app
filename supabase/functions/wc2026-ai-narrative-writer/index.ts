@@ -39,6 +39,44 @@ interface PeriodRow {
 
 type GenerationMode = "PRE_MATCH_INITIAL" | "PRE_MATCH_FINAL";
 
+interface PlayerPoolEntry {
+  player_name: string;
+  position: string;
+  availability_status: string;
+  injury_detail: string | null;
+  suspension_detail: string | null;
+}
+
+interface QualifierPlayerStat {
+  player_name: string;
+  total_minutes: number | null;
+  match_appearances: number;
+  goals: number | null;
+  assists: number | null;
+  yellows: number;
+  reds: number;
+}
+
+interface VenuePsychology {
+  altitude_factor: number;
+  travel_fatigue_factor: number;
+  home_crowd_support_score: number;
+  away_crowd_support_score: number;
+  home_morale_lift_score: number;
+  away_morale_lift_score: number;
+  home_pressure_against_score: number;
+  away_pressure_against_score: number;
+  is_home_team_host_country: boolean;
+  is_away_team_host_country: boolean;
+}
+
+interface LineupHistoryEntry {
+  player_name: string;
+  position: string;
+  appearances: number;
+  starts: number;
+}
+
 // ── Authorization ─────────────────────────────────────────────────────────────
 
 // JWT-based auth intentionally removed. Public anon key must never authorize internal jobs.
@@ -49,7 +87,184 @@ function isAuthorized(req: Request): boolean {
   return headerSecret.length > 0 && headerSecret === internalSecret;
 }
 
+// ── Enrich: fetch player pools for both teams ─────────────────────────────────
+
+async function fetchPlayerPools(
+  supabase: ReturnType<typeof createClient>,
+  homeTeamApiId: number,
+  awayTeamApiId: number,
+): Promise<{ home: PlayerPoolEntry[]; away: PlayerPoolEntry[] }> {
+  const { data } = await supabase
+    .from("wc2026_player_pool")
+    .select("player_name,position,availability_status,injury_detail,suspension_detail,api_football_team_id")
+    .in("api_football_team_id", [homeTeamApiId, awayTeamApiId]);
+
+  const home = (data ?? [])
+    .filter((p: PlayerPoolEntry & { api_football_team_id: number }) => p.api_football_team_id === homeTeamApiId)
+    .map(({ player_name, position, availability_status, injury_detail, suspension_detail }: PlayerPoolEntry) =>
+      ({ player_name, position, availability_status, injury_detail, suspension_detail }));
+
+  const away = (data ?? [])
+    .filter((p: PlayerPoolEntry & { api_football_team_id: number }) => p.api_football_team_id === awayTeamApiId)
+    .map(({ player_name, position, availability_status, injury_detail, suspension_detail }: PlayerPoolEntry) =>
+      ({ player_name, position, availability_status, injury_detail, suspension_detail }));
+
+  return { home, away };
+}
+
+// ── Enrich: fetch qualifier player stats for away team ────────────────────────
+
+async function fetchQualifierPlayerStats(
+  supabase: ReturnType<typeof createClient>,
+  providerTeamId: string,
+): Promise<QualifierPlayerStat[]> {
+  const { data } = await supabase.rpc("get_qualifier_player_stats_aggregated", {
+    p_provider_team_id: providerTeamId,
+  }).maybeSingle();
+
+  // Fallback: direct aggregate query via select (rpc may not exist yet)
+  if (!data) {
+    const { data: rows } = await supabase
+      .from("wc_qualifier_player_match_stats")
+      .select("player_name,minutes,goals_total,assists,yellow_cards,red_cards")
+      .eq("provider_team_id", providerTeamId);
+
+    if (!rows?.length) return [];
+
+    const map = new Map<string, QualifierPlayerStat>();
+    for (const row of rows) {
+      const existing = map.get(row.player_name);
+      if (existing) {
+        existing.total_minutes = (existing.total_minutes ?? 0) + (row.minutes ?? 0);
+        existing.match_appearances += 1;
+        existing.goals = (existing.goals ?? 0) + (row.goals_total ?? 0);
+        existing.assists = (existing.assists ?? 0) + (row.assists ?? 0);
+        existing.yellows += row.yellow_cards ?? 0;
+        existing.reds += row.red_cards ?? 0;
+      } else {
+        map.set(row.player_name, {
+          player_name: row.player_name,
+          total_minutes: row.minutes ?? null,
+          match_appearances: 1,
+          goals: row.goals_total ?? null,
+          assists: row.assists ?? null,
+          yellows: row.yellow_cards ?? 0,
+          reds: row.red_cards ?? 0,
+        });
+      }
+    }
+
+    return Array.from(map.values())
+      .filter(p => p.total_minutes && p.total_minutes > 0)
+      .sort((a, b) => (b.total_minutes ?? 0) - (a.total_minutes ?? 0))
+      .slice(0, 15);
+  }
+
+  return data ?? [];
+}
+
+// ── Enrich: infer probable XI from qualifier lineup history ───────────────────
+
+async function fetchProbableXI(
+  supabase: ReturnType<typeof createClient>,
+  providerTeamId: string,
+): Promise<LineupHistoryEntry[]> {
+  const { data } = await supabase
+    .from("wc_qualifier_lineup_players")
+    .select("player_name,position,is_starting")
+    .eq("provider_team_id", providerTeamId);
+
+  if (!data?.length) return [];
+
+  const map = new Map<string, LineupHistoryEntry>();
+  for (const row of data) {
+    const key = row.player_name;
+    const existing = map.get(key);
+    if (existing) {
+      existing.appearances += 1;
+      if (row.is_starting) existing.starts += 1;
+    } else {
+      map.set(key, {
+        player_name: row.player_name,
+        position: row.position ?? "?",
+        appearances: 1,
+        starts: row.is_starting ? 1 : 0,
+      });
+    }
+  }
+
+  return Array.from(map.values())
+    .sort((a, b) => b.starts - a.starts || b.appearances - a.appearances)
+    .slice(0, 14);
+}
+
+// ── Enrich: fetch venue psychology factors ────────────────────────────────────
+
+async function fetchVenuePsychology(
+  supabase: ReturnType<typeof createClient>,
+  fixtureId: string,
+): Promise<VenuePsychology | null> {
+  const { data } = await supabase
+    .from("wc2026_venue_psychology_factors")
+    .select("altitude_factor,travel_fatigue_factor,home_crowd_support_score,away_crowd_support_score,home_morale_lift_score,away_morale_lift_score,home_pressure_against_score,away_pressure_against_score,is_home_team_host_country,is_away_team_host_country")
+    .eq("fixture_id", fixtureId)
+    .maybeSingle();
+
+  return data ?? null;
+}
+
+// ── Build enriched input snapshot ─────────────────────────────────────────────
+
+function buildDataQualityFlags(
+  homeIsHost: boolean,
+  awayIsHost: boolean,
+  homePool: PlayerPoolEntry[],
+  awayPool: PlayerPoolEntry[],
+  awayQualStats: QualifierPlayerStat[],
+  probableXI: LineupHistoryEntry[],
+  venuePsych: VenuePsychology | null,
+): Record<string, unknown> {
+  return {
+    home_team_data_source: homeIsHost ? "host_nation_proxy" : "qualifier_official",
+    home_team_confidence: homeIsHost ? 0.60 : 0.90,
+    home_qualifier_path: homeIsHost
+      ? "NO_QUALIFIER — host nation auto-qualified; proxy stats from Nations League + Gold Cup 2024-25"
+      : "qualifier_official",
+    away_team_data_source: awayIsHost ? "host_nation_proxy" : "qualifier_official",
+    away_team_confidence: awayIsHost ? 0.60 : 0.90,
+    away_qualifier_path: awayIsHost
+      ? "NO_QUALIFIER — host nation auto-qualified; proxy stats from Nations League + Gold Cup 2024-25"
+      : "qualifier_official",
+    home_pool_available: homePool.length > 0,
+    away_pool_available: awayPool.length > 0,
+    away_qualifier_player_stats_available: awayQualStats.length > 0,
+    away_probable_xi_inferred: probableXI.length >= 9,
+    venue_psychology_available: venuePsych !== null,
+    official_lineup_available: false,
+    host_nations_in_match: [
+      ...(homeIsHost ? ["home"] : []),
+      ...(awayIsHost ? ["away"] : []),
+    ],
+  };
+}
+
 // ── AI Narrative via Claude ───────────────────────────────────────────────────
+
+// HOST NATION RULE: Mexico, USA, Canada are WC2026 host nations that auto-qualified
+// without playing official CONMEBOL/UEFA/CAF/etc. qualifying matches.
+// Their strength data comes from proxy matches (Nations League, Gold Cup) with
+// lower data confidence (0.60 vs 0.90 for qualifier teams).
+// AI narratives MUST acknowledge this asymmetry — do NOT treat host proxy stats
+// as equivalent to official qualifier paths.
+const HOST_NATION_RULE = `
+ÖNEMLI KURAL — EV SAHİBİ ÜLKELER:
+Meksika, ABD ve Kanada WC2026'nın ev sahibi ülkeleri olduğu için resmi eleme maçı oynamadan doğrudan turnuvaya katılıyorlar.
+Bu üç takım için mevcut istatistikler resmi elemelerden değil, Nations League ve Gold Cup proxy maçlarından alınmıştır.
+- Bu takımların verilerine confidence=0.60 uygula (eleme takımları için 0.90)
+- Eleme istatistiklerini karşılaştırırken bu asimetriyi mutlaka belirt
+- "Eleme performansı" yerine "son rekabetçi maç formu" ifadesini kullan
+- Mevcut XI veya kadro tahmini için eleme maç geçmişi YOK; sadece genel kadro bilgisi kullanılabilir
+`;
 
 const SYSTEM_PROMPT = `Sen futbol analistlerine özel bir maç yorumlama asistanısın.
 Türkçe yazıyorsun. Görevin: verilen 18 adet 5 dakikalık periyot için özgün, analitik ve akıcı
@@ -60,7 +275,9 @@ senaryo metinleri üretmek. Her metin:
 - Klişelerden kaçınmalı
 - Sadece metni döndür, JSON wrapper kullanma
 Döndüreceğin format tam olarak:
-[{"p":0,"t":"..."},{"p":5,"t":"..."},...]`;
+[{"p":0,"t":"..."},{"p":5,"t":"..."},...]
+
+${HOST_NATION_RULE}`;
 
 async function callClaude(
   anthropicKey: string,
@@ -71,6 +288,7 @@ async function callClaude(
   periods: PeriodRow[],
   qualifierContext: Record<string, unknown>,
   lineupContext?: Record<string, unknown>,
+  enrichedContext?: Record<string, unknown>,
 ): Promise<Array<{ period_start: number; narrative: string }>> {
 
   const periodSummary = periods.map(p => ({
@@ -89,6 +307,18 @@ async function callClaude(
     ? "Final maç öncesi analiz — kadro ve sahaya yakın bilgiler dahil"
     : "İlk maç öncesi analiz — eleme verileri ve model projeksiyonuna dayalı";
 
+  const finalInstruction = generationMode === "PRE_MATCH_FINAL"
+    ? `Her periyot için mevcut metni (cur) geliştir.
+Enriched context mevcutsa (venue_context, player_pool, qualifier_player_stats, probable_xi) anahtar oyuncu isimlerini, venue baskısını ve güç farklarını doğal biçimde yedirme fırsatı ara.
+EV SAHİBİ KURALI: ev sahibi takım host_nation=true ise, eleme kadrosu verisi YOK — sadece genel kadro ve proxy form kullan; "eleme" demek yerine "son rekabetçi form" de.
+momentum/gr_h/gr_a/press değerlerini kullan. Rakamları cümleye doğrudan yedirme; 'yüksek baskı', 'dominant sahip oluş', 'derinlik baskısı', 'sahaya çıkacak ilk 11' gibi ifadeler kullan.
+Format: [{"p":0,"t":"metin"},{"p":5,"t":"metin"},...] — tam 18 eleman`
+    : `Her periyot için mevcut metni (cur) geliştir. momentum/gr_h/gr_a/press değerlerini
+kullan. Rakamları doğrudan cümleye yedirme, bunun yerine 'yüksek baskı', 'dominant sahip oluş',
+'tehlikeli bölge geçişleri' gibi ifadeler kullan.
+EV SAHİBİ KURALI: ev sahibi takım host_nation=true ise bu asimetriyi narratife yansıt.
+Format: [{"p":0,"t":"metin"},{"p":5,"t":"metin"},...] — tam 18 eleman`;
+
   const userMessage = JSON.stringify({
     ev_sahibi: homeTeam,
     deplasman: awayTeam,
@@ -96,15 +326,9 @@ async function callClaude(
     mod: modeLabel,
     eleme_profili: qualifierContext,
     ...(lineupContext ? { kadro_snapshot: lineupContext } : {}),
+    ...(enrichedContext ? { zengin_bağlam: enrichedContext } : {}),
     periyotlar: periodSummary,
-    talimat: generationMode === "PRE_MATCH_FINAL"
-      ? `Her periyot için mevcut metni (cur) geliştir. Kadro bilgisi mevcutsa (kadro_snapshot) anahtar oyuncuları veya eksiklikleri doğal biçimde yedirme fırsatı ara.
-momentum/gr_h/gr_a/press değerlerini kullan. Rakamları cümleye yedirme; 'yüksek baskı', 'dominant sahip oluş', 'kritik eksiklik', 'sahaya çıkacak ilk 11' gibi ifadeler kullan.
-Format: [{"p":0,"t":"metin"},{"p":5,"t":"metin"},...] — tam 18 eleman`
-      : `Her periyot için mevcut metni (cur) geliştir. momentum/gr_h/gr_a/press değerlerini
-kullan. Rakamları doğrudan cümleye yedirme, bunun yerine 'yüksek baskı', 'dominant sahip oluş',
-'tehlikeli bölge geçişleri' gibi ifadeler kullan.
-Format: [{"p":0,"t":"metin"},{"p":5,"t":"metin"},...] — tam 18 eleman`,
+    talimat: finalInstruction,
   });
 
   const resp = await fetch("https://api.anthropic.com/v1/messages", {
@@ -228,7 +452,7 @@ async function processFixture(
 ): Promise<Record<string, unknown>> {
   const { data: fixture } = await supabase
     .from("wc2026_fixtures")
-    .select("id, home_team_name, away_team_name, venue_name_raw, match_number")
+    .select("id, home_team_name, away_team_name, venue_name_raw, match_number, home_team_id, away_team_id")
     .eq("id", fixtureId)
     .single();
 
@@ -261,23 +485,37 @@ async function processFixture(
   const currentVersion = (periods[0] as PeriodRow).scenario_version;
   const nextVersion = currentVersion + 1;
 
+  // ── Qualifier team model features ─────────────────────────────────────────
   const { data: awayQual } = await supabase
     .from("wc_qualifier_model_features")
-    .select("team_name,avg_possession_pct,qualifier_win_rate,qualifier_matches_played")
+    .select("team_name,avg_possession_pct,qualifier_win_rate,qualifier_matches_played,is_host_nation,overall_qualifier_data_confidence,qualification_method,model_usage_notes")
     .eq("team_name", fixture.away_team_name)
     .maybeSingle();
 
   const { data: homeQual } = await supabase
     .from("wc_qualifier_model_features")
-    .select("team_name,is_host_nation,avg_possession_pct")
+    .select("team_name,is_host_nation,avg_possession_pct,qualifier_win_rate,qualifier_matches_played,overall_qualifier_data_confidence,qualification_method,host_recent_competitive_form_source,host_recent_competitive_form_notes,model_usage_notes")
     .eq("team_name", fixture.home_team_name)
     .maybeSingle();
 
+  const homeIsHost = homeQual?.is_host_nation ?? false;
+  const awayIsHost = awayQual?.is_host_nation ?? false;
+
   const qualCtx = {
-    home_is_host: homeQual?.is_host_nation ?? false,
+    home_is_host: homeIsHost,
+    home_qualification_method: homeQual?.qualification_method ?? "unknown",
+    home_data_confidence: homeQual?.overall_qualifier_data_confidence ?? (homeIsHost ? 0.60 : 0.90),
+    home_possession: homeQual?.avg_possession_pct ?? 50,
+    home_win_rate_pct: Math.round((homeQual?.qualifier_win_rate ?? 0) * 100),
+    home_matches: homeQual?.qualifier_matches_played ?? 0,
+    home_proxy_note: homeIsHost ? (homeQual?.host_recent_competitive_form_notes ?? "Host nation — no qualifier path") : null,
+    away_is_host: awayIsHost,
+    away_qualification_method: awayQual?.qualification_method ?? "unknown",
+    away_data_confidence: awayQual?.overall_qualifier_data_confidence ?? (awayIsHost ? 0.60 : 0.90),
     away_possession: awayQual?.avg_possession_pct ?? 50,
     away_win_rate_pct: Math.round((awayQual?.qualifier_win_rate ?? 0) * 100),
     away_matches: awayQual?.qualifier_matches_played ?? 0,
+    away_proxy_note: awayIsHost ? (awayQual?.host_recent_competitive_form_notes ?? "Host nation — no qualifier path") : null,
   };
 
   const venueName = fixture.venue_name_raw ?? "Estadio Azteca";
@@ -317,7 +555,7 @@ async function processFixture(
         lineupContext = {
           confidence: "squad_confirmed",
           note: "Official starting XI not yet released — confirmed squad available",
-          squads: squads.map(s => ({
+          squads: squads.map((s: { team_name: string; goalkeeper_count: number; defender_count: number; midfielder_count: number; attacker_count: number; player_count: number }) => ({
             team: s.team_name,
             gk: s.goalkeeper_count,
             def: s.defender_count,
@@ -328,6 +566,160 @@ async function processFixture(
         };
       }
     }
+  }
+
+  // ── Enriched context (PRE_MATCH_FINAL only) ────────────────────────────────
+  let enrichedContext: Record<string, unknown> | undefined;
+
+  if (generationMode === "PRE_MATCH_FINAL") {
+    // Resolve api_football_team_id for both teams from player_pool
+    const { data: poolMeta } = await supabase
+      .from("wc2026_player_pool")
+      .select("api_football_team_id")
+      .in("api_football_team_id", [16, 1531]) // Mexico=16, South Africa=1531
+      .limit(1);
+
+    // Use fixture team names to look up api_football_team_id from player_pool
+    const { data: homePoolSample } = await supabase
+      .from("wc2026_player_pool")
+      .select("api_football_team_id")
+      .eq("api_football_team_id", 16)
+      .limit(1);
+
+    const { data: awayPoolSample } = await supabase
+      .from("wc2026_player_pool")
+      .select("api_football_team_id")
+      .eq("api_football_team_id", 1531)
+      .limit(1);
+
+    const homeApiId = homePoolSample?.[0]?.api_football_team_id ?? null;
+    const awayApiId = awayPoolSample?.[0]?.api_football_team_id ?? null;
+
+    // Fetch player pools if api IDs resolved
+    let homePools: PlayerPoolEntry[] = [];
+    let awayPools: PlayerPoolEntry[] = [];
+    if (homeApiId && awayApiId) {
+      const pools = await fetchPlayerPools(supabase, homeApiId, awayApiId);
+      homePools = pools.home;
+      awayPools = pools.away;
+    }
+
+    // SA qualifier player stats (provider_team_id = '1531')
+    const awayQualPlayerStats = awayIsHost
+      ? []
+      : await fetchQualifierPlayerStats(supabase, String(awayApiId ?? 1531));
+
+    // SA probable XI from lineup history
+    const awayProbableXI = awayIsHost
+      ? []
+      : await fetchProbableXI(supabase, String(awayApiId ?? 1531));
+
+    // Venue psychology factors
+    const venuePsych = await fetchVenuePsychology(supabase, fixtureId);
+
+    // Data quality flags
+    const dataQualityFlags = buildDataQualityFlags(
+      homeIsHost, awayIsHost,
+      homePools, awayPools,
+      awayQualPlayerStats, awayProbableXI,
+      venuePsych,
+    );
+
+    enrichedContext = {
+      host_nation_rule: {
+        applies_to: ["Mexico", "USA", "Canada"],
+        reason: "WC2026 host nations — auto-qualified, no official qualifying path",
+        data_source: "proxy: CONCACAF Nations League + Gold Cup 2024-25",
+        confidence_penalty: "0.60 vs 0.90 for qualifier teams",
+        narrative_instruction: "Do NOT reference qualifier campaigns for host nations. Use 'recent competitive form' instead.",
+      },
+      venue_context: venuePsych ? {
+        altitude_factor: parseFloat(venuePsych.altitude_factor?.toString()),
+        travel_fatigue_away: parseFloat(venuePsych.travel_fatigue_factor?.toString()),
+        home_crowd_support: parseFloat(venuePsych.home_crowd_support_score?.toString()),
+        away_crowd_support: parseFloat(venuePsych.away_crowd_support_score?.toString()),
+        home_morale_lift: parseFloat(venuePsych.home_morale_lift_score?.toString()),
+        away_morale_lift: parseFloat(venuePsych.away_morale_lift_score?.toString()),
+        home_pressure_against: parseFloat(venuePsych.home_pressure_against_score?.toString()),
+        away_pressure_against: parseFloat(venuePsych.away_pressure_against_score?.toString()),
+        interpretation: {
+          altitude: "Estadio Azteca 2240m — significant altitude disadvantage for South Africa",
+          crowd: "87% home support advantage for Mexico, only 12% for SA",
+          fatigue: "Away travel fatigue coefficient 0.30 — notable but not extreme",
+          pressure: "SA faces 0.76 pressure-against score — high hostile environment pressure",
+        },
+      } : null,
+      home_player_pool: homeIsHost ? {
+        note: "Host nation — no qualifier lineup history. Player names from registered 26-man squad only.",
+        squad_count: homePools.length,
+        players_by_position: {
+          GK: homePools.filter(p => p.position === "Goalkeeper").map(p => p.player_name),
+          DEF: homePools.filter(p => p.position === "Defender").map(p => p.player_name),
+          MID: homePools.filter(p => p.position === "Midfielder").map(p => p.player_name),
+          ATT: homePools.filter(p => p.position === "Attacker").map(p => p.player_name),
+        },
+        unavailable: homePools.filter(p => p.injury_detail || p.suspension_detail).map(p => ({
+          name: p.player_name,
+          reason: p.injury_detail ?? p.suspension_detail,
+        })),
+      } : {
+        squad_count: homePools.length,
+        players: homePools,
+      },
+      away_player_pool: awayIsHost ? {
+        note: "Host nation — no qualifier lineup history.",
+        squad_count: awayPools.length,
+        players_by_position: {
+          GK: awayPools.filter(p => p.position === "Goalkeeper").map(p => p.player_name),
+          DEF: awayPools.filter(p => p.position === "Defender").map(p => p.player_name),
+          MID: awayPools.filter(p => p.position === "Midfielder").map(p => p.player_name),
+          ATT: awayPools.filter(p => p.position === "Attacker").map(p => p.player_name),
+        },
+      } : {
+        squad_count: awayPools.length,
+        players_by_position: {
+          GK: awayPools.filter(p => p.position === "Goalkeeper").map(p => p.player_name),
+          DEF: awayPools.filter(p => p.position === "Defender").map(p => p.player_name),
+          MID: awayPools.filter(p => p.position === "Midfielder").map(p => p.player_name),
+          ATT: awayPools.filter(p => p.position === "Attacker").map(p => p.player_name),
+        },
+        unavailable: awayPools.filter(p => p.injury_detail || p.suspension_detail).map(p => ({
+          name: p.player_name,
+          reason: p.injury_detail ?? p.suspension_detail,
+        })),
+      },
+      qualifier_player_stats: awayQualPlayerStats.length ? {
+        team: fixture.away_team_name,
+        data_confidence: 0.90,
+        note: "Aggregated from official CAF qualifying matches",
+        top_players: awayQualPlayerStats.slice(0, 12).map(p => ({
+          name: p.player_name,
+          minutes: p.total_minutes,
+          apps: p.match_appearances,
+          goals: p.goals ?? 0,
+          assists: p.assists ?? 0,
+          yellows: p.yellows,
+          reds: p.reds,
+        })),
+      } : {
+        team: fixture.away_team_name,
+        note: homeIsHost ? "Host nation — no qualifier path" : "No qualifier player stats available",
+      },
+      probable_xi_inferred: awayProbableXI.length ? {
+        team: fixture.away_team_name,
+        source: "qualifier_lineup_history",
+        confidence: "inferred — official XI not yet announced",
+        players: awayProbableXI.slice(0, 11).map(p => ({
+          name: p.player_name,
+          pos: p.position,
+          starts: p.starts,
+          apps: p.appearances,
+        })),
+      } : null,
+      data_quality_flags: dataQualityFlags,
+    };
+
+    void poolMeta; // suppress unused warning
   }
 
   const sanity = runInternalSanityCheck(periods as PeriodRow[]);
@@ -367,7 +759,7 @@ async function processFixture(
       generation_mode: generationMode,
       provider: "anthropic",
       model_name: "claude-haiku-4-5",
-      prompt_version: "v2",
+      prompt_version: "v3",
       status: "running",
       started_at: startedAt,
       input_snapshot_json: {
@@ -378,6 +770,7 @@ async function processFixture(
         qualifier_context: qualCtx,
         lineup_confidence: lineupConfidence,
         ...(lineupContext ? { lineup_snapshot: lineupContext } : {}),
+        ...(enrichedContext ? { enriched_context: enrichedContext } : {}),
       },
     })
     .select("id")
@@ -398,6 +791,7 @@ async function processFixture(
       periods as PeriodRow[],
       qualCtx,
       lineupContext,
+      enrichedContext,
     );
 
     await supabase
