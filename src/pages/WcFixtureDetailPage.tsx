@@ -4,6 +4,7 @@ import {
   Trophy, MapPin, Calendar, Users, ArrowLeft, ChevronRight,
   Shield, Clock, Swords, HelpCircle, Globe, BarChart3, Timer,
   Zap, AlertTriangle, Activity, Target, BookOpen, ChevronDown,
+
 } from 'lucide-react';
 import {
   ALL_WC2026_FIXTURES, VENUE_META, STAGE_LABELS_TR,
@@ -440,6 +441,7 @@ function MomentumDot({ side }: { side: string | null }) {
   );
 }
 
+
 function Wc5MinFlowPanel({ fixtureUuid, apiFootballFixtureId, isTBD }: { fixtureUuid: string | null; apiFootballFixtureId: number | null; isTBD: boolean }) {
   const [rows, setRows] = useState<FlowPeriodRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -477,8 +479,6 @@ function Wc5MinFlowPanel({ fixtureUuid, apiFootballFixtureId, isTBD }: { fixture
         if (res?.data?.key_match_triggers) setKeyTriggers(res.data.key_match_triggers as string[]);
       });
   }, [apiFootballFixtureId, isTBD]);
-
-  if (isTBD || loading || rows.length === 0) return null;
 
   const ver = rows[0]?.scenario_version ?? 1;
 
@@ -557,6 +557,7 @@ function Wc5MinFlowPanel({ fixtureUuid, apiFootballFixtureId, isTBD }: { fixture
               Bu projeksiyon istatistiksel modele dayalıdır; bahis tavsiyesi değildir.
             </p>
           </div>
+
         </div>
       )}
     </div>
