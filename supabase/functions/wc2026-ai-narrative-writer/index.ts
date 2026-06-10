@@ -41,32 +41,12 @@ type GenerationMode = "PRE_MATCH_INITIAL" | "PRE_MATCH_FINAL";
 
 // ── Authorization ─────────────────────────────────────────────────────────────
 
+// JWT-based auth intentionally removed. Public anon key must never authorize internal jobs.
 function isAuthorized(req: Request): boolean {
-  // Path 1: explicit internal secret header — used by ad-hoc server-side callers.
   const internalSecret = Deno.env.get("ADMIN_JOB_SECRET") ?? "";
-  if (internalSecret) {
-    const headerSecret = req.headers.get("X-Internal-Secret") ?? "";
-    if (headerSecret === internalSecret) return true;
-  }
-
-  // Path 2: any valid JWT issued for this project (anon or service_role).
-  // verify_jwt is disabled; we validate the project ref from the token's iss claim.
-  const projectRef = Deno.env.get("SUPABASE_URL")?.split(".")?.[0]?.split("/").pop() ?? "";
-  const authHeader = req.headers.get("Authorization") ?? "";
-  if (authHeader.startsWith("Bearer ") && projectRef) {
-    try {
-      const token = authHeader.slice(7);
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      // iss = "supabase", ref claim must match this project
-      if (payload?.ref === projectRef) return true;
-      // service_role always authorized regardless of ref format
-      if (payload?.role === "service_role") return true;
-    } catch {
-      // malformed JWT
-    }
-  }
-
-  return false;
+  if (!internalSecret) return false; // fail closed if env var not set
+  const headerSecret = req.headers.get("X-Internal-Secret") ?? "";
+  return headerSecret.length > 0 && headerSecret === internalSecret;
 }
 
 // ── AI Narrative via Claude ───────────────────────────────────────────────────
