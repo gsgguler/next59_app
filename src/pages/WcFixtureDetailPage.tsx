@@ -88,8 +88,9 @@ function TeamPastWC({ teamCode, teamNameEn }: { teamCode: string; teamNameEn: st
       .limit(40)
       .then(({ data }) => {
         if (data) setMatches(data as WcMatch[]);
-        setLoading(false);
-      });
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [dbName]);
 
   if (loading) return (
@@ -208,8 +209,9 @@ function H2HPastWC({ homeCode, awayCode, homeName, awayName }: {
       .order('match_date', { ascending: false })
       .then(({ data }) => {
         if (data) setMeetings(data as WcMatch[]);
-        setLoading(false);
-      });
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [hn, an]);
 
   if (loading) return (
@@ -956,6 +958,7 @@ function WcPredictionPanel({
     let cancelled = false;
 
     async function fetchData() {
+      try {
       const { data: run } = await supabase
         .from('wc2026_calibration_runs')
         .select('id, completed_at')
@@ -1039,6 +1042,9 @@ function WcPredictionPanel({
         calibratedAt: run.completed_at ?? null,
       });
       setLoading(false);
+      } catch {
+        setLoading(false);
+      }
     }
 
     fetchData();
