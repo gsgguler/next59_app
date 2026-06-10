@@ -448,7 +448,7 @@ function Wc5MinFlowPanel({ fixtureUuid, apiFootballFixtureId, isTBD }: { fixture
 
   useEffect(() => {
     if (isTBD) { setLoading(false); return; }
-    if (!fixtureUuid) return;
+    if (!fixtureUuid) { setLoading(false); return; }
     supabase
       .from('wc2026_5min_flow_scenarios')
       .select('period_start,period_end,period_label,goal_risk_home,goal_risk_away,home_pressure_score,away_pressure_score,yellow_card_risk_home,yellow_card_risk_away,red_card_risk_home,red_card_risk_away,corner_risk_home,corner_risk_away,foul_risk_home,foul_risk_away,offside_risk_home,offside_risk_away,narrative_text,confidence,expected_momentum_side,scenario_version')
@@ -458,8 +458,9 @@ function Wc5MinFlowPanel({ fixtureUuid, apiFootballFixtureId, isTBD }: { fixture
       .order('period_start', { ascending: true })
       .then(res => {
         if (res?.data) setRows(res.data as FlowPeriodRow[]);
-        setLoading(false);
-      });
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [fixtureUuid, isTBD]);
 
   // Pull key_match_triggers from legacy 90-min scenarios table
@@ -569,7 +570,7 @@ function WcProjectedStatsCard({ fixtureUuid, isTBD }: { fixtureUuid: string | nu
 
   useEffect(() => {
     if (isTBD) { setLoading(false); return; }
-    if (!fixtureUuid) return;
+    if (!fixtureUuid) { setLoading(false); return; }
     supabase
       .from('wc2026_projected_match_stats')
       .select('*')
@@ -579,8 +580,9 @@ function WcProjectedStatsCard({ fixtureUuid, isTBD }: { fixtureUuid: string | nu
       .maybeSingle()
       .then(res => {
         if (res?.data) setStats(res.data as ProjectedStatsRow);
-        setLoading(false);
-      });
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [fixtureUuid, isTBD]);
 
   if (isTBD || loading || !stats) return null;
@@ -954,7 +956,7 @@ function WcPredictionPanel({
 
   useEffect(() => {
     if (isTBD) { setLoading(false); return; }
-    if (!apiFootballFixtureId || !homeApiTeamId || !awayApiTeamId) return;
+    if (!apiFootballFixtureId || !homeApiTeamId || !awayApiTeamId) { setLoading(false); return; }
     let cancelled = false;
 
     async function fetchData() {
