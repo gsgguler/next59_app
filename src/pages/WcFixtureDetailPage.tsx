@@ -3,7 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import {
   Trophy, MapPin, Calendar, Users, ArrowLeft, ChevronRight,
   Shield, Clock, Swords, HelpCircle, Globe, BarChart3, Timer,
-  Zap, TrendingUp, AlertTriangle,
+  Zap, AlertTriangle, Activity, Target, BookOpen, ChevronDown,
 } from 'lucide-react';
 import {
   ALL_WC2026_FIXTURES, VENUE_META, STAGE_LABELS_TR,
@@ -352,33 +352,150 @@ interface Wc90MinData {
   confidence_label: string | null;
 }
 
-const FIVE_MIN_PERIODS = [
-  { label: '0–5',   text: 'Tempo dengeli başlayabilir.', color: 'text-sky-400' },
-  { label: '5–10',  text: 'İlk pozisyon arayışları belirginleşebilir.', color: 'text-sky-400' },
-  { label: '10–15', text: 'Orta alan kontrolü öne çıkabilir.', color: 'text-sky-400' },
-  { label: '15–20', text: 'Baskı dalgaları yoğunlaşabilir.', color: 'text-emerald-400' },
-  { label: '20–25', text: 'Kanat çıkışları risk yaratabilir.', color: 'text-emerald-400' },
-  { label: '25–30', text: 'Orta saha mücadelesi kritikleşebilir.', color: 'text-emerald-400' },
-  { label: '30–35', text: 'İlk yarı baskısı doruk noktasına ulaşabilir.', color: 'text-amber-400' },
-  { label: '35–40', text: 'Duran top tehdidi artabilir.', color: 'text-amber-400' },
-  { label: '40–45', text: 'İlk yarı kapanışında hız artışı görülebilir.', color: 'text-amber-400' },
-  { label: '45–50', text: 'İkinci yarı açılışında tempo yeniden kurulabilir.', color: 'text-sky-400' },
-  { label: '50–55', text: 'Taktiksel düzeltmeler etkili olmaya başlayabilir.', color: 'text-sky-400' },
-  { label: '55–60', text: 'Hücum geçişleri hızlanabilir.', color: 'text-sky-400' },
-  { label: '60–65', text: 'İlk oyuncu değişiklikleri akışı etkileyebilir.', color: 'text-orange-400' },
-  { label: '65–70', text: 'Baskı asimetrik bir hal alabilir.', color: 'text-orange-400' },
-  { label: '70–75', text: 'Kanat hareketleri sıklaşabilir.', color: 'text-orange-400' },
-  { label: '75–80', text: 'Yorgunluk ve değişiklik etkisi belirginleşebilir.', color: 'text-red-400' },
-  { label: '80–85', text: 'Son bölümde anlık skor baskısı artabilir.', color: 'text-red-400' },
-  { label: '85–90', text: 'Kapanış dakikalarında risk dengesi değişebilir.', color: 'text-red-400' },
-];
+// ── DB-driven 5-min flow types ────────────────────────────────────────────────
 
-function Wc90MinPanel({ data }: { data: Wc90MinData }) {
+interface FlowPeriodRow {
+  period_start: number;
+  period_end: number;
+  period_label: string;
+  goal_risk_home: number;
+  goal_risk_away: number;
+  home_pressure_score: number;
+  away_pressure_score: number;
+  yellow_card_risk_home: number;
+  yellow_card_risk_away: number;
+  red_card_risk_home: number;
+  red_card_risk_away: number;
+  corner_risk_home: number;
+  corner_risk_away: number;
+  foul_risk_home: number;
+  foul_risk_away: number;
+  offside_risk_home: number;
+  offside_risk_away: number;
+  narrative_text: string | null;
+  confidence: number;
+  expected_momentum_side: string | null;
+  scenario_version: number;
+}
+
+interface ProjectedStatsRow {
+  home_team_name: string;
+  away_team_name: string;
+  home_total_shots: number;
+  away_total_shots: number;
+  home_shots_on_target: number;
+  away_shots_on_target: number;
+  home_possession_pct: number;
+  away_possession_pct: number;
+  home_fouls: number;
+  away_fouls: number;
+  home_yellow_cards: number;
+  away_yellow_cards: number;
+  home_red_cards: number;
+  away_red_cards: number;
+  home_offsides: number;
+  away_offsides: number;
+  home_corners: number;
+  away_corners: number;
+  home_goals_projection: number;
+  away_goals_projection: number;
+  home_xg: number;
+  away_xg: number;
+  confidence: number;
+}
+
+function periodColor(start: number): string {
+  if (start < 20) return 'text-sky-400';
+  if (start < 45) return 'text-amber-400';
+  if (start < 65) return 'text-emerald-400';
+  if (start < 75) return 'text-orange-400';
+  return 'text-red-400';
+}
+
+function RiskBadge({ value, label, color = 'amber' }: { value: number; label: string; color?: string }) {
+  const pct = Math.round(value * 100);
+  const cls = color === 'red' ? 'bg-red-900/40 text-red-300 border-red-700/40'
+    : color === 'sky' ? 'bg-sky-900/40 text-sky-300 border-sky-700/40'
+    : color === 'emerald' ? 'bg-emerald-900/40 text-emerald-300 border-emerald-700/40'
+    : color === 'orange' ? 'bg-orange-900/40 text-orange-300 border-orange-700/40'
+    : 'bg-amber-900/40 text-amber-300 border-amber-700/40';
+  return (
+    <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border font-medium ${cls}`}>
+      {label} <span className="font-mono font-bold">{pct}%</span>
+    </span>
+  );
+}
+
+function MomentumDot({ side }: { side: string | null }) {
+  if (!side || side === 'balanced') return <span className="text-[10px] text-slate-500">—</span>;
+  const cls = side === 'home' ? 'bg-champagne' : 'bg-sky-400';
+  const label = side === 'home' ? 'Ev' : 'Dep';
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] text-slate-400">
+      <span className={`w-1.5 h-1.5 rounded-full ${cls}`} />
+      {label}
+    </span>
+  );
+}
+
+function Wc5MinFlowPanel({ matchNo, isTBD }: { matchNo: number; isTBD: boolean }) {
+  const [rows, setRows] = useState<FlowPeriodRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
+  const [keyTriggers, setKeyTriggers] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (isTBD) { setLoading(false); return; }
+    supabase
+      .from('wc2026_fixtures')
+      .select('id')
+      .eq('match_number', matchNo)
+      .maybeSingle()
+      .then(({ data: fix }) => {
+        if (!fix) { setLoading(false); return; }
+        return supabase
+          .from('wc2026_5min_flow_scenarios')
+          .select('period_start,period_end,period_label,goal_risk_home,goal_risk_away,home_pressure_score,away_pressure_score,yellow_card_risk_home,yellow_card_risk_away,red_card_risk_home,red_card_risk_away,corner_risk_home,corner_risk_away,foul_risk_home,foul_risk_away,offside_risk_home,offside_risk_away,narrative_text,confidence,expected_momentum_side,scenario_version')
+          .eq('fixture_id', fix.id)
+          .eq('is_current', true)
+          .eq('is_public', true)
+          .order('period_start', { ascending: true });
+      })
+      .then(res => {
+        if (res?.data) setRows(res.data as FlowPeriodRow[]);
+        setLoading(false);
+      });
+  }, [matchNo, isTBD]);
+
+  // Pull key_match_triggers from legacy 90-min scenarios table
+  useEffect(() => {
+    if (isTBD) return;
+    supabase
+      .from('wc2026_fixtures')
+      .select('api_football_fixture_id')
+      .eq('match_number', matchNo)
+      .maybeSingle()
+      .then(({ data: fix }) => {
+        if (!fix?.api_football_fixture_id) return;
+        return supabase
+          .from('wc2026_match_90min_scenarios')
+          .select('key_match_triggers')
+          .eq('fixture_id', fix.api_football_fixture_id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+      })
+      .then(res => {
+        if (res?.data?.key_match_triggers) setKeyTriggers(res.data.key_match_triggers as string[]);
+      });
+  }, [matchNo, isTBD]);
+
+  if (isTBD || loading || rows.length === 0) return null;
+
+  const ver = rows[0]?.scenario_version ?? 1;
 
   return (
     <div className="border border-navy-800/60 rounded-xl overflow-hidden">
-      {/* Header */}
       <button
         onClick={() => setExpanded(v => !v)}
         className="w-full flex items-center justify-between px-4 py-3 bg-navy-800/30 hover:bg-navy-800/50 transition-colors"
@@ -386,55 +503,281 @@ function Wc90MinPanel({ data }: { data: Wc90MinData }) {
         <div className="flex items-center gap-2.5">
           <Timer className="w-4 h-4 text-champagne shrink-0" />
           <span className="text-sm font-bold text-white">5 Dakikalık Maç Senaryosu</span>
-          {data.tempo_profile && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-champagne/10 border border-champagne/20 text-champagne font-medium">
-              {data.tempo_profile}
-            </span>
-          )}
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-navy-700 text-navy-300 font-mono">v{ver}</span>
         </div>
-        <ChevronRight className={`w-4 h-4 text-navy-400 transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`} />
+        <ChevronDown className={`w-4 h-4 text-navy-400 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
       </button>
 
       {expanded && (
         <div className="px-4 pb-4 pt-3 space-y-3 bg-navy-900/20">
-          {/* Subtitle */}
           <p className="text-[11px] text-navy-500 leading-relaxed">
-            Next59 periyot modeli: maç akışı 5 dakikalık bölümlere ayrılır.
+            Bu alan gerçek maç sonucu değildir. Next59 modeli; takım geçmişi, eleme performansı, oyuncu profilleri, venue psikolojisi ve kadro güncellemelerine göre 5 dakikalık akış projeksiyonu üretir.
           </p>
 
-          {/* 5-minute period rows */}
           <div className="space-y-0.5">
-            {FIVE_MIN_PERIODS.map(({ label, text, color }) => (
-              <div key={label} className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md bg-navy-800/25 border border-white/[0.04] hover:bg-navy-800/40 transition-colors">
-                <span className={`shrink-0 text-[11px] font-bold font-mono w-10 ${color}`}>{label}'</span>
-                <p className="text-[11px] text-slate-300 leading-snug">{text}</p>
-              </div>
-            ))}
+            {rows.map(row => {
+              const col = periodColor(row.period_start);
+              const maxGoal = Math.max(row.goal_risk_home, row.goal_risk_away);
+              const maxCard = Math.max(row.yellow_card_risk_home, row.yellow_card_risk_away);
+              const maxCorner = Math.max(row.corner_risk_home, row.corner_risk_away);
+              const maxFoul = Math.max(row.foul_risk_home, row.foul_risk_away);
+              return (
+                <div key={row.period_start} className="flex flex-col gap-1 px-2.5 py-2 rounded-md bg-navy-800/25 border border-white/[0.04] hover:bg-navy-800/40 transition-colors">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`shrink-0 text-[11px] font-bold font-mono w-10 ${col}`}>{row.period_label}'</span>
+                    <MomentumDot side={row.expected_momentum_side} />
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {maxGoal > 0.04 && (
+                        <RiskBadge value={maxGoal} label="Gol riski" color="amber" />
+                      )}
+                      {maxCard > 0.04 && (
+                        <RiskBadge value={maxCard} label="Kart riski" color="red" />
+                      )}
+                      {maxCorner > 0.04 && (
+                        <RiskBadge value={maxCorner} label="Korner riski" color="sky" />
+                      )}
+                      {maxFoul > 0.08 && (
+                        <RiskBadge value={maxFoul} label="Faul yoğunluğu" color="orange" />
+                      )}
+                    </div>
+                  </div>
+                  {row.narrative_text && (
+                    <p className="text-[11px] text-slate-400 leading-snug pl-12">{row.narrative_text}</p>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
-          {/* Key triggers */}
-          {data.key_match_triggers && data.key_match_triggers.length > 0 && (
+          {keyTriggers.length > 0 && (
             <div className="pt-1">
               <div className="flex items-center gap-1.5 mb-2">
                 <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                 <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Kritik Tetikleyiciler</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {data.key_match_triggers.map((t, i) => (
-                  <span key={i} className="text-xs px-2.5 py-1 rounded-full bg-navy-800 border border-navy-700 text-slate-300">
-                    {t}
-                  </span>
+                {keyTriggers.map((t, i) => (
+                  <span key={i} className="text-xs px-2.5 py-1 rounded-full bg-navy-800 border border-navy-700 text-slate-300">{t}</span>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Disclaimer */}
           <div className="flex items-start gap-2 pt-1 border-t border-navy-800/40">
             <AlertTriangle className="w-3.5 h-3.5 text-navy-500 shrink-0 mt-0.5" />
             <p className="text-xs text-navy-500 leading-relaxed">
-              Bu senaryo kesin dakika tahmini değil; istatistiksel güç endekslerine dayanan 5 dakikalık akış projeksiyonudur.
+              Bu projeksiyon istatistiksel modele dayalıdır; bahis tavsiyesi değildir.
             </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WcProjectedStatsCard({ matchNo, isTBD }: { matchNo: number; isTBD: boolean }) {
+  const [stats, setStats] = useState<ProjectedStatsRow | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (isTBD) { setLoading(false); return; }
+    supabase
+      .from('wc2026_fixtures')
+      .select('id')
+      .eq('match_number', matchNo)
+      .maybeSingle()
+      .then(({ data: fix }) => {
+        if (!fix) { setLoading(false); return; }
+        return supabase
+          .from('wc2026_projected_match_stats')
+          .select('*')
+          .eq('fixture_id', fix.id)
+          .eq('is_current', true)
+          .eq('is_public', true)
+          .maybeSingle();
+      })
+      .then(res => {
+        if (res?.data) setStats(res.data as ProjectedStatsRow);
+        setLoading(false);
+      });
+  }, [matchNo, isTBD]);
+
+  if (isTBD || loading || !stats) return null;
+
+  const statRows: { label: string; h: number; a: number; fmt: (v: number) => string }[] = [
+    { label: 'Toplam Şut', h: stats.home_total_shots, a: stats.away_total_shots, fmt: v => v.toFixed(1) },
+    { label: 'İsabetli Şut', h: stats.home_shots_on_target, a: stats.away_shots_on_target, fmt: v => v.toFixed(1) },
+    { label: 'Top Hakimiyeti', h: stats.home_possession_pct, a: stats.away_possession_pct, fmt: v => v.toFixed(0) + '%' },
+    { label: 'Korner', h: stats.home_corners, a: stats.away_corners, fmt: v => v.toFixed(1) },
+    { label: 'Faul', h: stats.home_fouls, a: stats.away_fouls, fmt: v => v.toFixed(1) },
+    { label: 'Sarı Kart', h: stats.home_yellow_cards, a: stats.away_yellow_cards, fmt: v => v.toFixed(2) },
+    { label: 'Kırmızı Kart', h: stats.home_red_cards, a: stats.away_red_cards, fmt: v => v.toFixed(2) },
+    { label: 'Ofsayt', h: stats.home_offsides ?? 0, a: stats.away_offsides ?? 0, fmt: v => v.toFixed(1) },
+    ...(stats.home_xg != null && stats.away_xg != null
+      ? [{ label: 'xG', h: stats.home_xg, a: stats.away_xg, fmt: (v: number) => v.toFixed(2) }]
+      : []),
+  ];
+
+  return (
+    <div className="border border-navy-800/60 rounded-xl overflow-hidden">
+      <button
+        onClick={() => setExpanded(v => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 bg-navy-800/30 hover:bg-navy-800/50 transition-colors"
+      >
+        <div className="flex items-center gap-2.5">
+          <Target className="w-4 h-4 text-sky-400 shrink-0" />
+          <span className="text-sm font-bold text-white">Olası Maç İstatistik Projeksiyonu</span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-900/40 border border-sky-700/40 text-sky-300 font-medium">
+            Model Tahmini
+          </span>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-navy-400 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+      </button>
+
+      {expanded && (
+        <div className="px-4 pb-4 pt-3 space-y-3 bg-navy-900/20">
+          {/* Projected score */}
+          <div className="flex items-center justify-center gap-4 py-2.5 bg-navy-800/40 rounded-lg">
+            <span className="text-xs font-semibold text-slate-300 truncate max-w-[80px]">{stats.home_team_name}</span>
+            <span className="text-xl font-black font-mono text-champagne tabular-nums">
+              {stats.home_goals_projection.toFixed(1)} – {stats.away_goals_projection.toFixed(1)}
+            </span>
+            <span className="text-xs font-semibold text-slate-300 truncate max-w-[80px]">{stats.away_team_name}</span>
+          </div>
+
+          {/* Confidence */}
+          <div className="flex items-center justify-center">
+            <span className="text-[11px] text-slate-500">Model güven skoru: </span>
+            <span className="text-[11px] font-semibold text-sky-400 ml-1">{Math.round(stats.confidence * 100)}%</span>
+          </div>
+
+          {/* Stat comparison rows */}
+          <div className="space-y-2 pt-1">
+            {statRows.map(({ label, h, a, fmt }) => {
+              const total = h + a;
+              const hPct = total > 0 ? Math.round((h / total) * 100) : 50;
+              const aPct = 100 - hPct;
+              return (
+                <div key={label}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-mono text-champagne tabular-nums">{fmt(h)}</span>
+                    <span className="text-[11px] text-slate-400 uppercase tracking-wider">{label}</span>
+                    <span className="text-xs font-mono text-sky-300 tabular-nums">{fmt(a)}</span>
+                  </div>
+                  <div className="h-1.5 bg-navy-800 rounded-full overflow-hidden flex gap-px">
+                    <div className="bg-champagne/70 rounded-l-full transition-all" style={{ width: `${hPct}%` }} />
+                    <div className="bg-sky-400/70 rounded-r-full transition-all" style={{ width: `${aPct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex items-start gap-2 pt-1 border-t border-navy-800/40">
+            <Activity className="w-3.5 h-3.5 text-navy-500 shrink-0 mt-0.5" />
+            <p className="text-xs text-navy-500 leading-relaxed">
+              Eleme istatistiklerine dayalı maç projeksiyonu. Gerçek maç sonucunu yansıtmaz. Bahis tavsiyesi değildir.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WcOldScenariosSection({ matchNo }: { matchNo: number }) {
+  const [versions, setVersions] = useState<number[]>([]);
+  const [selectedVer, setSelectedVer] = useState<number | null>(null);
+  const [oldRows, setOldRows] = useState<FlowPeriodRow[]>([]);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    supabase
+      .from('wc2026_fixtures')
+      .select('id')
+      .eq('match_number', matchNo)
+      .maybeSingle()
+      .then(({ data: fix }) => {
+        if (!fix) return;
+        return supabase
+          .from('wc2026_5min_flow_scenarios')
+          .select('scenario_version')
+          .eq('fixture_id', fix.id)
+          .eq('is_current', false)
+          .order('scenario_version', { ascending: false });
+      })
+      .then(res => {
+        if (!res?.data) return;
+        const vers = [...new Set((res.data as { scenario_version: number }[]).map(r => r.scenario_version))];
+        setVersions(vers);
+        if (vers.length > 0) setSelectedVer(vers[0]);
+      });
+  }, [matchNo]);
+
+  useEffect(() => {
+    if (!open || selectedVer === null) return;
+    supabase
+      .from('wc2026_fixtures')
+      .select('id')
+      .eq('match_number', matchNo)
+      .maybeSingle()
+      .then(({ data: fix }) => {
+        if (!fix) return;
+        return supabase
+          .from('wc2026_5min_flow_scenarios')
+          .select('period_start,period_end,period_label,goal_risk_home,goal_risk_away,home_pressure_score,away_pressure_score,yellow_card_risk_home,yellow_card_risk_away,red_card_risk_home,red_card_risk_away,corner_risk_home,corner_risk_away,foul_risk_home,foul_risk_away,offside_risk_home,offside_risk_away,narrative_text,confidence,expected_momentum_side,scenario_version')
+          .eq('fixture_id', fix.id)
+          .eq('scenario_version', selectedVer)
+          .order('period_start', { ascending: true });
+      })
+      .then(res => {
+        if (res?.data) setOldRows(res.data as FlowPeriodRow[]);
+      });
+  }, [matchNo, open, selectedVer]);
+
+  if (versions.length === 0) return null;
+
+  return (
+    <div className="border border-navy-800/40 rounded-xl overflow-hidden opacity-70 hover:opacity-100 transition-opacity">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 bg-navy-900/30 hover:bg-navy-800/30 transition-colors"
+      >
+        <div className="flex items-center gap-2.5">
+          <BookOpen className="w-4 h-4 text-slate-500 shrink-0" />
+          <span className="text-sm font-medium text-slate-400">Eski Yorum</span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-navy-800 text-slate-500 font-mono">{versions.length} versiyon</span>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-navy-600 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="px-4 pb-4 pt-3 space-y-3 bg-navy-900/10">
+          {versions.length > 1 && (
+            <div className="flex gap-1.5 flex-wrap">
+              {versions.map(v => (
+                <button
+                  key={v}
+                  onClick={() => setSelectedVer(v)}
+                  className={`text-xs px-2.5 py-1 rounded border font-mono transition-colors ${
+                    selectedVer === v
+                      ? 'bg-navy-700 border-navy-600 text-slate-200'
+                      : 'bg-navy-900/40 border-navy-800 text-slate-500 hover:border-navy-700'
+                  }`}
+                >
+                  v{v}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="space-y-0.5">
+            {oldRows.map(row => (
+              <div key={row.period_start} className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md bg-navy-800/15 border border-white/[0.02]">
+                <span className="shrink-0 text-[11px] font-bold font-mono w-10 text-slate-500">{row.period_label}'</span>
+                <p className="text-[11px] text-slate-600 leading-snug">{row.narrative_text ?? '—'}</p>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -767,7 +1110,7 @@ function WcPredictionPanel({
     );
   }
 
-  const { scenario, homeProfile, awayProfile, homeQualifier, awayQualifier, scenario90, calibratedAt } = state;
+  const { scenario, homeProfile, awayProfile, homeQualifier, awayQualifier, calibratedAt } = state;
 
   if (!scenario) {
     return (
@@ -913,8 +1256,14 @@ function WcPredictionPanel({
         <RiskBar value={scenario.first_half_goal_probability} label="İlk Yarı Gol İhtimali" color="emerald" />
       </div>
 
-      {/* 90-Minute Narrative */}
-      {scenario90 && <Wc90MinPanel data={scenario90} />}
+      {/* DB-driven 5-min flow panel */}
+      <Wc5MinFlowPanel matchNo={matchNo} isTBD={isTBD} />
+
+      {/* Projected stats card */}
+      <WcProjectedStatsCard matchNo={matchNo} isTBD={isTBD} />
+
+      {/* Sealed old scenario versions — Eski Yorum */}
+      <WcOldScenariosSection matchNo={matchNo} />
 
       {/* Tempo + Set piece */}
       <div className="grid grid-cols-2 gap-3">
