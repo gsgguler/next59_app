@@ -438,7 +438,7 @@ function MomentumDot({ side }: { side: string | null }) {
   );
 }
 
-function Wc5MinFlowPanel({ matchNo, isTBD }: { matchNo: number; isTBD: boolean }) {
+function Wc5MinFlowPanel({ fixtureUuid, apiFootballFixtureId, isTBD }: { fixtureUuid: string | null; apiFootballFixtureId: number | null; isTBD: boolean }) {
   const [rows, setRows] = useState<FlowPeriodRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
@@ -446,49 +446,34 @@ function Wc5MinFlowPanel({ matchNo, isTBD }: { matchNo: number; isTBD: boolean }
 
   useEffect(() => {
     if (isTBD) { setLoading(false); return; }
+    if (!fixtureUuid) return;
     supabase
-      .from('wc2026_fixtures')
-      .select('id')
-      .eq('match_number', matchNo)
-      .maybeSingle()
-      .then(({ data: fix }) => {
-        if (!fix) { setLoading(false); return; }
-        return supabase
-          .from('wc2026_5min_flow_scenarios')
-          .select('period_start,period_end,period_label,goal_risk_home,goal_risk_away,home_pressure_score,away_pressure_score,yellow_card_risk_home,yellow_card_risk_away,red_card_risk_home,red_card_risk_away,corner_risk_home,corner_risk_away,foul_risk_home,foul_risk_away,offside_risk_home,offside_risk_away,narrative_text,confidence,expected_momentum_side,scenario_version')
-          .eq('fixture_id', fix.id)
-          .eq('is_current', true)
-          .eq('is_public', true)
-          .order('period_start', { ascending: true });
-      })
+      .from('wc2026_5min_flow_scenarios')
+      .select('period_start,period_end,period_label,goal_risk_home,goal_risk_away,home_pressure_score,away_pressure_score,yellow_card_risk_home,yellow_card_risk_away,red_card_risk_home,red_card_risk_away,corner_risk_home,corner_risk_away,foul_risk_home,foul_risk_away,offside_risk_home,offside_risk_away,narrative_text,confidence,expected_momentum_side,scenario_version')
+      .eq('fixture_id', fixtureUuid)
+      .eq('is_current', true)
+      .eq('is_public', true)
+      .order('period_start', { ascending: true })
       .then(res => {
         if (res?.data) setRows(res.data as FlowPeriodRow[]);
         setLoading(false);
       });
-  }, [matchNo, isTBD]);
+  }, [fixtureUuid, isTBD]);
 
   // Pull key_match_triggers from legacy 90-min scenarios table
   useEffect(() => {
-    if (isTBD) return;
+    if (isTBD || !apiFootballFixtureId) return;
     supabase
-      .from('wc2026_fixtures')
-      .select('api_football_fixture_id')
-      .eq('match_number', matchNo)
+      .from('wc2026_match_90min_scenarios')
+      .select('key_match_triggers')
+      .eq('fixture_id', apiFootballFixtureId)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle()
-      .then(({ data: fix }) => {
-        if (!fix?.api_football_fixture_id) return;
-        return supabase
-          .from('wc2026_match_90min_scenarios')
-          .select('key_match_triggers')
-          .eq('fixture_id', fix.api_football_fixture_id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-      })
       .then(res => {
         if (res?.data?.key_match_triggers) setKeyTriggers(res.data.key_match_triggers as string[]);
       });
-  }, [matchNo, isTBD]);
+  }, [apiFootballFixtureId, isTBD]);
 
   if (isTBD || loading || rows.length === 0) return null;
 
@@ -575,33 +560,26 @@ function Wc5MinFlowPanel({ matchNo, isTBD }: { matchNo: number; isTBD: boolean }
   );
 }
 
-function WcProjectedStatsCard({ matchNo, isTBD }: { matchNo: number; isTBD: boolean }) {
+function WcProjectedStatsCard({ fixtureUuid, isTBD }: { fixtureUuid: string | null; isTBD: boolean }) {
   const [stats, setStats] = useState<ProjectedStatsRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     if (isTBD) { setLoading(false); return; }
+    if (!fixtureUuid) return;
     supabase
-      .from('wc2026_fixtures')
-      .select('id')
-      .eq('match_number', matchNo)
+      .from('wc2026_projected_match_stats')
+      .select('*')
+      .eq('fixture_id', fixtureUuid)
+      .eq('is_current', true)
+      .eq('is_public', true)
       .maybeSingle()
-      .then(({ data: fix }) => {
-        if (!fix) { setLoading(false); return; }
-        return supabase
-          .from('wc2026_projected_match_stats')
-          .select('*')
-          .eq('fixture_id', fix.id)
-          .eq('is_current', true)
-          .eq('is_public', true)
-          .maybeSingle();
-      })
       .then(res => {
         if (res?.data) setStats(res.data as ProjectedStatsRow);
         setLoading(false);
       });
-  }, [matchNo, isTBD]);
+  }, [fixtureUuid, isTBD]);
 
   if (isTBD || loading || !stats) return null;
 
@@ -686,55 +664,40 @@ function WcProjectedStatsCard({ matchNo, isTBD }: { matchNo: number; isTBD: bool
   );
 }
 
-function WcOldScenariosSection({ matchNo }: { matchNo: number }) {
+function WcOldScenariosSection({ fixtureUuid }: { fixtureUuid: string | null }) {
   const [versions, setVersions] = useState<number[]>([]);
   const [selectedVer, setSelectedVer] = useState<number | null>(null);
   const [oldRows, setOldRows] = useState<FlowPeriodRow[]>([]);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
+    if (!fixtureUuid) return;
     supabase
-      .from('wc2026_fixtures')
-      .select('id')
-      .eq('match_number', matchNo)
-      .maybeSingle()
-      .then(({ data: fix }) => {
-        if (!fix) return;
-        return supabase
-          .from('wc2026_5min_flow_scenarios')
-          .select('scenario_version')
-          .eq('fixture_id', fix.id)
-          .eq('is_current', false)
-          .order('scenario_version', { ascending: false });
-      })
+      .from('wc2026_5min_flow_scenarios')
+      .select('scenario_version')
+      .eq('fixture_id', fixtureUuid)
+      .eq('is_current', false)
+      .order('scenario_version', { ascending: false })
       .then(res => {
         if (!res?.data) return;
         const vers = [...new Set((res.data as { scenario_version: number }[]).map(r => r.scenario_version))];
         setVersions(vers);
         if (vers.length > 0) setSelectedVer(vers[0]);
       });
-  }, [matchNo]);
+  }, [fixtureUuid]);
 
   useEffect(() => {
-    if (!open || selectedVer === null) return;
+    if (!open || selectedVer === null || !fixtureUuid) return;
     supabase
-      .from('wc2026_fixtures')
-      .select('id')
-      .eq('match_number', matchNo)
-      .maybeSingle()
-      .then(({ data: fix }) => {
-        if (!fix) return;
-        return supabase
-          .from('wc2026_5min_flow_scenarios')
-          .select('period_start,period_end,period_label,goal_risk_home,goal_risk_away,home_pressure_score,away_pressure_score,yellow_card_risk_home,yellow_card_risk_away,red_card_risk_home,red_card_risk_away,corner_risk_home,corner_risk_away,foul_risk_home,foul_risk_away,offside_risk_home,offside_risk_away,narrative_text,confidence,expected_momentum_side,scenario_version')
-          .eq('fixture_id', fix.id)
-          .eq('scenario_version', selectedVer)
-          .order('period_start', { ascending: true });
-      })
+      .from('wc2026_5min_flow_scenarios')
+      .select('period_start,period_end,period_label,goal_risk_home,goal_risk_away,home_pressure_score,away_pressure_score,yellow_card_risk_home,yellow_card_risk_away,red_card_risk_home,red_card_risk_away,corner_risk_home,corner_risk_away,foul_risk_home,foul_risk_away,offside_risk_home,offside_risk_away,narrative_text,confidence,expected_momentum_side,scenario_version')
+      .eq('fixture_id', fixtureUuid)
+      .eq('scenario_version', selectedVer)
+      .order('period_start', { ascending: true })
       .then(res => {
         if (res?.data) setOldRows(res.data as FlowPeriodRow[]);
       });
-  }, [matchNo, open, selectedVer]);
+  }, [fixtureUuid, open, selectedVer]);
 
   if (versions.length === 0) return null;
 
@@ -965,12 +928,18 @@ function EnrichedQualifierPanel({ stats, side }: {
 }
 
 function WcPredictionPanel({
-  matchNo,
+  fixtureUuid,
+  apiFootballFixtureId,
+  homeApiTeamId,
+  awayApiTeamId,
   isTBD,
   homeTeamName,
   awayTeamName,
 }: {
-  matchNo: number;
+  fixtureUuid: string | null;
+  apiFootballFixtureId: number | null;
+  homeApiTeamId: number | null;
+  awayApiTeamId: number | null;
   isTBD: boolean;
   homeTeamName: string;
   awayTeamName: string;
@@ -983,6 +952,7 @@ function WcPredictionPanel({
 
   useEffect(() => {
     if (isTBD) { setLoading(false); return; }
+    if (!apiFootballFixtureId || !homeApiTeamId || !awayApiTeamId) return;
     let cancelled = false;
 
     async function fetchData() {
@@ -998,37 +968,26 @@ function WcPredictionPanel({
 
       if (!run || cancelled) { setLoading(false); return; }
 
-      const { data: wf } = await supabase
-        .from('wc2026_fixtures')
-        .select('api_football_fixture_id, home_api_team_id, away_api_team_id')
-        .eq('match_number', matchNo)
-        .maybeSingle();
-
-      if (!wf || cancelled) { setLoading(false); return; }
-
       const [{ data: scenRow }, { data: profiles }] = await Promise.all([
         supabase
           .from('wc2026_match_scenario_calibration')
           .select('*')
           .eq('calibration_run_id', run.id)
-          .eq('api_football_fixture_id', wf.api_football_fixture_id)
+          .eq('api_football_fixture_id', apiFootballFixtureId)
           .maybeSingle(),
         supabase
           .from('wc2026_team_calibration_profiles')
           .select('*')
           .eq('calibration_run_id', run.id)
-          .in('api_football_team_id', [wf.home_api_team_id, wf.away_api_team_id]),
+          .in('api_football_team_id', [homeApiTeamId, awayApiTeamId]),
       ]);
 
       if (cancelled) return;
 
-      const homeProfile = (profiles ?? []).find(p => p.api_football_team_id === wf.home_api_team_id) ?? null;
-      const awayProfile = (profiles ?? []).find(p => p.api_football_team_id === wf.away_api_team_id) ?? null;
+      const homeProfile = (profiles ?? []).find(p => p.api_football_team_id === homeApiTeamId) ?? null;
+      const awayProfile = (profiles ?? []).find(p => p.api_football_team_id === awayApiTeamId) ?? null;
 
-      // Fetch qualifier stats from wc_qualifier_team_summary (all confederations)
-      // and 90-min narrative in parallel
-      const teamIds = [wf.home_api_team_id, wf.away_api_team_id].filter(Boolean);
-      const teamIdStrings = teamIds.map(String);
+      const teamIdStrings = [String(homeApiTeamId), String(awayApiTeamId)];
       const [{ data: enrichedRows }, { data: scenario90Row }] = await Promise.all([
         supabase
           .from('wc_qualifier_team_summary')
@@ -1038,7 +997,7 @@ function WcPredictionPanel({
         supabase
           .from('wc2026_match_90min_scenarios')
           .select('tempo_profile,first_15_story,minutes_15_30_story,minutes_30_45_story,minutes_45_60_story,minutes_60_75_story,minutes_75_90_story,key_match_triggers,confidence_label')
-          .eq('fixture_id', wf.api_football_fixture_id)
+          .eq('fixture_id', apiFootballFixtureId)
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle(),
@@ -1074,8 +1033,8 @@ function WcPredictionPanel({
         scenario: scenRow as WcScenarioData | null,
         homeProfile: homeProfile as WcTeamProfile | null,
         awayProfile: awayProfile as WcTeamProfile | null,
-        homeQualifier: enrichedMap.get(String(wf.home_api_team_id)) ?? null,
-        awayQualifier: enrichedMap.get(String(wf.away_api_team_id)) ?? null,
+        homeQualifier: enrichedMap.get(String(homeApiTeamId)) ?? null,
+        awayQualifier: enrichedMap.get(String(awayApiTeamId)) ?? null,
         scenario90: scenario90Row as Wc90MinData | null,
         calibratedAt: run.completed_at ?? null,
       });
@@ -1084,7 +1043,7 @@ function WcPredictionPanel({
 
     fetchData();
     return () => { cancelled = true; };
-  }, [matchNo, isTBD]);
+  }, [isTBD, apiFootballFixtureId, homeApiTeamId, awayApiTeamId]);
 
   if (isTBD) {
     return (
@@ -1257,13 +1216,13 @@ function WcPredictionPanel({
       </div>
 
       {/* DB-driven 5-min flow panel */}
-      <Wc5MinFlowPanel matchNo={matchNo} isTBD={isTBD} />
+      <Wc5MinFlowPanel fixtureUuid={fixtureUuid} apiFootballFixtureId={apiFootballFixtureId} isTBD={isTBD} />
 
       {/* Projected stats card */}
-      <WcProjectedStatsCard matchNo={matchNo} isTBD={isTBD} />
+      <WcProjectedStatsCard fixtureUuid={fixtureUuid} isTBD={isTBD} />
 
       {/* Sealed old scenario versions — Eski Yorum */}
-      <WcOldScenariosSection matchNo={matchNo} />
+      <WcOldScenariosSection fixtureUuid={fixtureUuid} />
 
       {/* Tempo + Set piece */}
       <div className="grid grid-cols-2 gap-3">
@@ -1300,6 +1259,33 @@ export default function WcFixtureDetailPage() {
   );
 
   const [activeTab, setActiveTab] = useState<'info' | 'h2h' | 'home' | 'away'>('info');
+
+  const [dbFixture, setDbFixture] = useState<{
+    uuid: string;
+    apiFootballFixtureId: number | null;
+    homeApiTeamId: number | null;
+    awayApiTeamId: number | null;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!fixture || fixture.home_team_code === 'TBD' || fixture.away_team_code === 'TBD') return;
+    let cancelled = false;
+    setDbFixture(null);
+    supabase
+      .from('wc2026_fixtures')
+      .select('id, api_football_fixture_id, home_api_team_id, away_api_team_id')
+      .eq('match_number', fixture.match_no)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled && data) setDbFixture({
+          uuid: data.id,
+          apiFootballFixtureId: data.api_football_fixture_id,
+          homeApiTeamId: data.home_api_team_id,
+          awayApiTeamId: data.away_api_team_id,
+        });
+      });
+    return () => { cancelled = true; };
+  }, [fixture?.match_no]);
 
   useEffect(() => {
     if (!fixture) { navigate('/world-cup-2026', { replace: true }); return; }
@@ -1518,7 +1504,10 @@ export default function WcFixtureDetailPage() {
 
         {/* Prediction panel */}
         <WcPredictionPanel
-            matchNo={fixture.match_no}
+            fixtureUuid={dbFixture?.uuid ?? null}
+            apiFootballFixtureId={dbFixture?.apiFootballFixtureId ?? null}
+            homeApiTeamId={dbFixture?.homeApiTeamId ?? null}
+            awayApiTeamId={dbFixture?.awayApiTeamId ?? null}
             isTBD={isTBD}
             homeTeamName={fixture.home_team}
             awayTeamName={fixture.away_team}
