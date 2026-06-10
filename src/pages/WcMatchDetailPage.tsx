@@ -203,28 +203,10 @@ function EventsTimeline({
 
 // ── H2H Previous Meetings ─────────────────────────────────────────────────────
 
-function PreviousMeetings({ homeTeamId, awayTeamId, excludeId }: {
-  homeTeamId: string | null;
-  awayTeamId: string | null;
-  excludeId: string;
+function PreviousMeetings({ meetings, loading }: {
+  meetings: WcMatch[];
+  loading: boolean;
 }) {
-  const [meetings, setMeetings] = useState<WcMatch[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!homeTeamId || !awayTeamId) { setLoading(false); return; }
-    supabase
-      .from('wch_matches')
-      .select('id,edition_year,match_no,stage_code,group_name,match_date,home_team_name,away_team_name,home_score_ft,away_score_ft,home_score_90,away_score_90,decided_by,home_score_aet,away_score_aet,home_penalties,away_penalties,final_winner_name,result_90')
-      .or(`and(home_team_id.eq.${homeTeamId},away_team_id.eq.${awayTeamId}),and(home_team_id.eq.${awayTeamId},away_team_id.eq.${homeTeamId})`)
-      .neq('id', excludeId)
-      .order('match_date', { ascending: false })
-      .then(({ data }) => {
-        if (data) setMeetings(data as WcMatch[]);
-        setLoading(false);
-      });
-  }, [homeTeamId, awayTeamId, excludeId]);
-
   if (loading) return (
     <div className="space-y-2">{[0,1,2].map(i => <div key={i} className="h-10 bg-navy-800/30 rounded-lg animate-pulse"/>)}</div>
   );
@@ -350,6 +332,8 @@ export default function WcMatchDetailPage() {
   const [events, setEvents] = useState<WcEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'events' | 'h2h' | 'home' | 'away'>('events');
+  const [h2hMeetings, setH2hMeetings] = useState<WcMatch[]>([]);
+  const [h2hLoading, setH2hLoading] = useState(false);
 
   useEffect(() => {
     if (!matchId) return;
@@ -376,6 +360,21 @@ export default function WcMatchDetailPage() {
         // Load events
         supabase.from('wch_events').select('*').eq('match_id', matchId).order('elapsed', { ascending: true })
           .then(({ data: evs }) => { if (evs) setEvents(evs as WcEvent[]); });
+
+        // Eagerly prefetch H2H data as soon as team IDs are available
+        if (m.home_team_id && m.away_team_id) {
+          setH2hLoading(true);
+          supabase
+            .from('wch_matches')
+            .select('id,edition_year,match_no,stage_code,group_name,match_date,home_team_name,away_team_name,home_score_ft,away_score_ft,home_score_90,away_score_90,decided_by,home_score_aet,away_score_aet,home_penalties,away_penalties,final_winner_name,result_90')
+            .or(`and(home_team_id.eq.${m.home_team_id},away_team_id.eq.${m.away_team_id}),and(home_team_id.eq.${m.away_team_id},away_team_id.eq.${m.home_team_id})`)
+            .neq('id', matchId)
+            .order('match_date', { ascending: false })
+            .then(({ data: h2h }) => {
+              if (h2h) setH2hMeetings(h2h as WcMatch[]);
+              setH2hLoading(false);
+            });
+        }
 
         setLoading(false);
       });
@@ -657,7 +656,7 @@ export default function WcMatchDetailPage() {
           {activeTab === 'h2h' && (
             <>
               <p className="text-xs font-bold uppercase tracking-wider text-navy-400 mb-3">Dünya Kupası'nda Önceki Karşılaşmalar</p>
-              <PreviousMeetings homeTeamId={match.home_team_id} awayTeamId={match.away_team_id} excludeId={match.id}/>
+              <PreviousMeetings meetings={h2hMeetings} loading={h2hLoading}/>
             </>
           )}
           {activeTab === 'home' && (
