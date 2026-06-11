@@ -998,7 +998,6 @@ interface PlayerQualityRow {
 interface RefereeProfileRow {
   name: string;
   country: string | null;
-  sofascore_referee_id: number | null;
   matches: number | null;
   yellow_cards: number | null;
   direct_red_cards: number | null;
@@ -1068,7 +1067,7 @@ function WcLineupAndRefereePanel({
           .eq('fixture_id', fixtureStringId),
         supabase
           .from('wc_fixture_referees')
-          .select('wc_referee_profiles(name,country,sofascore_referee_id,matches,yellow_cards,direct_red_cards,second_yellow_red_cards,yellow_cards_per_match,direct_red_cards_per_match,total_red_card_effect_per_match,total_cards,total_cards_per_match,card_tendency,red_card_scenario_risk,match_flow_interruption_risk)')
+          .select('wc_referee_profiles(name,country,matches,yellow_cards,direct_red_cards,second_yellow_red_cards,yellow_cards_per_match,direct_red_cards_per_match,total_red_card_effect_per_match,total_cards,total_cards_per_match,card_tendency,red_card_scenario_risk,match_flow_interruption_risk)')
           .eq('fixture_id', fixtureStringId)
           .maybeSingle(),
       ]);
@@ -1100,7 +1099,7 @@ function WcLineupAndRefereePanel({
         <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-4">
             <Users className="w-4 h-4 text-champagne"/>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">İlk 11 — Sofascore</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">Maç Kadrosu</h3>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {[{ code: homeTeamCode, starters: homeStarters, side: 'Ev Sahibi' }, { code: awayTeamCode, starters: awayStarters, side: 'Deplasman' }].map(({ code, starters, side }) => (
@@ -1803,7 +1802,7 @@ export default function WcFixtureDetailPage() {
           </div>
         </div>
 
-        {/* Lineup + Referee panel (manual Sofascore data) */}
+        {/* Lineup + Referee panel */}
         <WcLineupAndRefereePanel
           fixtureStringId={fixtureStringId}
           homeTeamCode={fixture.home_team_code}
