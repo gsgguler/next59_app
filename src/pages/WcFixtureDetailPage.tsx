@@ -814,6 +814,13 @@ interface WcEnrichedQualifier {
 
 // ── Prediction Panel ──────────────────────────────────────────────────────────
 
+interface DisplayProbs {
+  home_pct: number;
+  draw_pct: number;
+  away_pct: number;
+  display_label: string;
+}
+
 interface WcScenarioState {
   scenario: WcScenarioData | null;
   homeProfile: WcTeamProfile | null;
@@ -822,6 +829,7 @@ interface WcScenarioState {
   awayQualifier: WcEnrichedQualifier | null;
   scenario90: Wc90MinData | null;
   calibratedAt: string | null;
+  displayProbs: DisplayProbs | null;
 }
 
 function ConfidenceDot({ level }: { level: string }) {
@@ -986,6 +994,7 @@ function WcPredictionPanel({
   const [state, setState] = useState<WcScenarioState>({
     scenario: null, homeProfile: null, awayProfile: null,
     homeQualifier: null, awayQualifier: null, scenario90: null, calibratedAt: null,
+    displayProbs: null,
   });
   const [loading, setLoading] = useState(true);
 
@@ -1069,6 +1078,22 @@ function WcPredictionPanel({
         });
       }
 
+      // Fetch display-safe calibrated probabilities (no internal source fields)
+      const { data: dpRow } = await supabase
+        .from('wc2026_fixture_display_probabilities')
+        .select('home_pct,draw_pct,away_pct,display_label')
+        .eq('fixture_id', fixtureUuid)
+        .maybeSingle();
+
+      const displayProbs: DisplayProbs | null = dpRow
+        ? {
+            home_pct: parseFloat(dpRow.home_pct),
+            draw_pct: parseFloat(dpRow.draw_pct),
+            away_pct: parseFloat(dpRow.away_pct),
+            display_label: dpRow.display_label ?? 'Next59 Kalibre Model Tahmini',
+          }
+        : null;
+
       setState({
         scenario: scenRow as WcScenarioData | null,
         homeProfile: homeProfile as WcTeamProfile | null,
@@ -1077,6 +1102,7 @@ function WcPredictionPanel({
         awayQualifier: enrichedMap.get(String(awayApiTeamId)) ?? null,
         scenario90: scenario90Row as Wc90MinData | null,
         calibratedAt: run.completed_at ?? null,
+        displayProbs,
       });
       setLoading(false);
       } catch {
@@ -1112,7 +1138,7 @@ function WcPredictionPanel({
     );
   }
 
-  const { scenario, homeProfile, awayProfile, homeQualifier, awayQualifier, calibratedAt } = state;
+  const { scenario, homeProfile, awayProfile, homeQualifier, awayQualifier, calibratedAt, displayProbs } = state;
 
   if (!scenario) {
     return (
@@ -1128,9 +1154,10 @@ function WcPredictionPanel({
     );
   }
 
-  const hp = Math.round(scenario.home_win_probability * 100);
-  const dp = Math.round(scenario.draw_probability * 100);
-  const ap = Math.round(scenario.away_win_probability * 100);
+  const hp = displayProbs ? Math.round(displayProbs.home_pct) : Math.round(scenario.home_win_probability * 100);
+  const dp = displayProbs ? Math.round(displayProbs.draw_pct) : Math.round(scenario.draw_probability * 100);
+  const ap = displayProbs ? Math.round(displayProbs.away_pct) : Math.round(scenario.away_win_probability * 100);
+  const predictionLabel = displayProbs?.display_label ?? 'Model Tahmini';
   const leading = hp > ap ? 'home' : ap > hp ? 'away' : 'draw';
 
   const fmtDate = calibratedAt
@@ -1143,7 +1170,7 @@ function WcPredictionPanel({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-champagne shrink-0" />
-          <h3 className="text-sm font-bold text-white">Model Tahmini</h3>
+          <h3 className="text-sm font-bold text-white">{predictionLabel}</h3>
         </div>
         <div className="flex items-center gap-1.5">
           <ConfidenceDot level={scenario.calibration_confidence} />

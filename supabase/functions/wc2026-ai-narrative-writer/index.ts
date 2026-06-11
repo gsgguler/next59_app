@@ -272,6 +272,53 @@ async function fetchInternalMarketSnapshot(
   };
 }
 
+// ── Internal calibrated result context (service role only — never public) ─────
+
+async function fetchCalibratedResultContext(
+  supabase: ReturnType<typeof createClient>,
+  fixtureId: string,
+): Promise<Record<string, unknown>> {
+  const { data } = await supabase
+    .from("wc2026_calibrated_result_probabilities")
+    .select(
+      "quality_bucket,base_model_weight,internal_signal_weight,calibrated_home_pct,calibrated_draw_pct,calibrated_away_pct,base_model_home_pct,base_model_draw_pct,base_model_away_pct,internal_only,public_visible",
+    )
+    .eq("fixture_id", fixtureId)
+    .eq("internal_only", true)
+    .eq("public_visible", false)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!data) {
+    return {
+      available: false,
+      visibility: "internal_only",
+      not_public: true,
+      not_betting_advice: true,
+      public_language_guardrail:
+        "No calibrated result context available. Use base model probabilities only. Never reference odds, bookmakers, or market signals.",
+    };
+  }
+
+  return {
+    available: true,
+    visibility: "internal_only",
+    quality_bucket: data.quality_bucket,
+    base_model_weight: parseFloat(data.base_model_weight ?? "0"),
+    internal_signal_weight: parseFloat(data.internal_signal_weight ?? "0"),
+    calibrated_home_pct: parseFloat(data.calibrated_home_pct ?? "0"),
+    calibrated_draw_pct: parseFloat(data.calibrated_draw_pct ?? "0"),
+    calibrated_away_pct: parseFloat(data.calibrated_away_pct ?? "0"),
+    not_public: true,
+    not_betting_advice: true,
+    public_language_guardrail:
+      "Narrative tone may align with calibrated probabilities. " +
+      "NEVER reveal source, weights, quality_bucket, or any reference to odds, market, bookmaker, betting, implied probability, or internal signal. " +
+      "Public narrative must use football-only model language: 'model güveni', 'senaryo olasılığı', 'form analizi'.",
+  };
+}
+
 // ── Gap 2: Club season stats via api_football_player_id ───────────────────────
 
 async function fetchClubStats(
@@ -1086,7 +1133,10 @@ async function processFixture(
   const sanity = runInternalSanityCheck(periods as PeriodRow[]);
 
   // Fetch internal market snapshot (service role — never exposed publicly)
-  const internalMarketCtx = await fetchInternalMarketSnapshot(supabase, fixtureId);
+  const [internalMarketCtx, calibratedResultCtx] = await Promise.all([
+    fetchInternalMarketSnapshot(supabase, fixtureId),
+    fetchCalibratedResultContext(supabase, fixtureId),
+  ]);
 
   const { error: divErr } = await supabase
     .from("wc2026_model_market_divergence")
@@ -1136,6 +1186,7 @@ async function processFixture(
         ...(lineupContext ? { lineup_snapshot: lineupContext } : {}),
         ...(enrichedContext ? { enriched_context: enrichedContext } : {}),
         market_context: internalMarketCtx,
+        calibrated_result_context: calibratedResultCtx,
       },
     })
     .select("id")
