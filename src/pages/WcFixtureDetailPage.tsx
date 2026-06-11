@@ -556,7 +556,7 @@ function Wc5MinFlowPanel({ fixtureUuid, apiFootballFixtureId, isTBD }: { fixture
           <div className="flex items-start gap-2 pt-1 border-t border-navy-800/40">
             <AlertTriangle className="w-3.5 h-3.5 text-navy-500 shrink-0 mt-0.5" />
             <p className="text-xs text-navy-500 leading-relaxed">
-              Bu projeksiyon istatistiksel modele dayalıdır; bahis tavsiyesi değildir.
+              Bu çalışma, maç öncesi mevcut verilerle hazırlanmış yapay zekâ destekli istatistiksel senaryo analizidir. Kesin sonuç vaadi içermez.
             </p>
           </div>
 
@@ -694,7 +694,7 @@ function WcProjectedStatsCard({ fixtureUuid, isTBD }: { fixtureUuid: string | nu
           <div className="flex items-start gap-2 pt-1 border-t border-navy-800/40">
             <Activity className="w-3.5 h-3.5 text-navy-500 shrink-0 mt-0.5" />
             <p className="text-xs text-navy-500 leading-relaxed">
-              Bu projeksiyon istatistiksel modele dayalıdır; bahis tavsiyesi değildir.
+              Bu çalışma, maç öncesi mevcut verilerle hazırlanmış yapay zekâ destekli istatistiksel senaryo analizidir. Kesin sonuç vaadi içermez.
             </p>
           </div>
         </div>
@@ -1183,7 +1183,7 @@ function WcPredictionPanel({
 
       {/* 1X2 Probability Bar */}
       <div>
-        <p className="text-xs text-slate-400 mb-2">Senaryo Olasılıkları <span className="text-slate-400">— bahis tavsiyesi değildir</span></p>
+        <p className="text-xs text-slate-400 mb-2">Senaryo Olasılıkları</p>
         <div className="flex items-end justify-between mb-2">
           <div className="text-center">
             <div className={`text-lg font-bold tabular-nums ${leading === 'home' ? 'text-champagne' : 'text-white'}`}>{hp}%</div>
@@ -1311,7 +1311,7 @@ function WcPredictionPanel({
       </div>
 
       <p className="text-xs text-slate-400 leading-relaxed pt-1 border-t border-navy-800/40">
-        Bu tahminler istatistiksel modelden üretilmiştir. Kesin sonuç iddiası taşımaz. Bahis tavsiyesi değildir.
+        Bu çalışma, maç öncesi mevcut verilerle hazırlanmış yapay zekâ destekli istatistiksel senaryo analizidir. Kesin sonuç vaadi içermez.
       </p>
     </div>
   );

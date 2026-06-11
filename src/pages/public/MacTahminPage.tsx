@@ -307,7 +307,7 @@ export default function MacTahminPage() {
         </div>
 
         <p className="text-[11px] text-navy-600 text-center leading-relaxed max-w-2xl mx-auto">
-          Bu tahminler istatistiksel modeller tarafından üretilmektedir. Sonuçları garanti etmez ve bahis amaçlı kullanılamaz.
+          Bu çalışma, maç öncesi mevcut verilerle hazırlanmış yapay zekâ destekli istatistiksel senaryo analizidir. Kesin sonuç vaadi içermez.
           Olasılıklar maç koşullarına göre otomatik olarak güncellenir.
         </p>
 
