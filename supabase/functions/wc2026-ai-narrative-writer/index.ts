@@ -545,6 +545,115 @@ async function fetchVenuePsychology(
   return data ?? null;
 }
 
+// ── Manual Sofascore patch: confirmed lineup starters ─────────────────────────
+
+async function fetchManualLineupContext(
+  supabase: ReturnType<typeof createClient>,
+  fixtureStringId: string,
+): Promise<Record<string, unknown>> {
+  const { data } = await supabase
+    .from("wc_fixture_lineups_manual")
+    .select("team_code,shirt_number,player_name,position,is_starting")
+    .eq("fixture_id", fixtureStringId)
+    .eq("is_starting", true)
+    .order("team_code")
+    .order("shirt_number");
+
+  if (!data?.length) {
+    return { available: false, note: "No manual lineup data for this fixture." };
+  }
+
+  const byTeam: Record<string, { shirt: number; name: string; pos: string }[]> = {};
+  for (const row of data as { team_code: string; shirt_number: number; player_name: string; position: string }[]) {
+    if (!byTeam[row.team_code]) byTeam[row.team_code] = [];
+    byTeam[row.team_code].push({ shirt: row.shirt_number, name: row.player_name, pos: row.position });
+  }
+
+  return {
+    available: true,
+    confidence: "verified_sofascore_snapshot",
+    source: "manual_verified_from_sofascore_snapshot",
+    note: "Confirmed starting XI from pre-match Sofascore snapshot. Use player names naturally in narratives with probabilistic/analytical language. No exact goals/cards predictions.",
+    starters_by_team: byTeam,
+  };
+}
+
+// ── Manual Sofascore patch: referee profile ───────────────────────────────────
+
+async function fetchManualRefereeContext(
+  supabase: ReturnType<typeof createClient>,
+  fixtureStringId: string,
+): Promise<Record<string, unknown>> {
+  const { data } = await supabase
+    .from("wc_fixture_referees")
+    .select("wc_referee_profiles(name,country,sofascore_referee_id,matches,yellow_cards_per_match,direct_red_cards_per_match,total_red_card_effect_per_match,total_cards_per_match,card_tendency,red_card_scenario_risk,match_flow_interruption_risk)")
+    .eq("fixture_id", fixtureStringId)
+    .maybeSingle();
+
+  if (!data) {
+    return { available: false, note: "No referee data for this fixture." };
+  }
+
+  const rp = (data as { wc_referee_profiles: Record<string, unknown> }).wc_referee_profiles;
+  if (!rp) return { available: false, note: "Referee profile not linked." };
+
+  return {
+    available: true,
+    source: "manual_verified_from_sofascore_snapshot",
+    name: rp.name,
+    country: rp.country,
+    matches_officiated: rp.matches,
+    yellow_cards_per_match: rp.yellow_cards_per_match,
+    direct_red_cards_per_match: rp.direct_red_cards_per_match,
+    total_cards_per_match: rp.total_cards_per_match,
+    card_tendency: rp.card_tendency,
+    red_card_scenario_risk: rp.red_card_scenario_risk,
+    match_flow_interruption_risk: rp.match_flow_interruption_risk,
+    narrative_instruction: "Reference the referee's tendencies in neutral football-analytical language only. E.g. 'Sampaio'nın yüksek kart ortalaması maç akışını kesintiye uğratabilir.' No exact card predictions. No bookmaker/odds language.",
+  };
+}
+
+// ── Manual Sofascore patch: featured player quality profiles ──────────────────
+
+async function fetchFeaturedPlayerQualityContext(
+  supabase: ReturnType<typeof createClient>,
+  fixtureStringId: string,
+): Promise<Record<string, unknown>> {
+  const { data } = await supabase
+    .from("wc_fixture_player_quality_manual")
+    .select("team_code,player_name,last_match_rating,att,tec,tac,def,cre")
+    .eq("fixture_id", fixtureStringId);
+
+  if (!data?.length) {
+    return { available: false, note: "No featured player quality data for this fixture." };
+  }
+
+  return {
+    available: true,
+    source: "manual_verified_from_sofascore_snapshot",
+    note: "Sofascore attribute profiles for featured players. Use to characterise player style/role analytically. Do NOT quote raw scores in public narrative; translate into natural language (e.g. 'defensive solidity', 'creative influence').",
+    players: (data as { team_code: string; player_name: string; last_match_rating: string | number; att: number; tec: number; tac: number; def: number; cre: number }[]).map(p => ({
+      team: p.team_code,
+      name: p.player_name,
+      rating: parseFloat(String(p.last_match_rating)),
+      profile: {
+        att: p.att,
+        tec: p.tec,
+        tac: p.tac,
+        def: p.def,
+        cre: p.cre,
+        style_hint: p.def >= 70
+          ? "defensive_anchor"
+          : p.att >= 60
+          ? "attacking_threat"
+          : p.cre >= 50
+          ? "creative_hub"
+          : "balanced",
+      },
+    })),
+  };
+}
+
 // ── Gap 4: Injury / availability status summary ───────────────────────────────
 
 function buildInjuryStatus(pool: PlayerPoolEntry[]): {
@@ -704,6 +813,18 @@ async function callClaude(
 
   const finalInstruction = generationMode === "PRE_MATCH_FINAL"
     ? `Her periyot için mevcut metni (cur) geliştir.
+confirmed_lineup mevcutsa (confidence=verified_sofascore_snapshot):
+  - Kesinleşmiş 11'i kullan: oyuncu isimlerini doğal biçimde yedirme
+  - Mevki bilgisine göre taktiksel yapıyı yansıt (GK/DEF/MID/FWD)
+  - Pozisyona özgü dinamikler: Meksika 4-3-3 baskısı, G.Afrika orta saha geçişleri
+featured_player_quality mevcutsa:
+  - style_hint'i kullan (defensive_anchor, attacking_threat, creative_hub, balanced)
+  - Ham puanları narratife yansıtma; "savunma sağlamlığı", "yaratıcı etki" gibi ifadeler kullan
+  - Rating 7.5+ oyuncular için öne çıkma/belirleyici olma potansiyelini belirt
+referee_profile mevcutsa (confirmed_lineup ile birlikte kullan):
+  - card_tendency=elevated → "hakem müdahalelerinin maç ritmini etkileyebileceği" tarzı nötr dil
+  - match_flow_interruption_risk=elevated → akış kesintisi riskini periyot bazında yedirme
+  - YASAK: hakem kart sayısı/oranını rakam olarak verme, kırmızı/sarı kart tahmininde bulunma
 venue_context, player_pool, qualifier_player_stats, probable_xi, club_stats mevcutsa:
   - Kilit oyuncuları (özellikle SA için istatistiklerle desteklenen: Mokoena, Williams, Appollis vb.) doğal biçimde yedirme
   - Venue baskısını (2240m altitude, %87 ev sahibi kalabalık) narratife yansıt
@@ -968,15 +1089,21 @@ async function processFixture(
   let enrichedContext: Record<string, unknown> | undefined;
 
   if (generationMode === "PRE_MATCH_FINAL") {
+    // fixtureStringId derived from match_number (e.g. 1 → "wc2026-001")
+    const fixtureStringId = `wc2026-${String(fixture.match_number).padStart(3, "0")}`;
+
     // Team API IDs for Mexico (16) and South Africa (1531)
     // These are resolved from wc2026_player_pool which has api_football_team_id
     const HOME_API_ID = 16;   // Mexico
     const AWAY_API_ID = 1531; // South Africa
 
-    const [pools, venuePsych, oddsCtx] = await Promise.all([
+    const [pools, venuePsych, oddsCtx, manualLineup, manualReferee, featuredQuality] = await Promise.all([
       fetchPlayerPools(supabase, HOME_API_ID, AWAY_API_ID),
       fetchVenuePsychology(supabase, fixtureId),
       fetchLiveOdds(supabase, fixtureId),
+      fetchManualLineupContext(supabase, fixtureStringId),
+      fetchManualRefereeContext(supabase, fixtureStringId),
+      fetchFeaturedPlayerQualityContext(supabase, fixtureStringId),
     ]);
 
     const homePools = pools.home;
@@ -1127,6 +1254,10 @@ async function processFixture(
         } : null,
       },
       data_quality_flags: dataQualityFlags,
+      // Manual Sofascore patch data (verified snapshot)
+      confirmed_lineup: manualLineup,
+      referee_profile: manualReferee,
+      featured_player_quality: featuredQuality,
     };
   }
 
