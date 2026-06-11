@@ -72,8 +72,12 @@ const LOCATION_GROUPS = [
 const userTZ = getUserTimeZone();
 
 function groupByDate(fixtures: WC2026Fixture[]): Map<string, WC2026Fixture[]> {
+  const sorted = [...fixtures].sort((a, b) => {
+    const t = a.kickoff_utc.localeCompare(b.kickoff_utc);
+    return t !== 0 ? t : a.match_no - b.match_no;
+  });
   const map = new Map<string, WC2026Fixture[]>();
-  for (const f of fixtures) {
+  for (const f of sorted) {
     const key = getLocalMatchDateKey(f.kickoff_utc, userTZ);
     const arr = map.get(key);
     if (arr) arr.push(f);
@@ -233,7 +237,7 @@ export default function WorldCup2026Page() {
   }, [teamSearch, stageFilter, groupFilter, cityFilter]);
 
   const grouped = useMemo(() => groupByDate(filtered), [filtered]);
-  const dateKeys = useMemo(() => Array.from(grouped.keys()), [grouped]);
+  const dateKeys = useMemo(() => Array.from(grouped.keys()).sort(), [grouped]);
   const visibleKeys = dateKeys.slice(0, visibleDates);
   const hasMore = visibleDates < dateKeys.length;
 
