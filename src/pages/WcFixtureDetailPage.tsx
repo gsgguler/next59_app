@@ -442,78 +442,12 @@ function MomentumDot({ side }: { side: string | null }) {
 }
 
 
-const AF_LIVE_STATUSES = new Set(['1H', 'HT', '2H', 'ET', 'BT', 'P', 'SUSP', 'INT', 'LIVE']);
-const AF_TERMINAL_STATUSES = new Set(['FT', 'AET', 'PEN', 'AWD', 'WO']);
-
-interface LiveScenarioRow {
-  live_minute: number;
-  period_start: number;
-  period_end: number;
-  home_score: number | null;
-  away_score: number | null;
-  momentum_side: string | null;
-  goal_risk_home: number;
-  goal_risk_away: number;
-  card_risk: number;
-  corner_risk: number;
-  foul_intensity: number;
-  narrative_text: string | null;
-}
-
 function Wc5MinFlowPanel({ fixtureUuid, apiFootballFixtureId, isTBD }: { fixtureUuid: string | null; apiFootballFixtureId: number | null; isTBD: boolean }) {
   const [rows, setRows] = useState<FlowPeriodRow[]>([]);
-  const [liveRows, setLiveRows] = useState<LiveScenarioRow[]>([]);
-  const [liveStatus, setLiveStatus] = useState<string | null>(null);
-  const [liveElapsed, setLiveElapsed] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const [keyTriggers, setKeyTriggers] = useState<string[]>([]);
 
-  // Fetch live match state
-  useEffect(() => {
-    if (isTBD || !apiFootballFixtureId) return;
-    let cancelled = false;
-    const poll = async () => {
-      const { data } = await supabase
-        .from('wc2026_live_match_state')
-        .select('status_short,elapsed_minute')
-        .eq('api_football_fixture_id', apiFootballFixtureId)
-        .maybeSingle();
-      if (!cancelled && data) {
-        setLiveStatus(data.status_short ?? null);
-        setLiveElapsed(data.elapsed_minute ?? null);
-      }
-    };
-    poll();
-    // Re-poll every 60s while page is open
-    const interval = setInterval(poll, 60_000);
-    return () => { cancelled = true; clearInterval(interval); };
-  }, [apiFootballFixtureId, isTBD]);
-
-  const isLive = liveStatus !== null && AF_LIVE_STATUSES.has(liveStatus);
-  const isFinished = liveStatus !== null && AF_TERMINAL_STATUSES.has(liveStatus);
-
-  // Fetch live 5-min scenarios when match is in-play
-  useEffect(() => {
-    if (!isLive || !apiFootballFixtureId) return;
-    let cancelled = false;
-    const poll = async () => {
-      const { data } = await supabase
-        .from('wc2026_live_5min_scenarios')
-        .select('live_minute,period_start,period_end,home_score,away_score,momentum_side,goal_risk_home,goal_risk_away,card_risk,corner_risk,foul_intensity,narrative_text')
-        .eq('api_football_fixture_id', apiFootballFixtureId)
-        .eq('is_current', true)
-        .eq('is_public', true)
-        .order('live_minute', { ascending: false })
-        .limit(1);
-      if (!cancelled && data?.length) setLiveRows(data as LiveScenarioRow[]);
-    };
-    poll();
-    const interval = setInterval(poll, 60_000);
-    return () => { cancelled = true; clearInterval(interval); };
-  }, [isLive, apiFootballFixtureId]);
-
-  // Pre-match scenarios (used when not live)
   useEffect(() => {
     if (isTBD) { setLoading(false); return; }
     if (!fixtureUuid) { setLoading(false); return; }
@@ -548,17 +482,6 @@ function Wc5MinFlowPanel({ fixtureUuid, apiFootballFixtureId, isTBD }: { fixture
 
   const ver = rows[0]?.scenario_version ?? 1;
 
-  // ── Panel header label based on match state ────────────────────────────────
-  const panelLabel = isLive
-    ? 'Canlı Maç Akışı'
-    : isFinished
-    ? 'Maç Öncesi Senaryo'
-    : '5 Dakikalık Maç Senaryosu';
-
-  const panelBadge = isLive
-    ? <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-red-900/60 text-red-400 font-mono border border-red-800/40"><span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse inline-block" />CANLI {liveElapsed ? `${liveElapsed}'` : ''}</span>
-    : <span className="text-[10px] px-1.5 py-0.5 rounded bg-navy-700 text-navy-300 font-mono">v{ver}</span>;
-
   return (
     <div className="border border-navy-800/60 rounded-xl overflow-hidden">
       <button
@@ -567,104 +490,73 @@ function Wc5MinFlowPanel({ fixtureUuid, apiFootballFixtureId, isTBD }: { fixture
       >
         <div className="flex items-center gap-2.5">
           <Timer className="w-4 h-4 text-champagne shrink-0" />
-          <span className="text-sm font-bold text-white">{panelLabel}</span>
-          {panelBadge}
+          <span className="text-sm font-bold text-white">5 Dakikalık Maç Senaryosu</span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-navy-700 text-navy-300 font-mono">v{ver}</span>
         </div>
         <ChevronDown className={`w-4 h-4 text-navy-400 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
       </button>
 
       {expanded && (
         <div className="px-4 pb-4 pt-3 space-y-3 bg-navy-900/20">
+          <p className="text-[11px] text-navy-500 leading-relaxed">
+            Bu alan gerçek maç sonucu değildir. Next59 modeli; takım geçmişi, eleme performansı, oyuncu profilleri, venue psikolojisi ve kadro güncellemelerine göre 5 dakikalık akış projeksiyonu üretir.
+          </p>
 
-          {/* ── Live scenario display ── */}
-          {isLive ? (
-            <>
-              <p className="text-[11px] text-navy-500 leading-relaxed">
-                Canlı verilerden üretilen 5 dakikalık anlık analiz. Skor ve istatistikler API-Football üzerinden güncelleniyor.
-              </p>
-              {liveRows.length === 0 ? (
-                <p className="text-xs text-slate-400 py-2">Canlı maç akışı hazırlanıyor…</p>
-              ) : liveRows.map(row => {
-                const col = periodColor(row.period_start);
-                return (
-                  <div key={row.live_minute} className="flex flex-col gap-1 px-2.5 py-2 rounded-md bg-red-900/10 border border-red-900/30 hover:bg-red-900/15 transition-colors">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`shrink-0 text-[11px] font-bold font-mono w-12 ${col}`}>{row.live_minute}'</span>
-                      {row.home_score !== null && row.away_score !== null && (
-                        <span className="text-[11px] font-bold text-white font-mono bg-navy-800 px-1.5 py-0.5 rounded">{row.home_score}–{row.away_score}</span>
+          <div className="space-y-0.5">
+            {rows.length === 0 ? (
+              <p className="text-xs text-slate-400 py-2">5 dakikalık maç senaryosu hazırlanıyor.</p>
+            ) : rows.map(row => {
+              const col = periodColor(row.period_start);
+              const maxGoal = Math.max(row.goal_risk_home, row.goal_risk_away);
+              const maxCard = Math.max(row.yellow_card_risk_home, row.yellow_card_risk_away);
+              const maxCorner = Math.max(row.corner_risk_home, row.corner_risk_away);
+              const maxFoul = Math.max(row.foul_risk_home, row.foul_risk_away);
+              return (
+                <div key={row.period_start} className="flex flex-col gap-1 px-2.5 py-2 rounded-md bg-navy-800/25 border border-white/[0.04] hover:bg-navy-800/40 transition-colors">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`shrink-0 text-[11px] font-bold font-mono w-10 ${col}`}>{row.period_label}'</span>
+                    <MomentumDot side={row.expected_momentum_side} />
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {maxGoal > 0.04 && (
+                        <RiskBadge value={maxGoal} label="Gol riski" color="amber" />
                       )}
-                      <MomentumDot side={row.momentum_side ?? 'neutral'} />
-                      <div className="flex items-center gap-1 flex-wrap">
-                        {row.goal_risk_home > 0.04 && <RiskBadge value={row.goal_risk_home} label="Ev gol riski" color="amber" />}
-                        {row.goal_risk_away > 0.04 && <RiskBadge value={row.goal_risk_away} label="Dep gol riski" color="amber" />}
-                        {row.card_risk > 0.04 && <RiskBadge value={row.card_risk} label="Kart riski" color="red" />}
-                        {row.corner_risk > 0.04 && <RiskBadge value={row.corner_risk} label="Korner riski" color="sky" />}
-                        {row.foul_intensity > 0.08 && <RiskBadge value={row.foul_intensity} label="Faul yoğunluğu" color="orange" />}
-                      </div>
-                    </div>
-                    {row.narrative_text && (
-                      <p className="text-[11px] text-slate-400 leading-snug pl-14">{row.narrative_text}</p>
-                    )}
-                  </div>
-                );
-              })}
-            </>
-          ) : (
-            /* ── Pre-match / post-match scenario display ── */
-            <>
-              <p className="text-[11px] text-navy-500 leading-relaxed">
-                {isFinished
-                  ? 'Maç tamamlandı. Aşağıdaki senaryo maç öncesi modelden üretilmiştir.'
-                  : 'Bu alan gerçek maç sonucu değildir. Next59 modeli; takım geçmişi, eleme performansı, oyuncu profilleri, venue psikolojisi ve kadro güncellemelerine göre 5 dakikalık akış projeksiyonu üretir.'}
-              </p>
-              <div className="space-y-0.5">
-                {rows.length === 0 ? (
-                  <p className="text-xs text-slate-400 py-2">5 dakikalık maç senaryosu hazırlanıyor.</p>
-                ) : rows.map(row => {
-                  const col = periodColor(row.period_start);
-                  const maxGoal = Math.max(row.goal_risk_home, row.goal_risk_away);
-                  const maxCard = Math.max(row.yellow_card_risk_home, row.yellow_card_risk_away);
-                  const maxCorner = Math.max(row.corner_risk_home, row.corner_risk_away);
-                  const maxFoul = Math.max(row.foul_risk_home, row.foul_risk_away);
-                  return (
-                    <div key={row.period_start} className="flex flex-col gap-1 px-2.5 py-2 rounded-md bg-navy-800/25 border border-white/[0.04] hover:bg-navy-800/40 transition-colors">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`shrink-0 text-[11px] font-bold font-mono w-10 ${col}`}>{row.period_label}'</span>
-                        <MomentumDot side={row.expected_momentum_side} />
-                        <div className="flex items-center gap-1 flex-wrap">
-                          {maxGoal > 0.04 && <RiskBadge value={maxGoal} label="Gol riski" color="amber" />}
-                          {maxCard > 0.04 && <RiskBadge value={maxCard} label="Kart riski" color="red" />}
-                          {maxCorner > 0.04 && <RiskBadge value={maxCorner} label="Korner riski" color="sky" />}
-                          {maxFoul > 0.08 && <RiskBadge value={maxFoul} label="Faul yoğunluğu" color="orange" />}
-                        </div>
-                      </div>
-                      {row.narrative_text && (
-                        <p className="text-[11px] text-slate-400 leading-snug pl-12">{row.narrative_text}</p>
+                      {maxCard > 0.04 && (
+                        <RiskBadge value={maxCard} label="Kart riski" color="red" />
+                      )}
+                      {maxCorner > 0.04 && (
+                        <RiskBadge value={maxCorner} label="Korner riski" color="sky" />
+                      )}
+                      {maxFoul > 0.08 && (
+                        <RiskBadge value={maxFoul} label="Faul yoğunluğu" color="orange" />
                       )}
                     </div>
-                  );
-                })}
-              </div>
-              {keyTriggers.length > 0 && (
-                <div className="pt-1">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Kritik Tetikleyiciler</span>
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {keyTriggers.map((t, i) => (
-                      <span key={i} className="text-xs px-2.5 py-1 rounded-full bg-navy-800 border border-navy-700 text-slate-300">{t}</span>
-                    ))}
-                  </div>
+                  {row.narrative_text && (
+                    <p className="text-[11px] text-slate-400 leading-snug pl-12">{row.narrative_text}</p>
+                  )}
                 </div>
-              )}
-            </>
+              );
+            })}
+          </div>
+
+          {keyTriggers.length > 0 && (
+            <div className="pt-1">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Kritik Tetikleyiciler</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {keyTriggers.map((t, i) => (
+                  <span key={i} className="text-xs px-2.5 py-1 rounded-full bg-navy-800 border border-navy-700 text-slate-300">{t}</span>
+                ))}
+              </div>
+            </div>
           )}
 
           <div className="flex items-start gap-2 pt-1 border-t border-navy-800/40">
             <AlertTriangle className="w-3.5 h-3.5 text-navy-500 shrink-0 mt-0.5" />
             <p className="text-xs text-navy-500 leading-relaxed">
-              Bu çalışma istatistiksel senaryo analizidir. Kesin sonuç vaadi içermez.
+              Bu çalışma, maç öncesi mevcut verilerle hazırlanmış yapay zekâ destekli istatistiksel senaryo analizidir. Kesin sonuç vaadi içermez.
             </p>
           </div>
 

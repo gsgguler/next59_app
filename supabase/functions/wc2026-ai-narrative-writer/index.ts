@@ -972,7 +972,7 @@ async function processFixture(
 ): Promise<Record<string, unknown>> {
   const { data: fixture } = await supabase
     .from("wc2026_fixtures")
-    .select("id, home_team_name, away_team_name, venue_name_raw, match_number, home_api_team_id, away_api_team_id")
+    .select("id, home_team_name, away_team_name, venue_name_raw, match_number, home_team_id, away_team_id")
     .eq("id", fixtureId)
     .single();
 
