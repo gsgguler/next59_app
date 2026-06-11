@@ -503,7 +503,9 @@ function Wc5MinFlowPanel({ fixtureUuid, apiFootballFixtureId, isTBD }: { fixture
           </p>
 
           <div className="space-y-0.5">
-            {rows.map(row => {
+            {rows.length === 0 ? (
+              <p className="text-xs text-slate-400 py-2">5 dakikalık maç senaryosu hazırlanıyor.</p>
+            ) : rows.map(row => {
               const col = periodColor(row.period_start);
               const maxGoal = Math.max(row.goal_risk_home, row.goal_risk_away);
               const maxCard = Math.max(row.yellow_card_risk_home, row.yellow_card_risk_away);
@@ -564,6 +566,21 @@ function Wc5MinFlowPanel({ fixtureUuid, apiFootballFixtureId, isTBD }: { fixture
   );
 }
 
+function safeNum(v: number | null | undefined): number | null {
+  if (v == null || isNaN(Number(v))) return null;
+  return Number(v);
+}
+
+function fmtStat(v: number | null | undefined, decimals = 1): string {
+  const n = safeNum(v);
+  return n != null ? n.toFixed(decimals) : '—';
+}
+
+function fmtPct(v: number | null | undefined): string {
+  const n = safeNum(v);
+  return n != null ? n.toFixed(0) + '%' : '—';
+}
+
 function WcProjectedStatsCard({ fixtureUuid, isTBD }: { fixtureUuid: string | null; isTBD: boolean }) {
   const [stats, setStats] = useState<ProjectedStatsRow | null>(null);
   const [loading, setLoading] = useState(true);
@@ -586,21 +603,24 @@ function WcProjectedStatsCard({ fixtureUuid, isTBD }: { fixtureUuid: string | nu
       .finally(() => setLoading(false));
   }, [fixtureUuid, isTBD]);
 
-  if (isTBD || loading || !stats) return null;
+  if (isTBD) return null;
 
-  const statRows: { label: string; h: number; a: number; fmt: (v: number) => string }[] = [
-    { label: 'Toplam Şut', h: stats.home_total_shots, a: stats.away_total_shots, fmt: v => v.toFixed(1) },
-    { label: 'İsabetli Şut', h: stats.home_shots_on_target, a: stats.away_shots_on_target, fmt: v => v.toFixed(1) },
-    { label: 'Top Hakimiyeti', h: stats.home_possession_pct, a: stats.away_possession_pct, fmt: v => v.toFixed(0) + '%' },
-    { label: 'Korner', h: stats.home_corners, a: stats.away_corners, fmt: v => v.toFixed(1) },
-    { label: 'Faul', h: stats.home_fouls, a: stats.away_fouls, fmt: v => v.toFixed(1) },
-    { label: 'Sarı Kart', h: stats.home_yellow_cards, a: stats.away_yellow_cards, fmt: v => v.toFixed(2) },
-    { label: 'Kırmızı Kart', h: stats.home_red_cards, a: stats.away_red_cards, fmt: v => v.toFixed(2) },
-    { label: 'Ofsayt', h: stats.home_offsides ?? 0, a: stats.away_offsides ?? 0, fmt: v => v.toFixed(1) },
-    ...(stats.home_xg != null && stats.away_xg != null
-      ? [{ label: 'xG', h: stats.home_xg, a: stats.away_xg, fmt: (v: number) => v.toFixed(2) }]
+  const hasStats = !loading && stats != null;
+
+  interface StatRowDef { label: string; h: number | null; a: number | null; fmt: (v: number | null) => string }
+  const statRows: StatRowDef[] = hasStats && stats ? [
+    { label: 'Toplam Şut', h: safeNum(stats.home_total_shots), a: safeNum(stats.away_total_shots), fmt: v => fmtStat(v, 1) },
+    { label: 'İsabetli Şut', h: safeNum(stats.home_shots_on_target), a: safeNum(stats.away_shots_on_target), fmt: v => fmtStat(v, 1) },
+    { label: 'Top Hakimiyeti', h: safeNum(stats.home_possession_pct), a: safeNum(stats.away_possession_pct), fmt: v => fmtPct(v) },
+    { label: 'Korner', h: safeNum(stats.home_corners), a: safeNum(stats.away_corners), fmt: v => fmtStat(v, 1) },
+    { label: 'Faul', h: safeNum(stats.home_fouls), a: safeNum(stats.away_fouls), fmt: v => fmtStat(v, 1) },
+    { label: 'Sarı Kart', h: safeNum(stats.home_yellow_cards), a: safeNum(stats.away_yellow_cards), fmt: v => fmtStat(v, 2) },
+    { label: 'Kırmızı Kart', h: safeNum(stats.home_red_cards), a: safeNum(stats.away_red_cards), fmt: v => fmtStat(v, 2) },
+    { label: 'Ofsayt', h: safeNum(stats.home_offsides), a: safeNum(stats.away_offsides), fmt: v => fmtStat(v, 1) },
+    ...(safeNum(stats.home_xg) != null || safeNum(stats.away_xg) != null
+      ? [{ label: 'xG', h: safeNum(stats.home_xg), a: safeNum(stats.away_xg), fmt: (v: number | null) => fmtStat(v, 2) }]
       : []),
-  ];
+  ] : [];
 
   return (
     <div className="border border-navy-800/60 rounded-xl overflow-hidden">
@@ -620,47 +640,61 @@ function WcProjectedStatsCard({ fixtureUuid, isTBD }: { fixtureUuid: string | nu
 
       {expanded && (
         <div className="px-4 pb-4 pt-3 space-y-3 bg-navy-900/20">
-          {/* Projected score */}
-          <div className="flex items-center justify-center gap-4 py-2.5 bg-navy-800/40 rounded-lg">
-            <span className="text-xs font-semibold text-slate-300 truncate max-w-[80px]">{stats.home_team_name}</span>
-            <span className="text-xl font-black font-mono text-champagne tabular-nums">
-              {stats.home_goals_projection.toFixed(1)} – {stats.away_goals_projection.toFixed(1)}
-            </span>
-            <span className="text-xs font-semibold text-slate-300 truncate max-w-[80px]">{stats.away_team_name}</span>
-          </div>
+          {loading ? (
+            <div className="space-y-2">
+              {[0,1,2].map(i => <div key={i} className="h-4 bg-navy-800/30 rounded animate-pulse"/>)}
+            </div>
+          ) : !hasStats ? (
+            <p className="text-xs text-slate-400 py-2">İstatistik projeksiyonu hazırlanıyor.</p>
+          ) : stats && (
+            <>
+              {/* Projected score */}
+              <div className="flex items-center justify-center gap-4 py-2.5 bg-navy-800/40 rounded-lg">
+                <span className="text-xs font-semibold text-slate-300 truncate max-w-[80px]">{stats.home_team_name}</span>
+                <span className="text-xl font-black font-mono text-champagne tabular-nums">
+                  {fmtStat(safeNum(stats.home_goals_projection), 1)} – {fmtStat(safeNum(stats.away_goals_projection), 1)}
+                </span>
+                <span className="text-xs font-semibold text-slate-300 truncate max-w-[80px]">{stats.away_team_name}</span>
+              </div>
 
-          {/* Confidence */}
-          <div className="flex items-center justify-center">
-            <span className="text-[11px] text-slate-500">Model güven skoru: </span>
-            <span className="text-[11px] font-semibold text-sky-400 ml-1">{Math.round(stats.confidence * 100)}%</span>
-          </div>
-
-          {/* Stat comparison rows */}
-          <div className="space-y-2 pt-1">
-            {statRows.map(({ label, h, a, fmt }) => {
-              const total = h + a;
-              const hPct = total > 0 ? Math.round((h / total) * 100) : 50;
-              const aPct = 100 - hPct;
-              return (
-                <div key={label}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-mono text-champagne tabular-nums">{fmt(h)}</span>
-                    <span className="text-[11px] text-slate-400 uppercase tracking-wider">{label}</span>
-                    <span className="text-xs font-mono text-sky-300 tabular-nums">{fmt(a)}</span>
-                  </div>
-                  <div className="h-1.5 bg-navy-800 rounded-full overflow-hidden flex gap-px">
-                    <div className="bg-champagne/70 rounded-l-full transition-all" style={{ width: `${hPct}%` }} />
-                    <div className="bg-sky-400/70 rounded-r-full transition-all" style={{ width: `${aPct}%` }} />
-                  </div>
+              {/* Confidence */}
+              {safeNum(stats.confidence) != null && (
+                <div className="flex items-center justify-center">
+                  <span className="text-[11px] text-slate-500">Model güven skoru: </span>
+                  <span className="text-[11px] font-semibold text-sky-400 ml-1">{Math.round(safeNum(stats.confidence)! * 100)}%</span>
                 </div>
-              );
-            })}
-          </div>
+              )}
+
+              {/* Stat comparison rows */}
+              <div className="space-y-2 pt-1">
+                {statRows.map(({ label, h, a, fmt }) => {
+                  const hn = safeNum(h) ?? 0;
+                  const an = safeNum(a) ?? 0;
+                  const total = hn + an;
+                  const hPct = total > 0 ? Math.round((hn / total) * 100) : 50;
+                  const aPct = 100 - hPct;
+                  return (
+                    <div key={label}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-mono text-champagne tabular-nums">{fmt(h)}</span>
+                        <span className="text-[11px] text-slate-400 uppercase tracking-wider">{label}</span>
+                        <span className="text-xs font-mono text-sky-300 tabular-nums">{fmt(a)}</span>
+                      </div>
+                      <div className="h-1.5 bg-navy-800 rounded-full overflow-hidden flex gap-px">
+                        <div className="bg-champagne/70 rounded-l-full transition-all" style={{ width: `${hPct}%` }} />
+                        <div className="bg-sky-400/70 rounded-r-full transition-all" style={{ width: `${aPct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
 
           <div className="flex items-start gap-2 pt-1 border-t border-navy-800/40">
             <Activity className="w-3.5 h-3.5 text-navy-500 shrink-0 mt-0.5" />
             <p className="text-xs text-navy-500 leading-relaxed">
-              Eleme istatistiklerine dayalı maç projeksiyonu. Gerçek maç sonucunu yansıtmaz. Bahis tavsiyesi değildir.
+              Bu projeksiyon istatistiksel modele dayalıdır; bahis tavsiyesi değildir.
             </p>
           </div>
         </div>
