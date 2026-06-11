@@ -1,4 +1,7 @@
 {
+  "redirects": [
+    { "source": "/", "destination": "/world-cup-2026", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]

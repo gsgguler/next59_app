@@ -114,7 +114,7 @@ export default function App() {
             <Routes>
               {/* ── Public Layout ── */}
               <Route element={<PublicLayout />}>
-                <Route path="/" element={<HomePage />} />
+                <Route path="/" element={<Navigate to="/world-cup-2026" replace />} />
                 <Route path="/mac/:matchId" element={<MatchDetailPage />} />
                 <Route path="/mac/:matchId/tahmin" element={<MacTahminPage />} />
                 <Route path="/tahminler" element={<PublicPredictionsPage />} />
