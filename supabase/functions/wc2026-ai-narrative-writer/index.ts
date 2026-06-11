@@ -100,6 +100,33 @@ interface OddsContext {
   note: string;
 }
 
+interface InternalMarketContext {
+  available: boolean;
+  visibility: "internal_only";
+  source_type: string;
+  not_public: true;
+  not_automated_feed: true;
+  not_betting_advice: true;
+  primary_provider: string;
+  market: string;
+  home_no_vig_pct: number;
+  draw_no_vig_pct: number;
+  away_no_vig_pct: number;
+  captured_at: string | null;
+  divergence: {
+    model_home_pct: number;
+    model_draw_pct: number;
+    model_away_pct: number;
+    market_home_pct: number;
+    draw_delta_pp: number;
+    away_delta_pp: number;
+    home_delta_pp: number;
+    total_divergence_pp: number;
+    severity: string;
+  } | null;
+  prompt_guardrail: string;
+}
+
 // ── Authorization ─────────────────────────────────────────────────────────────
 
 function isAuthorized(req: Request): boolean {
@@ -155,6 +182,93 @@ async function fetchLiveOdds(
     away_pct: 26,
     snapshot_time: null,
     note: "No live bookmaker odds in DB for this WC2026 fixture. Manual test priors used — NOT real market odds. Confidence LOW.",
+  };
+}
+
+// ── Internal market snapshot (service role only — never public) ───────────────
+
+async function fetchInternalMarketSnapshot(
+  supabase: ReturnType<typeof createClient>,
+  fixtureId: string,
+): Promise<InternalMarketContext> {
+  const unavailable: InternalMarketContext = {
+    available: false,
+    visibility: "internal_only",
+    source_type: "none",
+    not_public: true,
+    not_automated_feed: true,
+    not_betting_advice: true,
+    primary_provider: "none",
+    market: "1X2",
+    home_no_vig_pct: 0,
+    draw_no_vig_pct: 0,
+    away_no_vig_pct: 0,
+    captured_at: null,
+    divergence: null,
+    prompt_guardrail:
+      "No internal market snapshot available. Do not reference odds or bookmakers in any narrative.",
+  };
+
+  const { data: snap } = await supabase
+    .from("wc2026_market_odds_snapshots")
+    .select(
+      "id,bookmaker,implied_home_no_vig,implied_draw_no_vig,implied_away_no_vig,source_type,captured_at,internal_only",
+    )
+    .eq("fixture_id", fixtureId)
+    .eq("internal_only", true)
+    .order("captured_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!snap) return unavailable;
+
+  const homeNoVig = parseFloat(snap.implied_home_no_vig ?? "0") * 100;
+  const drawNoVig = parseFloat(snap.implied_draw_no_vig ?? "0") * 100;
+  const awayNoVig = parseFloat(snap.implied_away_no_vig ?? "0") * 100;
+
+  const { data: div } = await supabase
+    .from("wc2026_model_market_divergence")
+    .select(
+      "model_home_pct,model_draw_pct,model_away_pct,market_home_pct,home_delta,draw_delta,away_delta,total_divergence,severity,internal_only,public_visible",
+    )
+    .eq("fixture_id", fixtureId)
+    .eq("internal_only", true)
+    .eq("public_visible", false)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return {
+    available: true,
+    visibility: "internal_only",
+    source_type: snap.source_type ?? "manual_web_snapshot",
+    not_public: true,
+    not_automated_feed: true,
+    not_betting_advice: true,
+    primary_provider: snap.bookmaker ?? "unknown",
+    market: "1X2",
+    home_no_vig_pct: parseFloat(homeNoVig.toFixed(4)),
+    draw_no_vig_pct: parseFloat(drawNoVig.toFixed(4)),
+    away_no_vig_pct: parseFloat(awayNoVig.toFixed(4)),
+    captured_at: snap.captured_at ?? null,
+    divergence: div
+      ? {
+          model_home_pct: parseFloat(div.model_home_pct ?? "0"),
+          model_draw_pct: parseFloat(div.model_draw_pct ?? "0"),
+          model_away_pct: parseFloat(div.model_away_pct ?? "0"),
+          market_home_pct: parseFloat(homeNoVig.toFixed(4)),
+          home_delta_pp: parseFloat(div.home_delta ?? "0"),
+          draw_delta_pp: parseFloat(div.draw_delta ?? "0"),
+          away_delta_pp: parseFloat(div.away_delta ?? "0"),
+          total_divergence_pp: parseFloat(div.total_divergence ?? "0"),
+          severity: div.severity ?? "unknown",
+        }
+      : null,
+    prompt_guardrail:
+      "INTERNAL SANITY SIGNAL ONLY. Never mention odds, bookmakers, or market prices in any public-facing narrative. " +
+      "Never use language like 'piyasa gösteriyor', 'oran', 'bahis', or any bookmaker reference. " +
+      "Use only football-analytical framing: model confidence, scenario probability, form signals. " +
+      "Bu içerik bahis tavsiyesi değildir.",
   };
 }
 
@@ -480,6 +594,25 @@ Bu üç takım için mevcut istatistikler resmi elemelerden değil, Nations Leag
 - ORANLAR: odds_source=manual_test_prior ise gerçek bahis oranları YOK — sadece model önceliklerine göre analiz yap
 `;
 
+const MARKET_GUARDRAIL_RULE = `
+KESİN YASAK — PAZAR/ORAN DİLİ:
+Üretilen hiçbir metinde aşağıdaki ifadeler KULLANILMAZ:
+- Bahisçi adları (bet365, William Hill, Betway vb.)
+- Oran, oran değerleri, implied probability, handicap
+- "Piyasa gösteriyor", "bahis piyasası", "oran açıkladı", "favori"
+- "Bahis", "iddia", "kupon", "oranlar düşük/yüksek"
+- İngilizce: odds, bookmaker, market price, betting line, spread
+
+İzin verilen çerçeveleme:
+- "Model güveni sınırlı", "senaryo olasılığı", "beklenen momentum"
+- "Form analizi", "istatistiksel projeksiyon", "veri sinyali"
+- Belirsizlik: "Bu analizde kesinlik düşük", "veri eksikliği var"
+- "Bu içerik bahis tavsiyesi değildir"
+
+market_context alanı sadece ICINSEL bir kalibrasyon sinyalidir.
+Hiçbir zaman public narrative'e yansıtılmaz.
+`;
+
 const SYSTEM_PROMPT = `Sen futbol analistlerine özel bir maç yorumlama asistanısın.
 Türkçe yazıyorsun. Görevin: verilen 18 adet 5 dakikalık periyot için özgün, analitik ve akıcı
 senaryo metinleri üretmek. Her metin:
@@ -491,7 +624,8 @@ senaryo metinleri üretmek. Her metin:
 Döndüreceğin format tam olarak:
 [{"p":0,"t":"..."},{"p":5,"t":"..."},...]
 
-${HOST_NATION_RULE}`;
+${HOST_NATION_RULE}
+${MARKET_GUARDRAIL_RULE}`;
 
 async function callClaude(
   anthropicKey: string,
@@ -951,6 +1085,9 @@ async function processFixture(
 
   const sanity = runInternalSanityCheck(periods as PeriodRow[]);
 
+  // Fetch internal market snapshot (service role — never exposed publicly)
+  const internalMarketCtx = await fetchInternalMarketSnapshot(supabase, fixtureId);
+
   const { error: divErr } = await supabase
     .from("wc2026_model_market_divergence")
     .upsert({
@@ -998,6 +1135,7 @@ async function processFixture(
         lineup_confidence: lineupConfidence,
         ...(lineupContext ? { lineup_snapshot: lineupContext } : {}),
         ...(enrichedContext ? { enriched_context: enrichedContext } : {}),
+        market_context: internalMarketCtx,
       },
     })
     .select("id")
