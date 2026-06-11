@@ -974,6 +974,250 @@ function EnrichedQualifierPanel({ stats, side }: {
   );
 }
 
+// ── Lineup + Referee Panel ────────────────────────────────────────────────────
+
+interface LineupRow {
+  team_code: string;
+  shirt_number: number;
+  player_name: string;
+  position: string;
+  is_starting: boolean;
+}
+
+interface PlayerQualityRow {
+  team_code: string;
+  player_name: string;
+  last_match_rating: number;
+  att: number;
+  tec: number;
+  tac: number;
+  def: number;
+  cre: number;
+}
+
+interface RefereeProfileRow {
+  name: string;
+  country: string | null;
+  sofascore_referee_id: number | null;
+  matches: number | null;
+  yellow_cards: number | null;
+  direct_red_cards: number | null;
+  second_yellow_red_cards: number | null;
+  yellow_cards_per_match: number | null;
+  direct_red_cards_per_match: number | null;
+  total_red_card_effect_per_match: number | null;
+  total_cards: number | null;
+  total_cards_per_match: number | null;
+  card_tendency: string | null;
+  red_card_scenario_risk: string | null;
+  match_flow_interruption_risk: string | null;
+}
+
+const POSITION_ORDER: Record<string, number> = { GK: 0, DEF: 1, MID: 2, FWD: 3 };
+const POSITION_TR: Record<string, string> = { GK: 'KAL', DEF: 'DEF', MID: 'ORT', FWD: 'HUC' };
+
+function tendencyColor(val: string | null) {
+  if (!val) return 'text-slate-400';
+  const v = val.toLowerCase();
+  if (v === 'high' || v === 'elevated') return 'text-red-400';
+  if (v === 'medium' || v === 'medium_high') return 'text-amber-400';
+  return 'text-emerald-400';
+}
+
+function tendencyLabel(val: string | null) {
+  if (!val) return '—';
+  const v = val.toLowerCase();
+  if (v === 'elevated' || v === 'high') return 'Yüksek';
+  if (v === 'medium_high' || v === 'medium') return 'Orta-Yüksek';
+  if (v === 'low') return 'Düşük';
+  return val;
+}
+
+function WcLineupAndRefereePanel({
+  fixtureStringId,
+  homeTeamCode,
+  awayTeamCode,
+}: {
+  fixtureStringId: string;
+  homeTeamCode: string;
+  awayTeamCode: string;
+}) {
+  const [lineups, setLineups] = useState<LineupRow[]>([]);
+  const [qualities, setQualities] = useState<PlayerQualityRow[]>([]);
+  const [referee, setReferee] = useState<RefereeProfileRow | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!fixtureStringId || homeTeamCode === 'TBD' || awayTeamCode === 'TBD') {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    async function load() {
+      const [luRes, pqRes, rfRes] = await Promise.all([
+        supabase
+          .from('wc_fixture_lineups_manual')
+          .select('team_code,shirt_number,player_name,position,is_starting')
+          .eq('fixture_id', fixtureStringId)
+          .eq('is_starting', true)
+          .order('team_code')
+          .order('shirt_number'),
+        supabase
+          .from('wc_fixture_player_quality_manual')
+          .select('team_code,player_name,last_match_rating,att,tec,tac,def,cre')
+          .eq('fixture_id', fixtureStringId),
+        supabase
+          .from('wc_fixture_referees')
+          .select('wc_referee_profiles(name,country,sofascore_referee_id,matches,yellow_cards,direct_red_cards,second_yellow_red_cards,yellow_cards_per_match,direct_red_cards_per_match,total_red_card_effect_per_match,total_cards,total_cards_per_match,card_tendency,red_card_scenario_risk,match_flow_interruption_risk)')
+          .eq('fixture_id', fixtureStringId)
+          .maybeSingle(),
+      ]);
+      if (cancelled) return;
+      setLineups((luRes.data ?? []) as LineupRow[]);
+      setQualities((pqRes.data ?? []) as PlayerQualityRow[]);
+      const rfData = rfRes.data as { wc_referee_profiles: RefereeProfileRow } | null;
+      setReferee(rfData?.wc_referee_profiles ?? null);
+      setLoading(false);
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [fixtureStringId, homeTeamCode, awayTeamCode]);
+
+  if (loading) return null;
+  if (lineups.length === 0 && !referee) return null;
+
+  const homeStarters = lineups
+    .filter(p => p.team_code === homeTeamCode)
+    .sort((a, b) => (POSITION_ORDER[a.position] ?? 9) - (POSITION_ORDER[b.position] ?? 9));
+  const awayStarters = lineups
+    .filter(p => p.team_code === awayTeamCode)
+    .sort((a, b) => (POSITION_ORDER[a.position] ?? 9) - (POSITION_ORDER[b.position] ?? 9));
+
+  return (
+    <div className="space-y-4 mb-6">
+      {/* Lineups */}
+      {(homeStarters.length > 0 || awayStarters.length > 0) && (
+        <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Users className="w-4 h-4 text-champagne"/>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">İlk 11 — Sofascore</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {[{ code: homeTeamCode, starters: homeStarters, side: 'Ev Sahibi' }, { code: awayTeamCode, starters: awayStarters, side: 'Deplasman' }].map(({ code, starters, side }) => (
+              <div key={code}>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-navy-400 mb-2">{side} · {code}</p>
+                <div className="space-y-1">
+                  {starters.map(p => (
+                    <div key={`${p.shirt_number}-${p.player_name}`} className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-mono text-navy-400 w-4 shrink-0 text-right">{p.shirt_number}</span>
+                      <span className="text-[10px] font-bold text-navy-500 w-6 shrink-0">{POSITION_TR[p.position] ?? p.position}</span>
+                      <span className="text-xs text-slate-200 truncate">{p.player_name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Featured player quality */}
+      {qualities.length > 0 && (
+        <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Zap className="w-4 h-4 text-champagne"/>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">Öne Çıkan Oyuncular</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {qualities.map(q => (
+              <div key={`${q.team_code}-${q.player_name}`} className="bg-navy-800/40 rounded-lg p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-white truncate">{q.player_name}</span>
+                  <span className="text-xs font-mono font-bold text-champagne ml-1 shrink-0">{q.last_match_rating.toFixed(1)}</span>
+                </div>
+                <p className="text-[10px] text-navy-400 mb-2">{q.team_code}</p>
+                <div className="grid grid-cols-3 gap-1">
+                  {([['ATT', q.att], ['TEC', q.tec], ['TAC', q.tac], ['DEF', q.def], ['CRE', q.cre]] as [string, number][]).map(([label, val]) => (
+                    <div key={label} className="text-center">
+                      <div className="text-[10px] text-navy-500">{label}</div>
+                      <div className="text-xs font-bold text-slate-200">{val}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Referee profile */}
+      {referee && (
+        <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-4">
+            <AlertTriangle className="w-4 h-4 text-amber-400"/>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">Hakem Profili</h3>
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold text-white">{referee.name}</p>
+                {referee.country && <p className="text-xs text-navy-400">{referee.country}</p>}
+              </div>
+              {referee.matches != null && (
+                <span className="text-xs bg-navy-800 px-2 py-1 rounded-lg font-mono text-slate-300">
+                  {referee.matches} maç
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              {referee.yellow_cards_per_match != null && (
+                <div className="bg-navy-800/50 rounded-lg p-2">
+                  <div className="text-xs text-amber-400 font-bold">{referee.yellow_cards_per_match.toFixed(2)}</div>
+                  <div className="text-[10px] text-navy-400 mt-0.5">Sarı/Maç</div>
+                </div>
+              )}
+              {referee.direct_red_cards_per_match != null && (
+                <div className="bg-navy-800/50 rounded-lg p-2">
+                  <div className="text-xs text-red-400 font-bold">{referee.direct_red_cards_per_match.toFixed(2)}</div>
+                  <div className="text-[10px] text-navy-400 mt-0.5">Kırmızı/Maç</div>
+                </div>
+              )}
+              {referee.total_cards_per_match != null && (
+                <div className="bg-navy-800/50 rounded-lg p-2">
+                  <div className="text-xs text-slate-200 font-bold">{referee.total_cards_per_match.toFixed(2)}</div>
+                  <div className="text-[10px] text-navy-400 mt-0.5">Top. Kart/Maç</div>
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center text-xs">
+              <div>
+                <div className="text-[10px] text-navy-500 mb-0.5">Kart Eğilimi</div>
+                <div className={`font-semibold ${tendencyColor(referee.card_tendency)}`}>
+                  {tendencyLabel(referee.card_tendency)}
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] text-navy-500 mb-0.5">Kırmızı Kart Riski</div>
+                <div className={`font-semibold ${tendencyColor(referee.red_card_scenario_risk)}`}>
+                  {tendencyLabel(referee.red_card_scenario_risk)}
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] text-navy-500 mb-0.5">Akış Kesintisi</div>
+                <div className={`font-semibold ${tendencyColor(referee.match_flow_interruption_risk)}`}>
+                  {tendencyLabel(referee.match_flow_interruption_risk)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 function WcPredictionPanel({
   fixtureUuid,
   apiFootballFixtureId,
@@ -1367,6 +1611,7 @@ export default function WcFixtureDetailPage() {
   const awayCountry = COUNTRY_BY_FIFA[fixture.away_team_code];
   const venue = VENUE_META[fixture.venue];
   const isTBD = fixture.home_team_code === 'TBD' || fixture.away_team_code === 'TBD';
+  const fixtureStringId = `wc2026-${String(fixture.match_no).padStart(3, '0')}`;
   const isGroupStage = fixture.stage === 'Group Stage';
   const stageLabel = STAGE_LABELS_TR[fixture.stage];
   const groupLabel = fixture.group ? `Grup ${fixture.group}` : null;
@@ -1558,19 +1803,12 @@ export default function WcFixtureDetailPage() {
           </div>
         </div>
 
-        {/* Kadro notice */}
-        <div className="bg-navy-900/40 border border-navy-800/60 rounded-xl p-4 mb-6">
-          <div className="flex items-center gap-2.5">
-            <HelpCircle className="w-4 h-4 text-navy-400 shrink-0"/>
-            <div>
-              <p className="text-sm font-semibold text-navy-300">Kadrolar Henüz Açıklanmadı</p>
-              <p className="text-xs text-navy-400 mt-0.5">
-                Resmi maç kadroları turnuva başlamadan önce FIFA tarafından açıklanacak.
-                Teknik direktör bilgileri ve kesin kadro aşağıda görünecek.
-              </p>
-            </div>
-          </div>
-        </div>
+        {/* Lineup + Referee panel (manual Sofascore data) */}
+        <WcLineupAndRefereePanel
+          fixtureStringId={fixtureStringId}
+          homeTeamCode={fixture.home_team_code}
+          awayTeamCode={fixture.away_team_code}
+        />
 
         {/* Prediction panel */}
         <WcPredictionPanel
