@@ -14,6 +14,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
+const WC2026_LEAGUE_ID = 1; // API-Football league ID for FIFA World Cup 2026
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface LiveFixtureResponse {
@@ -51,16 +53,58 @@ Deno.serve(async (req: Request) => {
   try {
     const supabase = getSupabase();
 
+    // ── DB-first live-window guard ────────────────────────────────────────────
+    // Before spending any API quota, check whether any WC2026 fixture is
+    // plausibly in-flight: match_date within [now-3h, now+4h] and not closed.
+    const windowStart = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+    const windowEnd   = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
+
+    const { count: fixturesInWindow } = await supabase
+      .from("wc2026_fixtures")
+      .select("id", { count: "exact", head: true })
+      .not("api_football_fixture_id", "is", null)
+      .eq("is_closed", false)
+      .gte("match_date", windowStart)
+      .lte("match_date", windowEnd);
+
+    if (!fixturesInWindow || fixturesInWindow === 0) {
+      await finishSyncRun(runId, "skipped", {
+        meta: { reason: "no_wc2026_fixture_in_live_window", dryRun },
+      });
+      return new Response(
+        JSON.stringify({ ok: true, skipped: true, reason: "no_wc2026_fixture_in_live_window", dryRun }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     // Load WC2026 fixture IDs for scope filtering
     const wc2026Ids = await loadWc2026FixtureIds();
 
-    // Fetch all currently live fixtures from API-Football
-    const result = await apiFootballGet<LiveFixtureResponse>(
-      "fixtures",
-      { live: "all" },
-      { jobName: "wc2026-live-discovery", isWc2026Scope: false },
-    );
-    apiCalls++;
+    // ── Try league-scoped live call first, fall back to live=all ─────────────
+    let result: Awaited<ReturnType<typeof apiFootballGet<LiveFixtureResponse>>> | null = null;
+    let usedFallback = false;
+
+    try {
+      result = await apiFootballGet<LiveFixtureResponse>(
+        "fixtures",
+        { live: String(WC2026_LEAGUE_ID) },
+        { jobName: "wc2026-live-discovery", isWc2026Scope: true },
+      );
+      apiCalls++;
+    } catch (_leagueErr) {
+      // Fall back to live=all if league-scoped call fails
+      console.warn("[live-discovery] league-scoped live call failed, falling back to live=all");
+      usedFallback = true;
+    }
+
+    if (!result || usedFallback) {
+      result = await apiFootballGet<LiveFixtureResponse>(
+        "fixtures",
+        { live: "all" },
+        { jobName: "wc2026-live-discovery", isWc2026Scope: false },
+      );
+      apiCalls++;
+    }
 
     const now = new Date().toISOString();
     const liveWcFixtures: number[] = [];
@@ -68,7 +112,7 @@ Deno.serve(async (req: Request) => {
     for (const item of result.data) {
       const afId = item.fixture.id;
 
-      // Only process WC2026 fixtures
+      // Only process WC2026 fixtures — never write non-WC fixtures to DB
       if (!wc2026Ids.has(afId)) continue;
 
       const scopeCheck = await assertWc2026FixtureScope(afId);
@@ -80,7 +124,6 @@ Deno.serve(async (req: Request) => {
       liveWcFixtures.push(afId);
 
       if (!dryRun) {
-        // Mark fixture as live in DB
         await supabase
           .from("wc2026_fixtures")
           .update({
@@ -99,8 +142,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Clear is_live flag for WC2026 fixtures NOT in the live response
-    if (!dryRun && liveWcFixtures.length >= 0) {
-      // Get currently marked-as-live fixtures in DB
+    if (!dryRun) {
       const { data: dbLiveFixtures } = await supabase
         .from("wc2026_fixtures")
         .select("api_football_fixture_id")
@@ -110,7 +152,6 @@ Deno.serve(async (req: Request) => {
       for (const dbRow of dbLiveFixtures ?? []) {
         const afId = Number(dbRow.api_football_fixture_id);
         if (!liveWcFixtures.includes(afId)) {
-          // No longer live — check if it finished
           await supabase
             .from("wc2026_fixtures")
             .update({ is_live: false, updated_at: now })
@@ -123,12 +164,13 @@ Deno.serve(async (req: Request) => {
     await finishSyncRun(runId, "completed", {
       fixturesProcessed: discovered,
       apiCalls,
-      meta: { live_wc_fixtures: liveWcFixtures, dryRun },
+      meta: { live_wc_fixtures: liveWcFixtures, dryRun, used_fallback: usedFallback, fixtures_in_window: fixturesInWindow },
     });
 
-    return new Response(JSON.stringify({ ok: true, discovered, liveFixtures: liveWcFixtures, apiCalls, dryRun }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ ok: true, discovered, liveFixtures: liveWcFixtures, apiCalls, dryRun, usedFallback, fixturesInWindow }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[wc2026-live-discovery] fatal:", msg);

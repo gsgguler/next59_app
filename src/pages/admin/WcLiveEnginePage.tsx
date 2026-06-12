@@ -81,7 +81,7 @@ interface ActionMenuItem {
   variant?: 'default' | 'danger';
 }
 
-type TabId = 'overview' | 'fixtures' | 'engine-runs' | 'sync-runs' | 'prematch' | 'sync-dashboard';
+type TabId = 'overview' | 'fixtures' | 'engine-runs' | 'sync-runs' | 'prematch' | 'sync-dashboard' | 'knockout-binder';
 type FixtureFilter = 'tumu' | 'live' | 'no_lineup' | 'no_events' | 'stale';
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
@@ -1758,6 +1758,249 @@ function SyncDashboardTab() {
   );
 }
 
+// ─── Knockout Binder tab ──────────────────────────────────────────────────────
+
+interface KnockoutFixture {
+  id:                        string;
+  match_date:                string | null;
+  round_label:               string | null;
+  stage_code:                string | null;
+  home_team_placeholder:     string | null;
+  away_team_placeholder:     string | null;
+  home_team_name:            string | null;
+  away_team_name:            string | null;
+  api_football_fixture_id:   number | null;
+  knockout_binding_status:   string;
+  knockout_binding_confidence: number | null;
+  knockout_bound_at:         string | null;
+  api_binding_candidates:    unknown[] | null;
+  admin_review_required:     boolean;
+}
+
+const BINDING_STATUS_META: Record<string, { label: string; cls: string }> = {
+  not_needed: { label: 'N/A',       cls: 'bg-navy-800 text-navy-500 border border-navy-700' },
+  pending:    { label: 'Bekleyen',  cls: 'bg-amber-500/15 text-amber-400 border border-amber-500/25' },
+  bound:      { label: 'Bağlandı', cls: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25' },
+  ambiguous:  { label: 'Muğlak',   cls: 'bg-orange-500/15 text-orange-400 border border-orange-500/25' },
+  not_found:  { label: 'Bulunamadı', cls: 'bg-red-500/15 text-red-400 border border-red-500/25' },
+  failed:     { label: 'Hata',     cls: 'bg-red-500/15 text-red-400 border border-red-500/25' },
+};
+
+function KnockoutBinderTab() {
+  const [fixtures, setFixtures]     = useState<KnockoutFixture[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState<string | null>(null);
+  const [triggering, setTriggering] = useState<string | null>(null);
+  const [lastRun, setLastRun]       = useState<SyncJobRun | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const [fixtRes, runRes] = await Promise.all([
+        supabase
+          .from('wc2026_fixtures')
+          .select('id, match_date, round_label, stage_code, home_team_placeholder, away_team_placeholder, home_team_name, away_team_name, api_football_fixture_id, knockout_binding_status, knockout_binding_confidence, knockout_bound_at, api_binding_candidates, admin_review_required')
+          .is('api_football_fixture_id', null)
+          .neq('knockout_binding_status', 'not_needed')
+          .order('match_date', { ascending: true }),
+        supabase
+          .from('wc_sync_runs')
+          .select('job_name, status, started_at, completed_at, fixtures_processed, api_calls, error')
+          .eq('job_name', 'wc2026-knockout-fixture-binder')
+          .order('started_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+      if (fixtRes.error) throw fixtRes.error;
+      setFixtures((fixtRes.data ?? []) as KnockoutFixture[]);
+      setLastRun((runRes.data ?? null) as SyncJobRun | null);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function trigger(dryRun = false) {
+    const key = dryRun ? 'dry' : 'live';
+    setTriggering(key);
+    try {
+      const { data } = await supabase.functions.invoke('wc2026-knockout-fixture-binder', {
+        body: {},
+        headers: dryRun ? { 'x-dry-run': 'true' } : {},
+      });
+      console.log('[knockout-binder trigger]', data);
+      setTimeout(() => { load(); setTriggering(null); }, 4000);
+    } catch {
+      setTriggering(null);
+    }
+  }
+
+  const total         = fixtures.length;
+  const pending       = fixtures.filter(f => f.knockout_binding_status === 'pending').length;
+  const bound         = fixtures.filter(f => f.knockout_binding_status === 'bound').length;
+  const ambiguous     = fixtures.filter(f => f.knockout_binding_status === 'ambiguous').length;
+  const notFound      = fixtures.filter(f => f.knockout_binding_status === 'not_found').length;
+  const adminReview   = fixtures.filter(f => f.admin_review_required).length;
+
+  return (
+    <div className="space-y-4">
+      {error && <ErrorBanner message={error} />}
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+        {[
+          { label: 'Toplam PH',     value: total,      color: 'text-white' },
+          { label: 'Bekleyen',      value: pending,    color: pending    ? 'text-amber-400'   : 'text-navy-600' },
+          { label: 'Bağlandı',      value: bound,      color: bound      ? 'text-emerald-400' : 'text-navy-600' },
+          { label: 'Muğlak',        value: ambiguous,  color: ambiguous  ? 'text-orange-400'  : 'text-navy-600' },
+          { label: 'Bulunamadı',    value: notFound,   color: notFound   ? 'text-red-400'     : 'text-navy-600' },
+          { label: 'Admin İnceleme',value: adminReview,color: adminReview ? 'text-red-400'    : 'text-navy-600' },
+        ].map(({ label, value, color }) => (
+          <div key={label} className="bg-navy-900 border border-navy-800 rounded-xl p-3">
+            <p className="text-[10px] text-navy-500 uppercase tracking-wide mb-1">{label}</p>
+            <p className={`text-xl font-bold font-mono ${loading ? 'text-navy-700' : color}`}>
+              {loading ? '…' : value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Last run + trigger buttons */}
+      <div className="bg-navy-900 border border-navy-800 rounded-xl p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Shield className="w-4 h-4 text-navy-500" />
+              <span className="text-xs font-semibold text-navy-300">Knockout Fixture Binder</span>
+              {lastRun && <RunStatusBadge status={lastRun.status} />}
+            </div>
+            {lastRun ? (
+              <p className="text-[11px] text-navy-500 font-mono">
+                Son: {fmt(lastRun.started_at)}
+                {lastRun.fixtures_processed != null && ` · ${lastRun.fixtures_processed} placeholder kontrol`}
+                {lastRun.api_calls != null && ` · ${lastRun.api_calls} API çağrısı`}
+              </p>
+            ) : (
+              <p className="text-[11px] text-navy-600">Henüz çalışmadı.</p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => trigger(true)}
+              disabled={triggering !== null}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all disabled:opacity-40 ${
+                triggering === 'dry'
+                  ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+                  : 'bg-navy-800 border-navy-700 text-navy-400 hover:text-white hover:border-navy-600'
+              }`}
+            >
+              {triggering === 'dry' ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Eye className="w-3 h-3" />}
+              Dry Run
+            </button>
+            <button
+              onClick={() => trigger(false)}
+              disabled={triggering !== null}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all disabled:opacity-40 ${
+                triggering === 'live'
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  : 'bg-navy-800 border-navy-700 text-navy-400 hover:text-white hover:border-navy-600'
+              }`}
+            >
+              {triggering === 'live' ? <RefreshCw className="w-3 h-3 animate-spin" /> : <PlayCircle className="w-3 h-3" />}
+              Tetikle
+            </button>
+            <button
+              onClick={load}
+              disabled={loading}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-navy-800 hover:bg-navy-700 text-navy-300 rounded-lg text-xs transition-all disabled:opacity-50 border border-navy-700"
+            >
+              <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+              Yenile
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Placeholder fixtures table */}
+      <div className="bg-navy-900 border border-navy-800 rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Shield className="w-4 h-4 text-navy-500" />
+          <span className="text-xs font-semibold text-navy-300">Knockout Placeholder Fikstürler (32)</span>
+        </div>
+        {loading ? (
+          <Skeleton rows={6} />
+        ) : fixtures.length === 0 ? (
+          <div className="text-center py-8">
+            <CheckCircle2 className="w-8 h-8 text-navy-700 mx-auto mb-2" />
+            <p className="text-xs text-navy-500">Tüm knockout fikstürler bağlandı veya henüz oluşturulmadı.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs min-w-[700px]">
+              <thead>
+                <tr className="border-b border-navy-800">
+                  <th className="pb-2 text-left text-navy-500 font-medium">Tarih</th>
+                  <th className="pb-2 text-left text-navy-500 font-medium">Tur</th>
+                  <th className="pb-2 text-left text-navy-500 font-medium">Placeholder</th>
+                  <th className="pb-2 text-left text-navy-500 font-medium w-24">Durum</th>
+                  <th className="pb-2 text-left text-navy-500 font-medium w-16">Güven</th>
+                  <th className="pb-2 text-left text-navy-500 font-medium w-16">Aday</th>
+                  <th className="pb-2 text-left text-navy-500 font-medium w-24">Bağlanma</th>
+                </tr>
+              </thead>
+              <tbody>
+                {fixtures.map(f => {
+                  const meta = BINDING_STATUS_META[f.knockout_binding_status] ?? BINDING_STATUS_META['pending'];
+                  const boundTeams = f.home_team_name && f.away_team_name
+                    ? `${f.home_team_name} vs ${f.away_team_name}`
+                    : null;
+                  const placeholder = [f.home_team_placeholder, f.away_team_placeholder]
+                    .filter(Boolean).join(' vs ') || '—';
+                  return (
+                    <tr key={f.id} className={`border-b border-navy-800/50 hover:bg-navy-800/30 transition-colors ${f.admin_review_required ? 'bg-red-500/5' : ''}`}>
+                      <td className="py-2 pr-3 font-mono text-navy-400 whitespace-nowrap">
+                        {f.match_date ? new Date(f.match_date).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}
+                      </td>
+                      <td className="py-2 pr-3 text-navy-200 whitespace-nowrap">{f.round_label ?? f.stage_code ?? '—'}</td>
+                      <td className="py-2 pr-3">
+                        {f.knockout_binding_status === 'bound' && boundTeams ? (
+                          <span className="text-emerald-300 font-medium">{boundTeams}</span>
+                        ) : (
+                          <span className="text-navy-500 italic">{placeholder}</span>
+                        )}
+                        {f.admin_review_required && (
+                          <span className="ml-1.5 text-[9px] bg-red-500/15 text-red-400 border border-red-500/25 rounded px-1">İNCELEME</span>
+                        )}
+                      </td>
+                      <td className="py-2 pr-3">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${meta.cls}`}>
+                          {meta.label}
+                        </span>
+                      </td>
+                      <td className="py-2 pr-3 font-mono text-navy-400">
+                        {f.knockout_binding_confidence != null
+                          ? `${Math.round(f.knockout_binding_confidence * 100)}%`
+                          : '—'}
+                      </td>
+                      <td className="py-2 pr-3 font-mono text-navy-500">
+                        {Array.isArray(f.api_binding_candidates) ? f.api_binding_candidates.length : 0}
+                      </td>
+                      <td className="py-2 font-mono text-navy-600">{fmt(f.knockout_bound_at)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Page root ────────────────────────────────────────────────────────────────
 
 export default function WcLiveEnginePage() {
@@ -1853,7 +2096,8 @@ export default function WcLiveEnginePage() {
             { id: 'engine-runs' as TabId, label: 'Motor Geçmişi',     icon: Zap },
             { id: 'sync-runs'   as TabId, label: 'Senkronizasyon Log', icon: Radio },
             { id: 'prematch'        as TabId, label: 'Pre-Maç',           icon: ClipboardList },
-            { id: 'sync-dashboard'  as TabId, label: 'Sync Dashboard',     icon: Server },
+            { id: 'sync-dashboard'    as TabId, label: 'Sync Dashboard',     icon: Server },
+            { id: 'knockout-binder'   as TabId, label: 'Knockout Binder',     icon: Shield },
           ] as const).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -1882,7 +2126,8 @@ export default function WcLiveEnginePage() {
         {tab === 'engine-runs' && <EngineRunsTab />}
         {tab === 'sync-runs'   && <SyncRunsTab />}
         {tab === 'prematch'        && <PreMatchTab />}
-        {tab === 'sync-dashboard'  && <SyncDashboardTab />}
+        {tab === 'sync-dashboard'    && <SyncDashboardTab />}
+        {tab === 'knockout-binder'   && <KnockoutBinderTab />}
       </div>
     </div>
   );
