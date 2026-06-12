@@ -442,15 +442,45 @@ function MomentumDot({ side }: { side: string | null }) {
 }
 
 
+interface LiveMatchState {
+  status_short: string;
+  status_long: string;
+  elapsed_minute: number | null;
+  home_score: number | null;
+  away_score: number | null;
+  synced_at: string | null;
+}
+
+interface LiveFlowRow {
+  period_start: number;
+  period_end: number;
+  live_minute: number;
+  home_score: number | null;
+  away_score: number | null;
+  momentum_side: string | null;
+  goal_risk_home: number;
+  goal_risk_away: number;
+  card_risk: number;
+  corner_risk: number;
+  foul_intensity: number;
+  narrative_text: string | null;
+  generated_at: string | null;
+}
+
+const LIVE_STATUSES = new Set(['1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE']);
+const FINISHED_STATUSES = new Set(['FT', 'AET', 'PEN']);
+
 function Wc5MinFlowPanel({ fixtureUuid, apiFootballFixtureId, isTBD }: { fixtureUuid: string | null; apiFootballFixtureId: number | null; isTBD: boolean }) {
-  const [rows, setRows] = useState<FlowPeriodRow[]>([]);
+  const [prematchRows, setPrematchRows] = useState<FlowPeriodRow[]>([]);
+  const [liveState, setLiveState] = useState<LiveMatchState | null>(null);
+  const [liveRows, setLiveRows] = useState<LiveFlowRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const [keyTriggers, setKeyTriggers] = useState<string[]>([]);
 
+  // Load pre-match scenarios (always)
   useEffect(() => {
-    if (isTBD) { setLoading(false); return; }
-    if (!fixtureUuid) { setLoading(false); return; }
+    if (isTBD || !fixtureUuid) { setLoading(false); return; }
     supabase
       .from('wc2026_5min_flow_scenarios')
       .select('period_start,period_end,period_label,goal_risk_home,goal_risk_away,home_pressure_score,away_pressure_score,yellow_card_risk_home,yellow_card_risk_away,red_card_risk_home,red_card_risk_away,corner_risk_home,corner_risk_away,foul_risk_home,foul_risk_away,offside_risk_home,offside_risk_away,narrative_text,confidence,expected_momentum_side,scenario_version')
@@ -458,14 +488,52 @@ function Wc5MinFlowPanel({ fixtureUuid, apiFootballFixtureId, isTBD }: { fixture
       .eq('is_current', true)
       .eq('is_public', true)
       .order('period_start', { ascending: true })
-      .then(res => {
-        if (res?.data) setRows(res.data as FlowPeriodRow[]);
-      })
+      .then(res => { if (res?.data) setPrematchRows(res.data as FlowPeriodRow[]); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [fixtureUuid, isTBD]);
 
-  // Pull key_match_triggers from legacy 90-min scenarios table
+  // Poll live state every 60 seconds
+  useEffect(() => {
+    if (isTBD || !fixtureUuid) return;
+
+    const fetchLive = () => {
+      supabase
+        .from('wc2026_live_match_state_public')
+        .select('status_short,status_long,elapsed_minute,home_score,away_score,synced_at')
+        .eq('fixture_id', fixtureUuid)
+        .maybeSingle()
+        .then(res => { if (res?.data) setLiveState(res.data as LiveMatchState); })
+        .catch(() => {});
+    };
+
+    fetchLive();
+    const interval = setInterval(fetchLive, 60_000);
+    return () => clearInterval(interval);
+  }, [fixtureUuid, isTBD]);
+
+  // Poll live 5-min scenarios every 60 seconds when live
+  useEffect(() => {
+    if (isTBD || !fixtureUuid) return;
+    if (!liveState || !LIVE_STATUSES.has(liveState.status_short)) return;
+
+    const fetchLiveScenarios = () => {
+      supabase
+        .from('wc2026_live_5min_scenarios_public')
+        .select('period_start,period_end,live_minute,home_score,away_score,momentum_side,goal_risk_home,goal_risk_away,card_risk,corner_risk,foul_intensity,narrative_text,generated_at')
+        .eq('fixture_id', fixtureUuid)
+        .eq('is_current', true)
+        .order('period_start', { ascending: true })
+        .then(res => { if (res?.data) setLiveRows(res.data as LiveFlowRow[]); })
+        .catch(() => {});
+    };
+
+    fetchLiveScenarios();
+    const interval = setInterval(fetchLiveScenarios, 60_000);
+    return () => clearInterval(interval);
+  }, [fixtureUuid, isTBD, liveState]);
+
+  // Key triggers from 90-min scenarios table
   useEffect(() => {
     if (isTBD || !apiFootballFixtureId) return;
     supabase
@@ -475,12 +543,17 @@ function Wc5MinFlowPanel({ fixtureUuid, apiFootballFixtureId, isTBD }: { fixture
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
-      .then(res => {
-        if (res?.data?.key_match_triggers) setKeyTriggers(res.data.key_match_triggers as string[]);
-      });
+      .then(res => { if (res?.data?.key_match_triggers) setKeyTriggers(res.data.key_match_triggers as string[]); });
   }, [apiFootballFixtureId, isTBD]);
 
-  const ver = rows[0]?.scenario_version ?? 1;
+  const isLive = liveState !== null && LIVE_STATUSES.has(liveState.status_short);
+  const isFinished = liveState !== null && FINISHED_STATUSES.has(liveState.status_short);
+  const ver = prematchRows[0]?.scenario_version ?? 1;
+
+  // Determine which content to show
+  const showLiveFlow = isLive && liveRows.length > 0;
+  const showLivePending = isLive && liveRows.length === 0;
+  const showFinished = isFinished;
 
   return (
     <div className="border border-navy-800/60 rounded-xl overflow-hidden">
@@ -490,54 +563,124 @@ function Wc5MinFlowPanel({ fixtureUuid, apiFootballFixtureId, isTBD }: { fixture
       >
         <div className="flex items-center gap-2.5">
           <Timer className="w-4 h-4 text-champagne shrink-0" />
-          <span className="text-sm font-bold text-white">5 Dakikalık Maç Senaryosu</span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-navy-700 text-navy-300 font-mono">v{ver}</span>
+          <span className="text-sm font-bold text-white">
+            {isLive ? 'Canlı Maç Akışı' : isFinished ? 'Maç Sonucu' : '5 Dakikalık Maç Senaryosu'}
+          </span>
+          {isLive && (
+            <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-red-900/50 border border-red-700/50 text-red-300 font-bold animate-pulse">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block" />
+              CANLI {liveState.elapsed_minute ? `${liveState.elapsed_minute}'` : ''}
+            </span>
+          )}
+          {isFinished && liveState && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/50 border border-slate-600/40 text-slate-300 font-mono">
+              {liveState.home_score ?? 0}–{liveState.away_score ?? 0} {liveState.status_short}
+            </span>
+          )}
+          {!isLive && !isFinished && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-navy-700 text-navy-300 font-mono">v{ver}</span>
+          )}
         </div>
         <ChevronDown className={`w-4 h-4 text-navy-400 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
       </button>
 
       {expanded && (
         <div className="px-4 pb-4 pt-3 space-y-3 bg-navy-900/20">
-          <p className="text-[11px] text-navy-500 leading-relaxed">
-            Bu alan gerçek maç sonucu değildir. Next59 modeli; takım geçmişi, eleme performansı, oyuncu profilleri, venue psikolojisi ve kadro güncellemelerine göre 5 dakikalık akış projeksiyonu üretir.
-          </p>
 
-          <div className="space-y-0.5">
-            {rows.length === 0 ? (
-              <p className="text-xs text-slate-400 py-2">5 dakikalık maç senaryosu hazırlanıyor.</p>
-            ) : rows.map(row => {
-              const col = periodColor(row.period_start);
-              const maxGoal = Math.max(row.goal_risk_home, row.goal_risk_away);
-              const maxCard = Math.max(row.yellow_card_risk_home, row.yellow_card_risk_away);
-              const maxCorner = Math.max(row.corner_risk_home, row.corner_risk_away);
-              const maxFoul = Math.max(row.foul_risk_home, row.foul_risk_away);
-              return (
-                <div key={row.period_start} className="flex flex-col gap-1 px-2.5 py-2 rounded-md bg-navy-800/25 border border-white/[0.04] hover:bg-navy-800/40 transition-colors">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`shrink-0 text-[11px] font-bold font-mono w-10 ${col}`}>{row.period_label}'</span>
-                    <MomentumDot side={row.expected_momentum_side} />
-                    <div className="flex items-center gap-1 flex-wrap">
-                      {maxGoal > 0.04 && (
-                        <RiskBadge value={maxGoal} label="Gol riski" color="amber" />
-                      )}
-                      {maxCard > 0.04 && (
-                        <RiskBadge value={maxCard} label="Kart riski" color="red" />
-                      )}
-                      {maxCorner > 0.04 && (
-                        <RiskBadge value={maxCorner} label="Korner riski" color="sky" />
-                      )}
-                      {maxFoul > 0.08 && (
-                        <RiskBadge value={maxFoul} label="Faul yoğunluğu" color="orange" />
+          {/* Live score banner */}
+          {(isLive || isFinished) && liveState && (
+            <div className="flex items-center justify-center gap-3 py-2.5 bg-navy-800/50 rounded-lg border border-navy-700/50">
+              <span className="text-lg font-black font-mono text-white tabular-nums">
+                {liveState.home_score ?? 0}–{liveState.away_score ?? 0}
+              </span>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded ${isLive ? 'bg-red-900/50 text-red-300' : 'bg-slate-700/50 text-slate-300'}`}>
+                {liveState.status_long ?? liveState.status_short}
+                {isLive && liveState.elapsed_minute ? ` ${liveState.elapsed_minute}'` : ''}
+              </span>
+            </div>
+          )}
+
+          {/* Live flow rows */}
+          {showLiveFlow && (
+            <>
+              <p className="text-[11px] text-navy-500 leading-relaxed">
+                Canlı maç verilerine dayalı anlık akış analizi. Her 2 dakikada bir güncellenir.
+              </p>
+              <div className="space-y-0.5">
+                {liveRows.map(row => {
+                  const col = periodColor(row.period_start);
+                  return (
+                    <div key={`${row.period_start}-${row.live_minute}`} className="flex flex-col gap-1 px-2.5 py-2 rounded-md bg-navy-800/25 border border-white/[0.04] hover:bg-navy-800/40 transition-colors">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`shrink-0 text-[11px] font-bold font-mono w-10 ${col}`}>{row.period_start}'</span>
+                        <MomentumDot side={row.momentum_side} />
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {row.goal_risk_home > 0.04 && <RiskBadge value={row.goal_risk_home} label="Gol H" color="amber" />}
+                          {row.goal_risk_away > 0.04 && <RiskBadge value={row.goal_risk_away} label="Gol D" color="amber" />}
+                          {row.card_risk > 0.04 && <RiskBadge value={row.card_risk} label="Kart riski" color="red" />}
+                          {row.corner_risk > 0.04 && <RiskBadge value={row.corner_risk} label="Korner" color="sky" />}
+                          {row.foul_intensity > 0.08 && <RiskBadge value={row.foul_intensity} label="Faul" color="orange" />}
+                        </div>
+                      </div>
+                      {row.narrative_text && (
+                        <p className="text-[11px] text-slate-400 leading-snug pl-12">{row.narrative_text}</p>
                       )}
                     </div>
-                  </div>
-                  {row.narrative_text && (
-                    <p className="text-[11px] text-slate-400 leading-snug pl-12">{row.narrative_text}</p>
-                  )}
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* Live but no scenarios yet */}
+          {showLivePending && (
+            <p className="text-xs text-amber-400/80 py-2">Canlı maç akışı hazırlanıyor.</p>
+          )}
+
+          {/* Pre-match fallback (shown when not live, or as secondary context when finished) */}
+          {(!showLiveFlow || showFinished) && (
+            <>
+              {(showFinished || showLivePending) && prematchRows.length > 0 && (
+                <p className="text-[11px] text-navy-500 pt-1 border-t border-navy-800/30">Maç öncesi senaryo analizi:</p>
+              )}
+              {!isLive && !isFinished && (
+                <p className="text-[11px] text-navy-500 leading-relaxed">
+                  Bu alan gerçek maç sonucu değildir. Next59 modeli; takım geçmişi, eleme performansı, oyuncu profilleri, venue psikolojisi ve kadro güncellemelerine göre 5 dakikalık akış projeksiyonu üretir.
+                </p>
+              )}
+              {!loading && prematchRows.length === 0 && !isLive && !isFinished && (
+                <p className="text-xs text-slate-400 py-2">5 dakikalık maç senaryosu hazırlanıyor.</p>
+              )}
+              {prematchRows.length > 0 && (
+                <div className="space-y-0.5">
+                  {prematchRows.map(row => {
+                    const col = periodColor(row.period_start);
+                    const maxGoal = Math.max(row.goal_risk_home, row.goal_risk_away);
+                    const maxCard = Math.max(row.yellow_card_risk_home, row.yellow_card_risk_away);
+                    const maxCorner = Math.max(row.corner_risk_home, row.corner_risk_away);
+                    const maxFoul = Math.max(row.foul_risk_home, row.foul_risk_away);
+                    return (
+                      <div key={row.period_start} className="flex flex-col gap-1 px-2.5 py-2 rounded-md bg-navy-800/25 border border-white/[0.04] hover:bg-navy-800/40 transition-colors">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`shrink-0 text-[11px] font-bold font-mono w-10 ${col}`}>{row.period_label}'</span>
+                          <MomentumDot side={row.expected_momentum_side} />
+                          <div className="flex items-center gap-1 flex-wrap">
+                            {maxGoal > 0.04 && <RiskBadge value={maxGoal} label="Gol riski" color="amber" />}
+                            {maxCard > 0.04 && <RiskBadge value={maxCard} label="Kart riski" color="red" />}
+                            {maxCorner > 0.04 && <RiskBadge value={maxCorner} label="Korner riski" color="sky" />}
+                            {maxFoul > 0.08 && <RiskBadge value={maxFoul} label="Faul yoğunluğu" color="orange" />}
+                          </div>
+                        </div>
+                        {row.narrative_text && (
+                          <p className="text-[11px] text-slate-400 leading-snug pl-12">{row.narrative_text}</p>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
+              )}
+            </>
+          )}
 
           {keyTriggers.length > 0 && (
             <div className="pt-1">
@@ -556,7 +699,7 @@ function Wc5MinFlowPanel({ fixtureUuid, apiFootballFixtureId, isTBD }: { fixture
           <div className="flex items-start gap-2 pt-1 border-t border-navy-800/40">
             <AlertTriangle className="w-3.5 h-3.5 text-navy-500 shrink-0 mt-0.5" />
             <p className="text-xs text-navy-500 leading-relaxed">
-              Bu çalışma, maç öncesi mevcut verilerle hazırlanmış yapay zekâ destekli istatistiksel senaryo analizidir. Kesin sonuç vaadi içermez.
+              Bu çalışma istatistiksel senaryo analizidir. Kesin sonuç vaadi içermez.
             </p>
           </div>
 

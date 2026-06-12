@@ -1,0 +1,38 @@
+name: WC2026 Live Sync
+
+on:
+  schedule:
+    # Every 2 minutes during tournament period (Jun–Jul 2026)
+    - cron: '*/2 * * * *'
+  workflow_dispatch:
+    inputs:
+      af_fixture_id:
+        description: 'Target API-Football fixture ID (optional)'
+        required: false
+        default: ''
+      batch_limit:
+        description: 'Max fixtures to sync (default 4)'
+        required: false
+        default: '4'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Sync WC2026 live match state
+        run: |
+          BODY='{"batch_limit":${{ github.event.inputs.batch_limit || '4' }}}'
+          if [ -n "${{ github.event.inputs.af_fixture_id }}" ]; then
+            BODY='{"af_fixture_id":${{ github.event.inputs.af_fixture_id }}}'
+          fi
+          curl -s -w "\nHTTP_STATUS:%{http_code}" \
+            -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/wc2026-live-sync" \
+            -H "Content-Type: application/json" \
+            -H "X-Internal-Secret: ${{ secrets.ADMIN_JOB_SECRET }}" \
+            -d "$BODY" | tee /tmp/sync_response.txt
+          HTTP_STATUS=$(grep "HTTP_STATUS:" /tmp/sync_response.txt | tail -1 | sed 's/HTTP_STATUS://')
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "Sync failed with HTTP $HTTP_STATUS"
+            exit 1
+          fi
