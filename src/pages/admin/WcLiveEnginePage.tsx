@@ -6,6 +6,7 @@ import {
   BarChart2, HelpCircle, Search, MoreVertical,
   RotateCcw, Eye, Trash2, Download, X, Clock,
   Users, Shield, ClipboardList, PlayCircle,
+  Server, CheckCircle2, Layers,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -80,7 +81,7 @@ interface ActionMenuItem {
   variant?: 'default' | 'danger';
 }
 
-type TabId = 'overview' | 'fixtures' | 'engine-runs' | 'sync-runs' | 'prematch';
+type TabId = 'overview' | 'fixtures' | 'engine-runs' | 'sync-runs' | 'prematch' | 'sync-dashboard';
 type FixtureFilter = 'tumu' | 'live' | 'no_lineup' | 'no_events' | 'stale';
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
@@ -1429,6 +1430,335 @@ function PreMatchTab() {
   );
 }
 
+// ─── Sync Dashboard tab ───────────────────────────────────────────────────────
+
+interface SyncJobRun {
+  job_name:           string;
+  status:             string;
+  started_at:         string | null;
+  finished_at:        string | null;
+  fixtures_processed: number | null;
+  api_calls:          number | null;
+  error:              string | null;
+}
+
+interface DashboardData {
+  fixtures: {
+    total:        number;
+    is_live:      number;
+    closed:       number;
+    open:         number;
+    finalized:    number;
+    needs_review: number;
+  };
+  lineups: {
+    announced: number;
+    pending:   number;
+  };
+  enrichment: {
+    players_pending: number;
+    players_found:   number;
+    players_missing: number;
+  };
+  quota: {
+    requests_remaining: number | null;
+    requests_limit:     number | null;
+    requests_used:      number | null;
+    is_low:             boolean;
+    is_critical:        boolean;
+    checked_at:         string | null;
+  } | null;
+  sync_runs: SyncJobRun[] | null;
+}
+
+interface FinalizationRow {
+  queue_id:                string;
+  api_football_fixture_id: number;
+  status:                  string;
+  attempts:                number;
+  last_error:              string | null;
+  created_at:              string;
+  home_team_name:          string | null;
+  away_team_name:          string | null;
+  fixture_status:          string | null;
+  final_home_score:        number | null;
+  final_away_score:        number | null;
+  is_closed:               boolean;
+}
+
+const PART3_JOBS = [
+  { fn: 'wc2026-fixture-daily-sync',         label: 'Daily Sync' },
+  { fn: 'wc2026-live-discovery',             label: 'Live Discovery' },
+  { fn: 'wc2026-live-poller',                label: 'Live Poller' },
+  { fn: 'wc2026-match-finalizer',            label: 'Match Finalizer' },
+  { fn: 'wc2026-delayed-result-reconciler',  label: 'Reconciler' },
+  { fn: 'wc2026-api-status',                 label: 'API Status' },
+];
+
+function QuotaBar({ remaining, limit }: { remaining: number | null; limit: number | null }) {
+  if (remaining == null || !limit) return <span className="text-navy-600 text-xs">–</span>;
+  const pct = Math.round((remaining / limit) * 100);
+  const color = pct < 5 ? 'bg-red-500' : pct < 20 ? 'bg-amber-500' : 'bg-emerald-500';
+  const textColor = pct < 5 ? 'text-red-400' : pct < 20 ? 'text-amber-400' : 'text-emerald-400';
+  return (
+    <div className="flex items-center gap-2">
+      <div className="w-24 h-1.5 bg-navy-800 rounded-full overflow-hidden">
+        <div className={`h-full ${color} rounded-full transition-all`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className={`text-xs font-mono font-semibold ${textColor}`}>{remaining.toLocaleString('tr-TR')} / {limit.toLocaleString('tr-TR')}</span>
+      <span className={`text-[10px] ${textColor}`}>({pct}%)</span>
+    </div>
+  );
+}
+
+function SyncDashboardTab() {
+  const [data, setData]           = useState<DashboardData | null>(null);
+  const [queue, setQueue]         = useState<FinalizationRow[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState<string | null>(null);
+  const [triggering, setTriggering] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const [dashRes, queueRes] = await Promise.all([
+        supabase.rpc('wc2026_get_sync_dashboard'),
+        supabase.rpc('wc2026_get_finalization_queue', { p_limit: 15 }),
+      ]);
+      if (dashRes.error) throw dashRes.error;
+      if (queueRes.error) throw queueRes.error;
+      setData(dashRes.data as DashboardData);
+      setQueue((queueRes.data ?? []) as FinalizationRow[]);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function trigger(fn: string) {
+    setTriggering(fn);
+    try {
+      await invokeEdgeFunction(fn);
+      setTimeout(() => { load(); setTriggering(null); }, 4000);
+    } catch {
+      setTriggering(null);
+    }
+  }
+
+  const syncRuns: Record<string, SyncJobRun> = {};
+  for (const r of data?.sync_runs ?? []) {
+    syncRuns[r.job_name] = r;
+  }
+
+  return (
+    <div className="space-y-4">
+      {error && <ErrorBanner message={error} />}
+
+      {/* Top metric strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {[
+          { label: 'Toplam Fikstür', value: data?.fixtures.total ?? 0,        icon: Calendar,      color: 'text-white' },
+          { label: 'Canlı',         value: data?.fixtures.is_live ?? 0,       icon: Radio,         color: data?.fixtures.is_live ? 'text-emerald-400' : 'text-navy-500' },
+          { label: 'Kapandı',       value: data?.fixtures.closed ?? 0,        icon: CheckCircle2,  color: 'text-navy-400' },
+          { label: 'Finalize',      value: data?.fixtures.finalized ?? 0,     icon: Layers,        color: 'text-blue-400' },
+          { label: 'İnceleme',      value: data?.fixtures.needs_review ?? 0,  icon: AlertTriangle, color: data?.fixtures.needs_review ? 'text-amber-400' : 'text-navy-600' },
+          { label: 'Kadro Beklene', value: data?.lineups.pending ?? 0,        icon: Users,         color: data?.lineups.pending ? 'text-amber-400' : 'text-navy-600' },
+        ].map(({ label, value, icon: Icon, color }) => (
+          <div key={label} className="bg-navy-900 border border-navy-800 rounded-xl p-3">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Icon className={`w-3.5 h-3.5 ${color}`} />
+              <span className="text-[10px] text-navy-500 uppercase tracking-wide">{label}</span>
+            </div>
+            <p className={`text-xl font-bold font-mono ${loading ? 'text-navy-700' : color}`}>
+              {loading ? '…' : value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Enrichment + Quota */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Enrichment */}
+        <div className="bg-navy-900 border border-navy-800 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Users className="w-4 h-4 text-navy-500" />
+            <span className="text-xs font-semibold text-navy-300">Oyuncu Enrichment</span>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: 'Bekleyen',  value: data?.enrichment.players_pending ?? 0, color: data?.enrichment.players_pending ? 'text-amber-400' : 'text-navy-600' },
+              { label: 'Bulunan',   value: data?.enrichment.players_found ?? 0,   color: 'text-emerald-400' },
+              { label: 'Eksik',     value: data?.enrichment.players_missing ?? 0, color: data?.enrichment.players_missing ? 'text-red-400' : 'text-navy-600' },
+            ].map(({ label, value, color }) => (
+              <div key={label}>
+                <p className="text-[10px] text-navy-500 mb-0.5">{label}</p>
+                <p className={`text-xl font-bold font-mono ${loading ? 'text-navy-700' : color}`}>
+                  {loading ? '…' : value}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* API Quota */}
+        <div className="bg-navy-900 border border-navy-800 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Server className="w-4 h-4 text-navy-500" />
+              <span className="text-xs font-semibold text-navy-300">API-Football Kota</span>
+            </div>
+            {data?.quota?.is_critical && (
+              <span className="text-[10px] bg-red-500/15 text-red-400 border border-red-500/25 rounded-full px-2 py-0.5 font-semibold">KRİTİK</span>
+            )}
+            {!data?.quota?.is_critical && data?.quota?.is_low && (
+              <span className="text-[10px] bg-amber-500/15 text-amber-400 border border-amber-500/25 rounded-full px-2 py-0.5 font-semibold">DÜŞÜK</span>
+            )}
+          </div>
+          {data?.quota ? (
+            <div className="space-y-2">
+              <QuotaBar remaining={data.quota.requests_remaining} limit={data.quota.requests_limit} />
+              <div className="flex justify-between text-[11px]">
+                <span className="text-navy-500">Kullanılan: <span className="font-mono text-navy-300">{(data.quota.requests_used ?? 0).toLocaleString('tr-TR')}</span></span>
+                <span className="text-navy-600 font-mono">{fmt(data.quota.checked_at)}</span>
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-navy-600">Kota verisi yok — wc2026-api-status çalıştırın</p>
+          )}
+        </div>
+      </div>
+
+      {/* Manual Trigger grid */}
+      <div className="bg-navy-900 border border-navy-800 rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <PlayCircle className="w-4 h-4 text-navy-500" />
+          <span className="text-xs font-semibold text-navy-300">Manuel Tetikleme — Part 3 Pipeline</span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {PART3_JOBS.map(({ fn, label }) => {
+            const run = syncRuns[fn];
+            const isFiring = triggering === fn;
+            return (
+              <div key={fn} className={`bg-navy-950 border rounded-xl p-3 transition-colors ${
+                isFiring ? 'border-emerald-500/30' : 'border-navy-800'
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-semibold text-navy-200 truncate">{label}</span>
+                  {run && <RunStatusBadge status={run.status} />}
+                </div>
+                {run && (
+                  <div className="text-[10px] text-navy-600 mb-2 font-mono">
+                    {fmt(run.started_at)}
+                    {run.fixtures_processed != null && ` · ${run.fixtures_processed} fx`}
+                    {run.api_calls != null && ` · ${run.api_calls} req`}
+                  </div>
+                )}
+                {run?.error && (
+                  <p className="text-[10px] text-red-400 truncate mb-2" title={run.error}>{run.error}</p>
+                )}
+                <button
+                  onClick={() => trigger(fn)}
+                  disabled={triggering !== null}
+                  className={`w-full flex items-center justify-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium transition-all border ${
+                    isFiring
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                      : 'bg-navy-800 border-navy-700 text-navy-400 hover:text-white hover:border-navy-600 disabled:opacity-40'
+                  }`}
+                >
+                  {isFiring ? <RefreshCw className="w-3 h-3 animate-spin" /> : <PlayCircle className="w-3 h-3" />}
+                  {isFiring ? 'Çalışıyor…' : 'Tetikle'}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        <div className="flex items-center justify-between mt-3">
+          <p className="text-[11px] text-navy-600">Tetikleme sonrası 4 saniye beklenip tablo yenilenir.</p>
+          <button
+            onClick={load}
+            disabled={loading}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-navy-800 hover:bg-navy-700 text-navy-300 rounded-lg text-xs transition-all disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            Yenile
+          </button>
+        </div>
+      </div>
+
+      {/* Finalization Queue */}
+      <div className="bg-navy-900 border border-navy-800 rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Layers className="w-4 h-4 text-navy-500" />
+          <span className="text-xs font-semibold text-navy-300">Finalizasyon Kuyruğu</span>
+          <span className="ml-auto text-[11px] text-navy-500">(son 15)</span>
+        </div>
+
+        {loading ? (
+          <Skeleton rows={4} />
+        ) : queue.length === 0 ? (
+          <div className="text-center py-6">
+            <CheckCircle2 className="w-8 h-8 text-navy-700 mx-auto mb-2" />
+            <p className="text-xs text-navy-500">Kuyruk boş — tüm maçlar tamamlandı veya henüz maç yok.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs min-w-[600px]">
+              <thead>
+                <tr className="border-b border-navy-800">
+                  <th className="pb-2 text-left text-navy-500 font-medium">Maç</th>
+                  <th className="pb-2 text-left text-navy-500 font-medium w-28">Skor</th>
+                  <th className="pb-2 text-left text-navy-500 font-medium w-28">Kuyruk Dur.</th>
+                  <th className="pb-2 text-left text-navy-500 font-medium w-20">Deneme</th>
+                  <th className="pb-2 text-left text-navy-500 font-medium w-24">Oluşturulma</th>
+                  <th className="pb-2 text-left text-navy-500 font-medium w-28">Son Hata</th>
+                </tr>
+              </thead>
+              <tbody>
+                {queue.map(row => {
+                  const qStatusColor: Record<string, string> = {
+                    done:       'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25',
+                    pending:    'bg-amber-500/15 text-amber-400 border border-amber-500/25',
+                    processing: 'bg-blue-500/15 text-blue-400 border border-blue-500/25',
+                    failed:     'bg-red-500/15 text-red-400 border border-red-500/25',
+                  };
+                  return (
+                    <tr key={row.queue_id} className="border-b border-navy-800/50 hover:bg-navy-800/30 transition-colors">
+                      <td className="py-2 pr-3">
+                        <span className="text-white font-medium">
+                          {row.home_team_name ?? '?'} <span className="text-navy-500">vs</span> {row.away_team_name ?? '?'}
+                        </span>
+                        {row.is_closed && (
+                          <span className="ml-1.5 text-[9px] bg-navy-700 text-navy-400 rounded px-1">Kapalı</span>
+                        )}
+                      </td>
+                      <td className="py-2 pr-3 font-mono text-navy-200">
+                        {row.final_home_score != null ? `${row.final_home_score} – ${row.final_away_score}` : row.fixture_status ?? '–'}
+                      </td>
+                      <td className="py-2 pr-3">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${qStatusColor[row.status] ?? 'bg-navy-700 text-navy-500'}`}>
+                          {row.status}
+                        </span>
+                      </td>
+                      <td className="py-2 pr-3 font-mono text-navy-400">{row.attempts}</td>
+                      <td className="py-2 pr-3 font-mono text-navy-600">{fmt(row.created_at)}</td>
+                      <td className="py-2 font-mono text-red-400 text-[10px] truncate max-w-[160px]" title={row.last_error ?? ''}>
+                        {row.last_error ?? '–'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Page root ────────────────────────────────────────────────────────────────
 
 export default function WcLiveEnginePage() {
@@ -1523,7 +1853,8 @@ export default function WcLiveEnginePage() {
             { id: 'fixtures'    as TabId, label: 'Fikstür Durumu',    icon: Calendar },
             { id: 'engine-runs' as TabId, label: 'Motor Geçmişi',     icon: Zap },
             { id: 'sync-runs'   as TabId, label: 'Senkronizasyon Log', icon: Radio },
-            { id: 'prematch'    as TabId, label: 'Pre-Maç',           icon: ClipboardList },
+            { id: 'prematch'        as TabId, label: 'Pre-Maç',           icon: ClipboardList },
+            { id: 'sync-dashboard'  as TabId, label: 'Sync Dashboard',     icon: Server },
           ] as const).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -1551,7 +1882,8 @@ export default function WcLiveEnginePage() {
         {tab === 'fixtures'    && <FixturesTab />}
         {tab === 'engine-runs' && <EngineRunsTab />}
         {tab === 'sync-runs'   && <SyncRunsTab />}
-        {tab === 'prematch'    && <PreMatchTab />}
+        {tab === 'prematch'        && <PreMatchTab />}
+        {tab === 'sync-dashboard'  && <SyncDashboardTab />}
       </div>
     </div>
   );
