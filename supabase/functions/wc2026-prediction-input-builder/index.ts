@@ -122,6 +122,7 @@ function getSupabase() {
 async function buildPredictionInput(
   supabase: ReturnType<typeof getSupabase>,
   fixture: FixtureRow,
+  dryRun: boolean,
 ): Promise<{ built: boolean; reason?: string }> {
   const afId = fixture.api_football_fixture_id;
 
@@ -262,28 +263,30 @@ async function buildPredictionInput(
   };
 
   // Upsert prediction input
-  await supabase
-    .from("wc_match_prediction_inputs")
-    .upsert({
-      api_football_fixture_id:  afId,
-      fixture_id:               fixture.id,
-      home_team_id:             homeTeamId,
-      away_team_id:             awayTeamId,
-      referee_name:             refereeName,
-      lineup_status:            lineupAnnounced ? "announced" : "not_announced",
-      home_lineup_score:        homeXiScore,
-      away_lineup_score:        awayXiScore,
-      home_starting_xi_score:   homeXiScore,
-      away_starting_xi_score:   awayXiScore,
-      home_bench_score:         homeBenchScore,
-      away_bench_score:         awayBenchScore,
-      referee_card_score:       refereeCardScore,
-      data_quality_score:       dataQualityScore,
-      missing_fields:           missingFields,
-      inputs,
-      generated_at:             now,
-      updated_at:               now,
-    }, { onConflict: "api_football_fixture_id" });
+  if (!dryRun) {
+    await supabase
+      .from("wc_match_prediction_inputs")
+      .upsert({
+        api_football_fixture_id:  afId,
+        fixture_id:               fixture.id,
+        home_team_id:             homeTeamId,
+        away_team_id:             awayTeamId,
+        referee_name:             refereeName,
+        lineup_status:            lineupAnnounced ? "announced" : "not_announced",
+        home_lineup_score:        homeXiScore,
+        away_lineup_score:        awayXiScore,
+        home_starting_xi_score:   homeXiScore,
+        away_starting_xi_score:   awayXiScore,
+        home_bench_score:         homeBenchScore,
+        away_bench_score:         awayBenchScore,
+        referee_card_score:       refereeCardScore,
+        data_quality_score:       dataQualityScore,
+        missing_fields:           missingFields,
+        inputs,
+        generated_at:             now,
+        updated_at:               now,
+      }, { onConflict: "api_football_fixture_id" });
+  }
 
   return { built: true };
 }
@@ -292,6 +295,9 @@ async function buildPredictionInput(
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 200, headers: corsHeaders });
+
+  const url    = new URL(req.url);
+  const dryRun = url.searchParams.get("dryRun") === "true";
 
   const runId = await createSyncRun("wc2026-prediction-input-builder");
   let processed = 0;
@@ -319,13 +325,13 @@ Deno.serve(async (req: Request) => {
 
     const results: Record<string, unknown>[] = [];
     for (const fixture of fixtures) {
-      const result = await buildPredictionInput(supabase, fixture);
+      const result = await buildPredictionInput(supabase, fixture, dryRun);
       results.push({ fixture_id: fixture.api_football_fixture_id, ...result });
       if (result.built) processed++;
     }
 
-    await finishSyncRun(runId, "completed", { fixturesProcessed: processed, apiCalls: 0 });
-    return new Response(JSON.stringify({ ok: true, processed, results }), {
+    await finishSyncRun(runId, "completed", { fixturesProcessed: processed, apiCalls: 0, meta: { dryRun } });
+    return new Response(JSON.stringify({ ok: true, processed, results, dryRun }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {

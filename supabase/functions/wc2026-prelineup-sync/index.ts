@@ -68,6 +68,7 @@ function lineupQualityScore(home: LineupTeam, away: LineupTeam): number {
 async function processFixtureLineup(
   supabase: ReturnType<typeof getSupabase>,
   fixture: UpcomingFixture,
+  dryRun: boolean,
 ): Promise<{ status: string; playersQueued: number }> {
   const afId = fixture.api_football_fixture_id;
 
@@ -87,14 +88,16 @@ async function processFixtureLineup(
   const now = new Date().toISOString();
 
   if (result.data.length === 0) {
-    await supabase
-      .from("wc2026_fixtures")
-      .update({
-        lineups_available: false,
-        lineup_status: "not_available_yet",
-        last_lineup_check_at: now,
-      })
-      .eq("api_football_fixture_id", afId);
+    if (!dryRun) {
+      await supabase
+        .from("wc2026_fixtures")
+        .update({
+          lineups_available: false,
+          lineup_status: "not_available_yet",
+          last_lineup_check_at: now,
+        })
+        .eq("api_football_fixture_id", afId);
+    }
     return { status: "not_available", playersQueued: 0 };
   }
 
@@ -107,49 +110,51 @@ async function processFixtureLineup(
 
   const qualityScore = lineupQualityScore(home, away);
 
-  // Upsert wc_fixture_lineups for home team
-  for (const team of [home, away]) {
+  if (!dryRun) {
+    // Upsert wc_fixture_lineups for home team
+    for (const team of [home, away]) {
+      await supabase
+        .from("wc_fixture_lineups")
+        .upsert({
+          api_football_fixture_id: afId,
+          team_id:          team.team.id,
+          team_name:        team.team.name,
+          formation:        team.formation ?? null,
+          coach:            team.coach ?? null,
+          start_xi:         team.startXI,
+          substitutes:      team.substitutes,
+          raw:              team,
+          lineup_announced_at: now,
+          updated_at:       now,
+        }, { onConflict: "api_football_fixture_id,team_id" });
+    }
+
+    // Update wc2026_fixtures
+    const { data: existing } = await supabase
+      .from("wc2026_fixtures")
+      .select("lineup_announced_at")
+      .eq("api_football_fixture_id", afId)
+      .single();
+
     await supabase
-      .from("wc_fixture_lineups")
-      .upsert({
-        api_football_fixture_id: afId,
-        team_id:          team.team.id,
-        team_name:        team.team.name,
-        formation:        team.formation ?? null,
-        coach:            team.coach ?? null,
-        start_xi:         team.startXI,
-        substitutes:      team.substitutes,
-        raw:              team,
-        lineup_announced_at: now,
-        updated_at:       now,
-      }, { onConflict: "api_football_fixture_id,team_id" });
+      .from("wc2026_fixtures")
+      .update({
+        lineups_available:         true,
+        lineup_status:             "announced",
+        lineup_announced_at:       existing?.lineup_announced_at ?? now,
+        last_lineup_check_at:      now,
+        home_start_xi_count:       home.startXI.length,
+        away_start_xi_count:       away.startXI.length,
+        home_sub_count:            home.substitutes.length,
+        away_sub_count:            away.substitutes.length,
+        home_formation:            home.formation ?? null,
+        away_formation:            away.formation ?? null,
+        coach_home:                home.coach?.name ?? null,
+        coach_away:                away.coach?.name ?? null,
+        lineup_data_quality_score: qualityScore,
+      })
+      .eq("api_football_fixture_id", afId);
   }
-
-  // Update wc2026_fixtures
-  const { data: existing } = await supabase
-    .from("wc2026_fixtures")
-    .select("lineup_announced_at")
-    .eq("api_football_fixture_id", afId)
-    .single();
-
-  await supabase
-    .from("wc2026_fixtures")
-    .update({
-      lineups_available:         true,
-      lineup_status:             "announced",
-      lineup_announced_at:       existing?.lineup_announced_at ?? now,
-      last_lineup_check_at:      now,
-      home_start_xi_count:       home.startXI.length,
-      away_start_xi_count:       away.startXI.length,
-      home_sub_count:            home.substitutes.length,
-      away_sub_count:            away.substitutes.length,
-      home_formation:            home.formation ?? null,
-      away_formation:            away.formation ?? null,
-      coach_home:                home.coach?.name ?? null,
-      coach_away:                away.coach?.name ?? null,
-      lineup_data_quality_score: qualityScore,
-    })
-    .eq("api_football_fixture_id", afId);
 
   // Queue enrichment profiles for all players
   const allPlayers = [
@@ -160,25 +165,29 @@ async function processFixtureLineup(
   ];
 
   let queued = 0;
-  for (const p of allPlayers) {
-    if (!p.name) continue;
-    const { error } = await supabase
-      .from("wc_player_enrichment_profiles")
-      .upsert({
-        player_id:      p.id ?? null,
-        player_name:    p.name,
-        normalized_name: normalizeName(p.name),
-        api_team_id:    p.team_id,
-        lookup_status:  "pending",
-        profile:        {},
-        statistics:     {},
-        derived_score:  {},
-        updated_at:     now,
-      }, {
-        onConflict: "player_name,api_team_id",
-        ignoreDuplicates: false,
-      });
-    if (!error) queued++;
+  if (!dryRun) {
+    for (const p of allPlayers) {
+      if (!p.name) continue;
+      const { error } = await supabase
+        .from("wc_player_enrichment_profiles")
+        .upsert({
+          player_id:      p.id ?? null,
+          player_name:    p.name,
+          normalized_name: normalizeName(p.name),
+          api_team_id:    p.team_id,
+          lookup_status:  "pending",
+          profile:        {},
+          statistics:     {},
+          derived_score:  {},
+          updated_at:     now,
+        }, {
+          onConflict: "player_name,api_team_id",
+          ignoreDuplicates: false,
+        });
+      if (!error) queued++;
+    }
+  } else {
+    queued = allPlayers.filter(p => p.name).length;
   }
 
   return { status: "announced", playersQueued: queued };
@@ -188,6 +197,9 @@ async function processFixtureLineup(
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 200, headers: corsHeaders });
+
+  const url    = new URL(req.url);
+  const dryRun = url.searchParams.get("dryRun") === "true";
 
   const runId = await createSyncRun("wc2026-prelineup-sync");
   let fixturesProcessed = 0;
@@ -222,20 +234,20 @@ Deno.serve(async (req: Request) => {
     }
 
     for (const fixture of fixtures) {
-      const { status, playersQueued } = await processFixtureLineup(supabase, fixture);
+      const { status, playersQueued } = await processFixtureLineup(supabase, fixture, dryRun);
       fixturesProcessed++;
       apiCalls++;
       totalQueued += playersQueued;
-      console.log(`[prelineup] fixture ${fixture.api_football_fixture_id}: ${status}, queued ${playersQueued}`);
+      console.log(`[prelineup] fixture ${fixture.api_football_fixture_id}: ${status}, queued ${playersQueued}${dryRun ? " [dryRun]" : ""}`);
     }
 
     await finishSyncRun(runId, "completed", {
       fixturesProcessed,
       apiCalls,
-      meta: { players_queued: totalQueued },
+      meta: { players_queued: totalQueued, dryRun },
     });
 
-    return new Response(JSON.stringify({ ok: true, fixturesProcessed, apiCalls, playersQueued: totalQueued }), {
+    return new Response(JSON.stringify({ ok: true, fixturesProcessed, apiCalls, playersQueued: totalQueued, dryRun }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {

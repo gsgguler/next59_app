@@ -1186,8 +1186,7 @@ function LineupStatusBadge({ status }: { status: string }) {
 }
 
 async function invokeEdgeFunction(fnName: string): Promise<void> {
-  const url = `${(window as unknown as Record<string, string>).__SUPABASE_URL ?? ''}/functions/v1/${fnName}`;
-  await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+  await supabase.functions.invoke(fnName, { body: {} });
 }
 
 function PreMatchTab() {

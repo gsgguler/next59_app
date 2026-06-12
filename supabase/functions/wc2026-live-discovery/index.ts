@@ -42,6 +42,9 @@ const LIVE_STATUSES = new Set(["1H", "HT", "2H", "ET", "BT", "P", "INT", "LIVE"]
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 200, headers: corsHeaders });
 
+  const url    = new URL(req.url);
+  const dryRun = url.searchParams.get("dryRun") === "true";
+
   const runId = await createSyncRun("wc2026-live-discovery");
   let discovered = 0, apiCalls = 0;
 
@@ -76,25 +79,27 @@ Deno.serve(async (req: Request) => {
 
       liveWcFixtures.push(afId);
 
-      // Mark fixture as live in DB
-      await supabase
-        .from("wc2026_fixtures")
-        .update({
-          is_live:        true,
-          fixture_status: statusShort,
-          elapsed:        item.fixture.status.elapsed ?? null,
-          home_score:     item.goals.home,
-          away_score:     item.goals.away,
-          updated_at:     now,
-        })
-        .eq("api_football_fixture_id", afId);
+      if (!dryRun) {
+        // Mark fixture as live in DB
+        await supabase
+          .from("wc2026_fixtures")
+          .update({
+            is_live:        true,
+            fixture_status: statusShort,
+            elapsed:        item.fixture.status.elapsed ?? null,
+            home_score:     item.goals.home,
+            away_score:     item.goals.away,
+            updated_at:     now,
+          })
+          .eq("api_football_fixture_id", afId);
+      }
 
       discovered++;
-      console.log(`[live-discovery] WC2026 live fixture detected: ${afId} (${item.teams.home.name} vs ${item.teams.away.name}) ${statusShort}`);
+      console.log(`[live-discovery] WC2026 live fixture detected: ${afId} (${item.teams.home.name} vs ${item.teams.away.name}) ${statusShort}${dryRun ? " [dryRun]" : ""}`);
     }
 
     // Clear is_live flag for WC2026 fixtures NOT in the live response
-    if (liveWcFixtures.length >= 0) {
+    if (!dryRun && liveWcFixtures.length >= 0) {
       // Get currently marked-as-live fixtures in DB
       const { data: dbLiveFixtures } = await supabase
         .from("wc2026_fixtures")
@@ -118,10 +123,10 @@ Deno.serve(async (req: Request) => {
     await finishSyncRun(runId, "completed", {
       fixturesProcessed: discovered,
       apiCalls,
-      meta: { live_wc_fixtures: liveWcFixtures },
+      meta: { live_wc_fixtures: liveWcFixtures, dryRun },
     });
 
-    return new Response(JSON.stringify({ ok: true, discovered, liveFixtures: liveWcFixtures, apiCalls }), {
+    return new Response(JSON.stringify({ ok: true, discovered, liveFixtures: liveWcFixtures, apiCalls, dryRun }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
