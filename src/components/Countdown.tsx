@@ -1,17 +1,33 @@
 import { useState, useEffect } from 'react';
-import { getWorldCupCountdown } from '../lib/worldCupCountdown';
+import {
+  getWorldCupCountdown,
+  getCountdownFromTarget,
+  getActiveCountdownFixture,
+} from '../lib/worldCupCountdown';
+import { ALL_WC2026_FIXTURES } from '../data/worldCup2026Fixtures';
 
 interface CountdownProps {
   compact?: boolean;
+  /**
+   * Optional override: countdown to this UTC timestamp (ms).
+   * When omitted, uses getActiveCountdownFixture() to pick the next/live match.
+   */
+  targetMs?: number;
 }
 
-export default function Countdown({ compact = false }: CountdownProps) {
-  const [time, setTime] = useState(() => getWorldCupCountdown());
+export default function Countdown({ compact = false, targetMs }: CountdownProps) {
+  const [now, setNow] = useState(Date.now);
 
   useEffect(() => {
-    const id = setInterval(() => setTime(getWorldCupCountdown()), 1000);
+    const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
+
+  // Resolve target: explicit prop > dynamic selection > legacy opening match
+  const activeTargetMs = getActiveCountdownFixture(ALL_WC2026_FIXTURES, new Map(), now).targetMs;
+  const resolvedTargetMs = targetMs ?? (activeTargetMs || (getWorldCupCountdown(now).totalMs + now));
+
+  const time = getCountdownFromTarget(resolvedTargetMs, now);
 
   const blocks = [
     { value: time.days,    label: 'GUN' },
