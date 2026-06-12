@@ -1368,6 +1368,7 @@ function WcPredictionPanel({
   isTBD,
   homeTeamName,
   awayTeamName,
+  isPageFinished,
 }: {
   fixtureUuid: string | null;
   apiFootballFixtureId: number | null;
@@ -1376,6 +1377,7 @@ function WcPredictionPanel({
   isTBD: boolean;
   homeTeamName: string;
   awayTeamName: string;
+  isPageFinished: boolean;
 }) {
   const [state, setState] = useState<WcScenarioState>({
     scenario: null, homeProfile: null, awayProfile: null,
@@ -1600,13 +1602,15 @@ function WcPredictionPanel({
         </div>
       </div>
 
-      {/* Predicted Score */}
-      <div className="flex items-center justify-center gap-4 py-2.5 bg-navy-800/40 rounded-lg">
-        <span className="text-xs text-slate-400 uppercase tracking-wider">Tahmini Skor</span>
-        <span className="text-xl font-bold font-mono text-white tabular-nums">
-          {scenario.predicted_score_home} – {scenario.predicted_score_away}
-        </span>
-      </div>
+      {/* Predicted Score — hidden when finished result block shows it */}
+      {!isPageFinished && (
+        <div className="flex items-center justify-center gap-4 py-2.5 bg-navy-800/40 rounded-lg">
+          <span className="text-xs text-slate-400 uppercase tracking-wider">Tahmini Skor</span>
+          <span className="text-xl font-bold font-mono text-white tabular-nums">
+            {scenario.predicted_score_home} – {scenario.predicted_score_away}
+          </span>
+        </div>
+      )}
 
       {/* Team Strength Comparison */}
       {(homeProfile || awayProfile) && (
@@ -1705,6 +1709,76 @@ function WcPredictionPanel({
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
+interface FinishedResultBlockProps {
+  homeTeamName: string;
+  awayTeamName: string;
+  homeScore: number;
+  awayScore: number;
+  statusShort: string;
+  fixtureUuid: string | null;
+}
+
+function FinishedResultBlock({
+  homeTeamName,
+  awayTeamName,
+  homeScore,
+  awayScore,
+  statusShort,
+  fixtureUuid,
+}: FinishedResultBlockProps) {
+  const [predictedHome, setPredictedHome] = useState<number | null>(null);
+  const [predictedAway, setPredictedAway] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!fixtureUuid) return;
+    supabase
+      .from('wc2026_projected_match_stats')
+      .select('home_goals_projection,away_goals_projection')
+      .eq('fixture_id', fixtureUuid)
+      .eq('is_current', true)
+      .eq('is_public', true)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          const h = data.home_goals_projection != null ? Math.round(Number(data.home_goals_projection)) : null;
+          const a = data.away_goals_projection != null ? Math.round(Number(data.away_goals_projection)) : null;
+          setPredictedHome(h);
+          setPredictedAway(a);
+        }
+      });
+  }, [fixtureUuid]);
+
+  const statusLabel = statusShort === 'AET' ? 'UZS' : statusShort === 'PEN' ? 'PEN' : 'MS';
+
+  return (
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 -mt-4 mb-6">
+      <div className="bg-navy-900/60 border border-navy-800 rounded-2xl p-4 text-center">
+        <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+          Maç Sonucu
+        </div>
+        <div className="flex items-center justify-center gap-3 text-white">
+          <span className="text-sm sm:text-base font-semibold">{homeTeamName}</span>
+          <span className="text-2xl sm:text-3xl font-black font-mono text-champagne tabular-nums">
+            {homeScore} – {awayScore}
+          </span>
+          <span className="text-sm sm:text-base font-semibold">{awayTeamName}</span>
+          <span className="text-[10px] px-2 py-1 rounded bg-slate-700/50 border border-slate-600/40 text-slate-300 font-mono">
+            {statusLabel}
+          </span>
+        </div>
+        {predictedHome != null && predictedAway != null && (
+          <div className="mt-3 pt-3 border-t border-navy-800/60 text-xs text-slate-400">
+            Tahminimiz:
+            <span className="ml-2 text-sm font-bold font-mono text-white">
+              {predictedHome} – {predictedAway}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function WcFixtureDetailPage() {
   const { fixtureId } = useParams<{ fixtureId: string }>();
   const navigate = useNavigate();
@@ -1721,6 +1795,12 @@ export default function WcFixtureDetailPage() {
     apiFootballFixtureId: number | null;
     homeApiTeamId: number | null;
     awayApiTeamId: number | null;
+  } | null>(null);
+
+  const [pageMatchState, setPageMatchState] = useState<{
+    status_short: string;
+    home_score: number | null;
+    away_score: number | null;
   } | null>(null);
 
   useEffect(() => {
@@ -1743,6 +1823,25 @@ export default function WcFixtureDetailPage() {
     return () => { cancelled = true; };
   }, [fixture?.match_no]);
 
+  // Fetch page-level match state for finished result block
+  useEffect(() => {
+    if (!dbFixture?.uuid) return;
+    let cancelled = false;
+    supabase
+      .from('wc2026_live_match_state_public')
+      .select('status_short,home_score,away_score')
+      .eq('fixture_id', dbFixture.uuid)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled && data) setPageMatchState({
+          status_short: data.status_short,
+          home_score: data.home_score,
+          away_score: data.away_score,
+        });
+      });
+    return () => { cancelled = true; };
+  }, [dbFixture?.uuid]);
+
   useEffect(() => {
     if (!fixture) { navigate('/world-cup-2026', { replace: true }); return; }
   }, [fixture, navigate]);
@@ -1762,6 +1861,13 @@ export default function WcFixtureDetailPage() {
   const matchDate = new Date(fixture.kickoff_utc).toLocaleDateString('tr-TR', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: userTZ,
   });
+
+  const isPageFinished =
+    pageMatchState !== null && FINISHED_STATUSES.has(pageMatchState.status_short);
+  const hasActualScore =
+    isPageFinished &&
+    pageMatchState!.home_score != null &&
+    pageMatchState!.away_score != null;
 
   const TABS = [
     { key: 'info' as const, label: 'Maç Bilgisi' },
@@ -1877,6 +1983,18 @@ export default function WcFixtureDetailPage() {
         </div>
       </section>
 
+      {/* ── Finished Match Result Block ── */}
+      {hasActualScore && pageMatchState && (
+        <FinishedResultBlock
+          homeTeamName={homeCountry?.name_tr ?? fixture.home_team}
+          awayTeamName={awayCountry?.name_tr ?? fixture.away_team}
+          homeScore={pageMatchState.home_score!}
+          awayScore={pageMatchState.away_score!}
+          statusShort={pageMatchState.status_short}
+          fixtureUuid={dbFixture?.uuid ?? null}
+        />
+      )}
+
       {/* ── Body ── */}
       <section className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
 
@@ -1961,6 +2079,7 @@ export default function WcFixtureDetailPage() {
             isTBD={isTBD}
             homeTeamName={fixture.home_team}
             awayTeamName={fixture.away_team}
+            isPageFinished={isPageFinished}
           />
 
         {/* Tabs */}
