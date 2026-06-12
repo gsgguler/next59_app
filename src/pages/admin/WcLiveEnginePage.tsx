@@ -4,7 +4,8 @@ import {
   WifiOff, ChevronDown,
   AlertCircle, Info, Zap, Radio, Calendar,
   BarChart2, HelpCircle, Search, MoreVertical,
-  RotateCcw, Eye, Trash2, Download, X,
+  RotateCcw, Eye, Trash2, Download, X, Clock,
+  Users, Shield, ClipboardList, PlayCircle,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -79,7 +80,7 @@ interface ActionMenuItem {
   variant?: 'default' | 'danger';
 }
 
-type TabId = 'overview' | 'fixtures' | 'engine-runs' | 'sync-runs';
+type TabId = 'overview' | 'fixtures' | 'engine-runs' | 'sync-runs' | 'prematch';
 type FixtureFilter = 'tumu' | 'live' | 'no_lineup' | 'no_events' | 'stale';
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
@@ -1125,6 +1126,309 @@ function SyncRunsTab() {
   );
 }
 
+// ─── PreMatch tab ─────────────────────────────────────────────────────────────
+
+interface PreMatchRow {
+  api_football_fixture_id: number;
+  fixture_id:              string;
+  match_date:              string | null;
+  home_team_name:          string;
+  away_team_name:          string;
+  fixture_status:          string;
+  lineups_available:       boolean;
+  lineup_status:           string;
+  last_lineup_check_at:    string | null;
+  lineup_announced_at:     string | null;
+  home_start_xi_count:     number;
+  away_start_xi_count:     number;
+  referee_name:            string | null;
+  referee_card_score:      number | null;
+  referee_confidence:      number | null;
+  data_quality_score:      number | null;
+  missing_fields:          string[] | null;
+  has_prediction_input:    boolean;
+  enrichment_pending_count: number;
+  enrichment_done_count:   number;
+  last_input_generated_at: string | null;
+}
+
+function QualityBar({ score }: { score: number | null }) {
+  if (score == null) return <span className="text-navy-600 text-[11px]">–</span>;
+  const color = score >= 70 ? 'bg-emerald-500' : score >= 40 ? 'bg-amber-500' : 'bg-red-500';
+  const textColor = score >= 70 ? 'text-emerald-400' : score >= 40 ? 'text-amber-400' : 'text-red-400';
+  return (
+    <div className="flex items-center gap-2">
+      <div className="w-16 h-1.5 bg-navy-800 rounded-full overflow-hidden">
+        <div className={`h-full ${color} rounded-full transition-all`} style={{ width: `${score}%` }} />
+      </div>
+      <span className={`text-[11px] font-mono font-semibold ${textColor}`}>{score}</span>
+    </div>
+  );
+}
+
+function LineupStatusBadge({ status }: { status: string }) {
+  const meta: Record<string, string> = {
+    announced:         'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25',
+    not_available_yet: 'bg-navy-800 text-navy-500',
+    not_checked:       'bg-navy-800 text-navy-600',
+  };
+  const label: Record<string, string> = {
+    announced:         'Açıklandı',
+    not_available_yet: 'Henüz Yok',
+    not_checked:       'Kontrol Edilmedi',
+  };
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${meta[status] ?? 'bg-navy-800 text-navy-500'}`}>
+      {label[status] ?? status}
+    </span>
+  );
+}
+
+async function invokeEdgeFunction(fnName: string): Promise<void> {
+  const url = `${(window as unknown as Record<string, string>).__SUPABASE_URL ?? ''}/functions/v1/${fnName}`;
+  await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+}
+
+function PreMatchTab() {
+  const [rows, setRows]       = useState<PreMatchRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState<string | null>(null);
+  const [triggering, setTriggering] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const { data, error: err } = await supabase
+        .rpc('wc2026_get_prematch_status', { p_limit: 40 });
+      if (err) throw err;
+      setRows((data ?? []) as PreMatchRow[]);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function trigger(fn: string) {
+    setTriggering(fn);
+    try {
+      await invokeEdgeFunction(fn);
+      setTimeout(() => { load(); setTriggering(null); }, 3000);
+    } catch {
+      setTriggering(null);
+    }
+  }
+
+  const lineupsMissing    = rows.filter(r => !r.lineups_available).length;
+  const enrichmentPending = rows.reduce((s, r) => s + r.enrichment_pending_count, 0);
+  const noInputs          = rows.filter(r => !r.has_prediction_input).length;
+  const noReferee         = rows.filter(r => !r.referee_name).length;
+
+  return (
+    <div className="space-y-4">
+      {error && <ErrorBanner message={error} />}
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: 'Kadro Bekleniyor', value: lineupsMissing,    icon: Users,        warn: lineupsMissing > 0 },
+          { label: 'Oyuncu Bekliyor',  value: enrichmentPending, icon: Search,       warn: enrichmentPending > 0 },
+          { label: 'Input Eksik',      value: noInputs,          icon: ClipboardList, warn: noInputs > 0 },
+          { label: 'Hakem Eksik',      value: noReferee,         icon: Shield,       warn: noReferee > 0 },
+        ].map(({ label, value, icon: Icon, warn }) => (
+          <div key={label} className={`bg-navy-900 border rounded-xl p-4 ${warn && value > 0 ? 'border-amber-500/20' : 'border-navy-800'}`}>
+            <div className="flex items-center gap-2 mb-2">
+              <Icon className={`w-4 h-4 ${warn && value > 0 ? 'text-amber-400' : 'text-navy-600'}`} />
+              <span className="text-[10px] text-navy-500 uppercase tracking-wide">{label}</span>
+            </div>
+            <p className={`text-2xl font-bold font-mono ${warn && value > 0 ? 'text-amber-400' : 'text-navy-500'}`}>
+              {loading ? '…' : value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Manual trigger buttons */}
+      <div className="bg-navy-900 border border-navy-800 rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <PlayCircle className="w-4 h-4 text-navy-500" />
+          <span className="text-xs font-semibold text-navy-300">Manuel Tetikleme</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { fn: 'wc2026-prelineup-sync',         label: 'Kadro Sync' },
+            { fn: 'wc2026-player-enrichment',       label: 'Oyuncu Enrichment' },
+            { fn: 'wc2026-referee-enrichment',      label: 'Hakem Enrichment' },
+            { fn: 'wc2026-prediction-input-builder',label: 'Input Builder' },
+          ].map(({ fn, label }) => (
+            <button
+              key={fn}
+              onClick={() => trigger(fn)}
+              disabled={triggering !== null}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+                triggering === fn
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  : 'bg-navy-800 border-navy-700 text-navy-300 hover:border-navy-600 hover:text-white disabled:opacity-40'
+              }`}
+            >
+              {triggering === fn
+                ? <RefreshCw className="w-3 h-3 animate-spin" />
+                : <PlayCircle className="w-3 h-3" />
+              }
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="text-[11px] text-navy-600 mt-2">
+          Tetikleme sonrası 3 saniye beklenip tablo yenilenir.
+        </p>
+      </div>
+
+      {/* Fixture table */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-navy-500">{rows.length} fikstür</span>
+        <button
+          onClick={load}
+          disabled={loading}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-navy-800 hover:bg-navy-700 text-navy-300 rounded-lg text-xs transition-all disabled:opacity-50"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          Yenile
+        </button>
+      </div>
+
+      {loading ? (
+        <Skeleton rows={10} />
+      ) : rows.length === 0 ? (
+        <EmptyState
+          title="Yaklaşan fikstür yok"
+          desc="Tamamlanmamış WC2026 fikstürü bulunamadı."
+        />
+      ) : (
+        <div className="bg-navy-950 border border-navy-800 rounded-xl overflow-x-auto">
+          <table className="w-full text-xs min-w-[800px]">
+            <thead>
+              <tr className="border-b border-navy-800 bg-navy-900/60">
+                <th className="px-3 py-2.5 text-left text-navy-500 font-medium">Maç</th>
+                <th className="px-3 py-2.5 text-left text-navy-500 font-medium w-28">Tarih</th>
+                <th className="px-3 py-2.5 text-left text-navy-500 font-medium w-28">Kadro</th>
+                <th className="px-3 py-2.5 text-left text-navy-500 font-medium w-20">XI</th>
+                <th className="px-3 py-2.5 text-left text-navy-500 font-medium w-32">Hakem</th>
+                <th className="px-3 py-2.5 text-left text-navy-500 font-medium w-24">Kart Skoru</th>
+                <th className="px-3 py-2.5 text-left text-navy-500 font-medium w-28">Veri Kalitesi</th>
+                <th className="px-3 py-2.5 text-left text-navy-500 font-medium w-24">Enrichment</th>
+                <th className="px-3 py-2.5 text-left text-navy-500 font-medium w-24">Input</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(row => {
+                const missing = row.missing_fields ?? [];
+                return (
+                  <tr
+                    key={row.api_football_fixture_id}
+                    className="border-b border-navy-800/50 hover:bg-navy-900/30 transition-colors"
+                  >
+                    <td className="px-3 py-2.5">
+                      <span className="font-medium text-white">
+                        {row.home_team_name} <span className="text-navy-500">vs</span> {row.away_team_name}
+                      </span>
+                      {missing.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-0.5">
+                          {missing.slice(0, 3).map(f => (
+                            <span key={f} className="text-[9px] bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded px-1">
+                              {f.replace(/_/g, ' ')}
+                            </span>
+                          ))}
+                          {missing.length > 3 && (
+                            <span className="text-[9px] text-navy-600">+{missing.length - 3}</span>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5 text-navy-500 font-mono">
+                      {row.match_date
+                        ? new Date(row.match_date).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+                        : '–'}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <LineupStatusBadge status={row.lineup_status} />
+                      {row.last_lineup_check_at && (
+                        <div className="text-[10px] text-navy-600 mt-0.5">
+                          {fmt(row.last_lineup_check_at)}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5 font-mono text-navy-300">
+                      {row.lineups_available
+                        ? `${row.home_start_xi_count}+${row.away_start_xi_count}`
+                        : <span className="text-navy-700">–</span>
+                      }
+                    </td>
+                    <td className="px-3 py-2.5">
+                      {row.referee_name
+                        ? <span className="text-navy-200 truncate block max-w-[120px]">{row.referee_name}</span>
+                        : <span className="text-navy-700 text-[11px]">Bilinmiyor</span>
+                      }
+                    </td>
+                    <td className="px-3 py-2.5">
+                      {row.referee_card_score != null
+                        ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono font-bold text-white">{row.referee_card_score}</span>
+                            {row.referee_confidence != null && (
+                              <span className="text-[10px] text-navy-600">({Math.round(row.referee_confidence * 100)}%)</span>
+                            )}
+                          </div>
+                        )
+                        : <span className="text-navy-700 text-[11px]">–</span>
+                      }
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <QualityBar score={row.data_quality_score} />
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center gap-1">
+                        {row.enrichment_pending_count > 0 && (
+                          <span className="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded px-1.5 py-0.5">
+                            {row.enrichment_pending_count} bekliyor
+                          </span>
+                        )}
+                        {row.enrichment_done_count > 0 && (
+                          <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded px-1.5 py-0.5">
+                            {row.enrichment_done_count} hazır
+                          </span>
+                        )}
+                        {row.enrichment_pending_count === 0 && row.enrichment_done_count === 0 && (
+                          <span className="text-navy-700 text-[11px]">–</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      {row.has_prediction_input
+                        ? (
+                          <div>
+                            <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded px-1.5 py-0.5">Hazır</span>
+                            {row.last_input_generated_at && (
+                              <div className="text-[10px] text-navy-600 mt-0.5">{fmt(row.last_input_generated_at)}</div>
+                            )}
+                          </div>
+                        )
+                        : <span className="text-[10px] bg-navy-800 text-navy-600 rounded px-1.5 py-0.5">Yok</span>
+                      }
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Page root ────────────────────────────────────────────────────────────────
 
 export default function WcLiveEnginePage() {
@@ -1219,6 +1523,7 @@ export default function WcLiveEnginePage() {
             { id: 'fixtures'    as TabId, label: 'Fikstür Durumu',    icon: Calendar },
             { id: 'engine-runs' as TabId, label: 'Motor Geçmişi',     icon: Zap },
             { id: 'sync-runs'   as TabId, label: 'Senkronizasyon Log', icon: Radio },
+            { id: 'prematch'    as TabId, label: 'Pre-Maç',           icon: ClipboardList },
           ] as const).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -1246,6 +1551,7 @@ export default function WcLiveEnginePage() {
         {tab === 'fixtures'    && <FixturesTab />}
         {tab === 'engine-runs' && <EngineRunsTab />}
         {tab === 'sync-runs'   && <SyncRunsTab />}
+        {tab === 'prematch'    && <PreMatchTab />}
       </div>
     </div>
   );
