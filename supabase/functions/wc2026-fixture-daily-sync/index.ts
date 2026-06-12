@@ -62,13 +62,17 @@ function deriveWinner(
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 200, headers: corsHeaders });
 
+  const url    = new URL(req.url);
+  const dryRun = url.searchParams.get("dryRun") === "true";
+
   const runId = await createSyncRun("wc2026-fixture-daily-sync");
   let processed = 0, apiCalls = 0;
+  const updatedFixtures: number[] = [];
 
   try {
     const supabase = getSupabase();
 
-    // Get all non-closed WC2026 fixtures with API IDs
+    // Get all non-closed WC2026 fixtures with API IDs (excludes 32 knockout placeholders)
     const { data: fixtures, error } = await supabase
       .from("wc2026_fixtures")
       .select("id, api_football_fixture_id, fixture_status, is_closed")
@@ -79,8 +83,8 @@ Deno.serve(async (req: Request) => {
 
     if (error) throw error;
     if (!fixtures || fixtures.length === 0) {
-      await finishSyncRun(runId, "skipped", { meta: { reason: "no open fixtures" } });
-      return new Response(JSON.stringify({ ok: true, skipped: true }), {
+      await finishSyncRun(runId, "skipped", { meta: { reason: "no open fixtures", dryRun } });
+      return new Response(JSON.stringify({ ok: true, skipped: true, dryRun }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -125,50 +129,58 @@ Deno.serve(async (req: Request) => {
           ? refereeRaw.replace(/\s*\([^)]+\)\s*$/, "").trim() || null
           : null;
 
-        const updatePayload: Record<string, unknown> = {
-          fixture_status:      statusShort,
-          is_live:             isLive,
-          elapsed:             item.fixture.status.elapsed ?? null,
-          home_score:          item.goals.home,
-          away_score:          item.goals.away,
-          home_score_ht:       item.score.halftime.home,
-          away_score_ht:       item.score.halftime.away,
-          last_daily_sync_at:  now,
-          updated_at:          now,
-        };
+        updatedFixtures.push(afId);
 
-        if (refereeName) updatePayload.referee_name = refereeName;
+        if (!dryRun) {
+          const updatePayload: Record<string, unknown> = {
+            fixture_status:      statusShort,
+            is_live:             isLive,
+            elapsed:             item.fixture.status.elapsed ?? null,
+            home_score:          item.goals.home,
+            away_score:          item.goals.away,
+            home_score_ht:       item.score.halftime.home,
+            away_score_ht:       item.score.halftime.away,
+            last_daily_sync_at:  now,
+            updated_at:          now,
+          };
 
-        if (isTerminal) {
-          updatePayload.final_home_score   = item.score.fulltime.home ?? item.goals.home;
-          updatePayload.final_away_score   = item.score.fulltime.away ?? item.goals.away;
-          updatePayload.winner             = winner;
-          updatePayload.finished_at        = updatePayload.finished_at ?? now;
-          updatePayload.finalization_status = "awaiting_finalization";
-        }
+          if (refereeName) updatePayload.referee_name = refereeName;
 
-        await supabase
-          .from("wc2026_fixtures")
-          .update(updatePayload)
-          .eq("api_football_fixture_id", afId);
+          if (isTerminal) {
+            updatePayload.final_home_score    = item.score.fulltime.home ?? item.goals.home;
+            updatePayload.final_away_score    = item.score.fulltime.away ?? item.goals.away;
+            updatePayload.winner              = winner;
+            updatePayload.finished_at         = updatePayload.finished_at ?? now;
+            updatePayload.finalization_status = "awaiting_finalization";
+          }
 
-        // Queue terminal fixtures for finalization
-        if (isTerminal) {
           await supabase
-            .from("wc_fixture_finalization_queue")
-            .upsert(
-              { api_football_fixture_id: afId, status: "pending", updated_at: now },
-              { onConflict: "api_football_fixture_id", ignoreDuplicates: true },
-            );
+            .from("wc2026_fixtures")
+            .update(updatePayload)
+            .eq("api_football_fixture_id", afId);
+
+          // Queue terminal fixtures for finalization
+          if (isTerminal) {
+            await supabase
+              .from("wc_fixture_finalization_queue")
+              .upsert(
+                { api_football_fixture_id: afId, status: "pending", updated_at: now },
+                { onConflict: "api_football_fixture_id", ignoreDuplicates: true },
+              );
+          }
         }
 
         processed++;
-        console.log(`[daily-sync] fixture ${afId}: ${statusShort}, score ${item.goals.home}-${item.goals.away}`);
+        console.log(`[daily-sync] fixture ${afId}: ${statusShort}, score ${item.goals.home}-${item.goals.away}${dryRun ? " [dryRun]" : ""}`);
       }
     }
 
-    await finishSyncRun(runId, "completed", { fixturesProcessed: processed, apiCalls });
-    return new Response(JSON.stringify({ ok: true, processed, apiCalls }), {
+    await finishSyncRun(runId, "completed", {
+      fixturesProcessed: processed,
+      apiCalls,
+      meta: { dryRun, updated_fixtures: updatedFixtures },
+    });
+    return new Response(JSON.stringify({ ok: true, processed, apiCalls, dryRun, updatedFixtures }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
