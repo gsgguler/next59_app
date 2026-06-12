@@ -470,7 +470,7 @@ interface LiveFlowRow {
 const LIVE_STATUSES = new Set(['1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE']);
 const FINISHED_STATUSES = new Set(['FT', 'AET', 'PEN']);
 
-function Wc5MinFlowPanel({ fixtureUuid, apiFootballFixtureId, isTBD }: { fixtureUuid: string | null; apiFootballFixtureId: number | null; isTBD: boolean }) {
+function Wc5MinFlowPanel({ fixtureUuid, apiFootballFixtureId, isTBD, hideFinishedResult }: { fixtureUuid: string | null; apiFootballFixtureId: number | null; isTBD: boolean; hideFinishedResult?: boolean }) {
   const [prematchRows, setPrematchRows] = useState<FlowPeriodRow[]>([]);
   const [liveState, setLiveState] = useState<LiveMatchState | null>(null);
   const [liveRows, setLiveRows] = useState<LiveFlowRow[]>([]);
@@ -564,7 +564,7 @@ function Wc5MinFlowPanel({ fixtureUuid, apiFootballFixtureId, isTBD }: { fixture
         <div className="flex items-center gap-2.5">
           <Timer className="w-4 h-4 text-champagne shrink-0" />
           <span className="text-sm font-bold text-white">
-            {isLive ? 'Canlı Maç Akışı' : isFinished ? 'Maç Sonucu' : '5 Dakikalık Maç Senaryosu'}
+            {isLive ? 'Canlı Maç Akışı' : (isFinished && hideFinishedResult) ? '5 Dakikalık Maç Senaryosu' : isFinished ? 'Maç Sonucu' : '5 Dakikalık Maç Senaryosu'}
           </span>
           {isLive && (
             <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-red-900/50 border border-red-700/50 text-red-300 font-bold animate-pulse">
@@ -572,7 +572,7 @@ function Wc5MinFlowPanel({ fixtureUuid, apiFootballFixtureId, isTBD }: { fixture
               CANLI {liveState.elapsed_minute ? `${liveState.elapsed_minute}'` : ''}
             </span>
           )}
-          {isFinished && liveState && (
+          {isFinished && !hideFinishedResult && liveState && (
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/50 border border-slate-600/40 text-slate-300 font-mono">
               {liveState.home_score ?? 0}–{liveState.away_score ?? 0} {liveState.status_short}
             </span>
@@ -587,8 +587,8 @@ function Wc5MinFlowPanel({ fixtureUuid, apiFootballFixtureId, isTBD }: { fixture
       {expanded && (
         <div className="px-4 pb-4 pt-3 space-y-3 bg-navy-900/20">
 
-          {/* Live score banner */}
-          {(isLive || isFinished) && liveState && (
+          {/* Live score banner — suppressed for finished matches when FinishedResultBlock is visible above */}
+          {(isLive || (isFinished && !hideFinishedResult)) && liveState && (
             <div className="flex items-center justify-center gap-3 py-2.5 bg-navy-800/50 rounded-lg border border-navy-700/50">
               <span className="text-lg font-black font-mono text-white tabular-nums">
                 {liveState.home_score ?? 0}–{liveState.away_score ?? 0}
@@ -1676,7 +1676,7 @@ function WcPredictionPanel({
       </div>
 
       {/* DB-driven 5-min flow panel */}
-      <Wc5MinFlowPanel fixtureUuid={fixtureUuid} apiFootballFixtureId={apiFootballFixtureId} isTBD={isTBD} />
+      <Wc5MinFlowPanel fixtureUuid={fixtureUuid} apiFootballFixtureId={apiFootballFixtureId} isTBD={isTBD} hideFinishedResult={isPageFinished} />
 
       {/* Projected stats card */}
       <WcProjectedStatsCard fixtureUuid={fixtureUuid} isTBD={isTBD} />

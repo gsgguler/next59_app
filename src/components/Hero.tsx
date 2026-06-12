@@ -171,7 +171,10 @@ export function Hero() {
               <div className="text-white text-lg font-bold">Turnuva tamamlandı</div>
             </div>
           ) : active.fixture && (
-            <div className="w-full max-w-md rounded-2xl bg-navy-900/70 border border-navy-700/50 backdrop-blur-sm shadow-2xl shadow-navy-950/60 overflow-hidden">
+            <Link
+              to={`/world-cup-2026/mac/${active.fixture.id}`}
+              className="w-full max-w-md rounded-2xl bg-navy-900/70 border border-navy-700/50 backdrop-blur-sm shadow-2xl shadow-navy-950/60 overflow-hidden block hover:border-champagne/30 transition-colors duration-200"
+            >
 
               {/* Card header */}
               <div className="px-4 pt-4 pb-3 border-b border-navy-800/60 flex items-center justify-between gap-3">
@@ -283,7 +286,7 @@ export function Hero() {
                 </div>
               </div>
 
-            </div>
+            </Link>
           )}
         </div>
 
