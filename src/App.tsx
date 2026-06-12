@@ -13,6 +13,7 @@ import WorldCup2026Page from './pages/WorldCup2026Page';
 import WorldCupHistoryPage from './pages/WorldCupHistoryPage';
 import WcMatchDetailPage from './pages/WcMatchDetailPage';
 import WcFixtureDetailPage from './pages/WcFixtureDetailPage';
+import WcStandingsPage from './pages/WcStandingsPage';
 import MatchDetailPage from './pages/MatchDetailPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -122,6 +123,7 @@ export default function App() {
                 <Route path="/world-cup-2026" element={<WorldCup2026Page />} />
                 <Route path="/world-cup/tarihce" element={<WorldCupHistoryPage />} />
                 <Route path="/world-cup/tarihce/mac/:matchId" element={<WcMatchDetailPage />} />
+                <Route path="/world-cup-2026/puan-durumu" element={<WcStandingsPage />} />
                 <Route path="/world-cup-2026/mac/:fixtureId" element={<WcFixtureDetailPage />} />
 
                 {/* Maç Arşivi */}

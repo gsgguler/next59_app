@@ -75,6 +75,7 @@ const NAV: NavItem[] = [
     to: '/world-cup-2026',
     children: [
       { label: 'WC 2026 Fikstür', to: '/world-cup-2026' },
+      { label: 'WC 2026 Puan Durumu', to: '/world-cup-2026/puan-durumu' },
       { label: 'Tarihsel Arşiv (1930–2022)', to: '/world-cup/tarihce' },
     ],
   },
