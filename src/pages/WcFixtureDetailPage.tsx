@@ -16,6 +16,7 @@ import { supabase } from '../lib/supabase';
 import { STAGE_LABELS, stageOrder, type WcMatch } from './WorldCupHistoryPage';
 import type { WcScenarioData, WcTeamProfile } from '../hooks/useWcScenarios';
 import SEO from '../components/seo/SEO';
+import { LIVE_MATCH_DURATION_MS } from '../lib/worldCupCountdown';
 
 const userTZ = getUserTimeZone();
 
@@ -1740,8 +1741,8 @@ function FinishedResultBlock({
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
-          const h = data.home_goals_projection != null ? Math.round(Number(data.home_goals_projection)) : null;
-          const a = data.away_goals_projection != null ? Math.round(Number(data.away_goals_projection)) : null;
+          const h = data.home_goals_projection != null ? Math.floor(Number(data.home_goals_projection)) : null;
+          const a = data.away_goals_projection != null ? Math.floor(Number(data.away_goals_projection)) : null;
           setPredictedHome(h);
           setPredictedAway(a);
         }
@@ -1751,7 +1752,7 @@ function FinishedResultBlock({
   const statusLabel = statusShort === 'AET' ? 'UZS' : statusShort === 'PEN' ? 'PEN' : 'MS';
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 -mt-4 mb-6">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 mt-4 mb-6">
       <div className="bg-navy-900/60 border border-navy-800 rounded-2xl p-4 text-center">
         <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
           Maç Sonucu
@@ -1868,6 +1869,9 @@ export default function WcFixtureDetailPage() {
     isPageFinished &&
     pageMatchState!.home_score != null &&
     pageMatchState!.away_score != null;
+
+  const kickoffMs = new Date(fixture.kickoff_utc).getTime();
+  const isLikelyFinished = !isTBD && Date.now() > kickoffMs + LIVE_MATCH_DURATION_MS;
 
   const TABS = [
     { key: 'info' as const, label: 'Maç Bilgisi' },
@@ -1994,6 +1998,14 @@ export default function WcFixtureDetailPage() {
           fixtureUuid={dbFixture?.uuid ?? null}
         />
       )}
+      {isLikelyFinished && !isPageFinished && (
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 mt-4 mb-6">
+          <div className="bg-navy-900/60 border border-navy-800 rounded-2xl p-4 text-center">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Maç Tamamlandı</div>
+            <p className="text-sm text-slate-300">Sonuç verisi güncelleniyor, kısa süre içinde görüntülenecek.</p>
+          </div>
+        </div>
+      )}
 
       {/* ── Body ── */}
       <section className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
@@ -2079,7 +2091,7 @@ export default function WcFixtureDetailPage() {
             isTBD={isTBD}
             homeTeamName={fixture.home_team}
             awayTeamName={fixture.away_team}
-            isPageFinished={isPageFinished}
+            isPageFinished={isPageFinished || isLikelyFinished}
           />
 
         {/* Tabs */}

@@ -12,6 +12,8 @@ import type { WcScenarioData } from '../../hooks/useWcScenarios';
 
 const userTZ = getUserTimeZone();
 
+const FINISHED_STATUSES_SET = new Set(['FT', 'AET', 'PEN', 'completed']);
+
 // ── Flag ──────────────────────────────────────────────────────────────────────
 
 function CountryFlag({ iso2 }: { iso2: string }) {
@@ -126,15 +128,21 @@ function ProbBar({ scenario }: { scenario: WcScenarioData }) {
 export function WC2026FixtureCard({
   fixture,
   scenario,
+  liveState,
 }: {
   fixture: WC2026Fixture;
   scenario?: WcScenarioData;
+  liveState?: { status_short: string; home_score: number | null; away_score: number | null };
 }) {
   const isTBD = fixture.home_team_code === 'TBD' || fixture.home_team === 'TBD';
   const trTime = formatMatchDateTime(fixture.kickoff_utc, userTZ);
   const stageLabel = STAGE_LABELS_TR[fixture.stage];
   const groupLabel = fixture.group ? `Grup ${fixture.group}` : null;
   const venue = VENUE_META[fixture.venue];
+
+  const isFinished = liveState != null && FINISHED_STATUSES_SET.has(liveState.status_short);
+  const hasScore = isFinished && liveState!.home_score != null && liveState!.away_score != null;
+  const statusLabel = liveState?.status_short === 'AET' ? 'UZS' : liveState?.status_short === 'PEN' ? 'PEN' : 'MS';
 
   function tbdLabel(name: string) {
     return name && name !== 'TBD' ? name : 'Belirlenecek';
@@ -167,7 +175,18 @@ export function WC2026FixtureCard({
         )}
 
         <div className="flex flex-col items-center px-1.5 shrink-0">
-          <span className="text-xs font-bold tracking-widest text-champagne/70 uppercase">VS</span>
+          {hasScore ? (
+            <div className="flex flex-col items-center gap-0.5">
+              <span className="text-base font-black font-mono text-champagne tabular-nums leading-tight">
+                {liveState!.home_score} – {liveState!.away_score}
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/50 border border-slate-600/40 text-slate-300 font-mono">
+                {statusLabel}
+              </span>
+            </div>
+          ) : (
+            <span className="text-xs font-bold tracking-widest text-champagne/70 uppercase">VS</span>
+          )}
         </div>
 
         {isTBD ? (

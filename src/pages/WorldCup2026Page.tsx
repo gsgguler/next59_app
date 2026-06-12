@@ -1,12 +1,14 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Trophy, Search, Filter, Calendar, Globe, ChevronDown, Info, History } from 'lucide-react';
+import { Trophy, Search, Filter, Calendar, Globe, ChevronDown, Info, History, ChevronRight } from 'lucide-react';
 import {
   ALL_WC2026_FIXTURES,
   WC2026_GROUPS,
   formatFixtureDateForTZ,
   getUserTimeZone,
   getLocalMatchDateKey,
+  formatMatchDateTime,
+  VENUE_META,
   type WC2026Fixture,
   type FixtureStage,
 } from '../data/worldCup2026Fixtures';
@@ -15,6 +17,8 @@ import { WC2026FixtureCard } from '../components/wc/WC2026FixtureCard';
 import { useWcScenarios } from '../hooks/useWcScenarios';
 import Countdown from '../components/Countdown';
 import SEO from '../components/seo/SEO';
+import { getActiveCountdownFixture } from '../lib/worldCupCountdown';
+import { supabase } from '../lib/supabase';
 
 // ---------------------------------------------------------------------------
 // Filter options
@@ -191,6 +195,80 @@ const GROUPS_DATA: Record<string, string[]> = {
 };
 
 // ---------------------------------------------------------------------------
+// Featured fixture card (dynamic)
+// ---------------------------------------------------------------------------
+
+const FINISHED_STATUSES_CARD = new Set(['FT', 'AET', 'PEN', 'completed']);
+
+function FeaturedFixtureCard({
+  fixture,
+  badgeLabel,
+  liveScore,
+}: {
+  fixture: WC2026Fixture;
+  badgeLabel: string;
+  liveScore?: { status_short: string; home_score: number | null; away_score: number | null };
+}) {
+  const home = COUNTRY_BY_FIFA[fixture.home_team_code];
+  const away = COUNTRY_BY_FIFA[fixture.away_team_code];
+  const isTBD = fixture.home_team_code === 'TBD' || fixture.away_team_code === 'TBD';
+  const venue = VENUE_META[fixture.venue];
+  const trTime = formatMatchDateTime(fixture.kickoff_utc, getUserTimeZone());
+  const isFinished = liveScore != null && FINISHED_STATUSES_CARD.has(liveScore.status_short);
+  const hasScore = isFinished && liveScore!.home_score != null && liveScore!.away_score != null;
+  const statusLabel = liveScore?.status_short === 'AET' ? 'UZS' : liveScore?.status_short === 'PEN' ? 'PEN' : 'MS';
+
+  return (
+    <Link
+      to={`/world-cup-2026/mac/${fixture.id}`}
+      className="inline-flex items-center gap-4 bg-navy-800/60 border border-navy-700/60 backdrop-blur-sm rounded-2xl px-6 py-4 hover:border-champagne/30 hover:bg-navy-800/80 transition-all group"
+    >
+      <div className="flex flex-col items-end gap-1 min-w-0">
+        {home ? (
+          <>
+            <span className={`fi fi-${home.iso2} w-8 h-[22px] rounded-[3px] shadow-sm`} style={{ display: 'inline-block' }} />
+            <span className="text-sm font-semibold text-white leading-tight">{home.name_en}</span>
+            <span className="text-xs text-slate-400">{home.name_tr}</span>
+          </>
+        ) : (
+          <span className="text-xs text-slate-400 italic">{isTBD ? 'TBD' : fixture.home_team}</span>
+        )}
+      </div>
+      <div className="flex flex-col items-center px-4 shrink-0">
+        <span className="text-xs font-bold text-champagne/80 tracking-widest uppercase mb-1">{badgeLabel}</span>
+        {hasScore ? (
+          <div className="flex items-center gap-2 my-1">
+            <span className="text-xl font-black font-mono text-champagne tabular-nums">
+              {liveScore!.home_score} – {liveScore!.away_score}
+            </span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/50 border border-slate-600/40 text-slate-300 font-mono">
+              {statusLabel}
+            </span>
+          </div>
+        ) : (
+          <span className="text-xs text-slate-300 mt-1">{trTime}</span>
+        )}
+        {venue && <span className="text-xs text-slate-400 mt-0.5">{venue.city_display}</span>}
+        <span className="text-xs text-champagne/60 mt-1 group-hover:text-champagne transition-colors flex items-center gap-1">
+          Detay <ChevronRight className="w-3 h-3" />
+        </span>
+      </div>
+      <div className="flex flex-col items-start gap-1 min-w-0">
+        {away ? (
+          <>
+            <span className={`fi fi-${away.iso2} w-8 h-[22px] rounded-[3px] shadow-sm`} style={{ display: 'inline-block' }} />
+            <span className="text-sm font-semibold text-white leading-tight">{away.name_en}</span>
+            <span className="text-xs text-slate-400">{away.name_tr}</span>
+          </>
+        ) : (
+          <span className="text-xs text-slate-400 italic">{isTBD ? 'TBD' : fixture.away_team}</span>
+        )}
+      </div>
+    </Link>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
 
@@ -205,6 +283,41 @@ export default function WorldCup2026Page() {
   const [groupsExpanded, setGroupsExpanded] = useState(false);
 
   const { scenarios } = useWcScenarios();
+
+  const [liveDbStatuses, setLiveDbStatuses] = useState<Map<string, string>>(new Map());
+  const [liveScores, setLiveScores] = useState<Map<string, { status_short: string; home_score: number | null; away_score: number | null }>>(new Map());
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      const { data: fixRows } = await supabase
+        .from('wc2026_fixtures')
+        .select('id, match_number');
+      if (!fixRows || cancelled) return;
+      const uuidToKey = new Map<string, string>();
+      for (const r of fixRows) {
+        if (r.match_number != null) uuidToKey.set(r.id, `wc2026-${String(r.match_number).padStart(3, '0')}`);
+      }
+      const { data: stateRows } = await supabase
+        .from('wc2026_live_match_state_public')
+        .select('fixture_id, status_short, home_score, away_score');
+      if (!stateRows || cancelled) return;
+      const statusMap = new Map<string, string>();
+      const scoreMap = new Map<string, { status_short: string; home_score: number | null; away_score: number | null }>();
+      for (const r of stateRows) {
+        const key = uuidToKey.get(r.fixture_id);
+        if (key) {
+          statusMap.set(key, r.status_short);
+          scoreMap.set(key, { status_short: r.status_short, home_score: r.home_score, away_score: r.away_score });
+        }
+      }
+      if (!cancelled) { setLiveDbStatuses(statusMap); setLiveScores(scoreMap); }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  const active = getActiveCountdownFixture(ALL_WC2026_FIXTURES, liveDbStatuses, Date.now());
 
   useEffect(() => {
     setVisibleDates(INITIAL_DATES);
@@ -287,6 +400,17 @@ export default function WorldCup2026Page() {
             <Countdown />
           </div>
 
+          {/* Dynamic featured fixture card */}
+          {active.fixture && (
+            <div className="flex justify-center mb-6">
+              <FeaturedFixtureCard
+                fixture={active.fixture}
+                badgeLabel={active.badgeLabel}
+                liveScore={liveScores.get(active.fixture.id)}
+              />
+            </div>
+          )}
+
           {/* History link */}
           <div className="flex justify-center mb-10">
             <Link
@@ -297,29 +421,6 @@ export default function WorldCup2026Page() {
               Geçmiş Turnuvalar: 1930–2022 Arşivi
             </Link>
           </div>
-
-          {/* Opening match card — clickable */}
-          <Link
-            to="/world-cup-2026/mac/wc2026-001"
-            className="inline-flex items-center gap-4 bg-navy-800/60 border border-navy-700/60 backdrop-blur-sm rounded-2xl px-6 py-4 hover:border-champagne/30 hover:bg-navy-800/80 transition-all group"
-          >
-            <div className="flex flex-col items-end gap-1 min-w-0">
-              <span className="fi fi-mx w-8 h-[22px] rounded-[3px] shadow-sm" style={{ display: 'inline-block' }} />
-              <span className="text-sm font-semibold text-white leading-tight">Mexico</span>
-              <span className="text-xs text-slate-400">Meksika</span>
-            </div>
-            <div className="flex flex-col items-center px-4">
-              <span className="text-xs font-bold text-champagne/80 tracking-widest uppercase">Açılış Maçı</span>
-              <span className="text-xs text-slate-300 mt-1">11 Haz · 22:00 TRT</span>
-              <span className="text-xs text-slate-400 mt-0.5">Estadio Azteca</span>
-              <span className="text-xs text-champagne/60 mt-1 group-hover:text-champagne transition-colors">Detay →</span>
-            </div>
-            <div className="flex flex-col items-start gap-1 min-w-0">
-              <span className="fi fi-za w-8 h-[22px] rounded-[3px] shadow-sm" style={{ display: 'inline-block' }} />
-              <span className="text-sm font-semibold text-white leading-tight">South Africa</span>
-              <span className="text-xs text-slate-400">Güney Afrika</span>
-            </div>
-          </Link>
         </div>
       </section>
 
@@ -492,7 +593,7 @@ export default function WorldCup2026Page() {
                   </h3>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {grouped.get(dateKey)!.map((f) => (
-                      <WC2026FixtureCard key={f.id} fixture={f} scenario={scenarios.get(f.match_no)} />
+                      <WC2026FixtureCard key={f.id} fixture={f} scenario={scenarios.get(f.match_no)} liveState={liveScores.get(f.id)} />
                     ))}
                   </div>
                 </div>

@@ -66,7 +66,7 @@ const LIVE_STATUSES = new Set(['1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE']);
 const FINISHED_STATUSES = new Set(['FT', 'AET', 'PEN', 'completed']);
 
 /** Approximate live-match duration: 90 min + 15 min stoppage buffer */
-const LIVE_MATCH_DURATION_MS = (90 + 15) * 60 * 1000;
+export const LIVE_MATCH_DURATION_MS = (90 + 15) * 60 * 1000;
 
 // ---------------------------------------------------------------------------
 // Active fixture selection

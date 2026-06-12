@@ -52,15 +52,29 @@ export function Hero() {
 
   // Fetch live match states once on mount
   useEffect(() => {
-    supabase
-      .from('wc2026_live_match_state_public')
-      .select('fixture_id, status')
-      .then(({ data }) => {
-        if (!data) return;
-        const map = new Map<string, string>();
-        for (const row of data) map.set(row.fixture_id, row.status);
-        setLiveDbStatuses(map);
-      });
+    let cancelled = false;
+    async function load() {
+      const { data: fixRows } = await supabase
+        .from('wc2026_fixtures')
+        .select('id, match_number');
+      if (!fixRows || cancelled) return;
+      const uuidToKey = new Map<string, string>();
+      for (const r of fixRows) {
+        if (r.match_number != null) uuidToKey.set(r.id, `wc2026-${String(r.match_number).padStart(3, '0')}`);
+      }
+      const { data } = await supabase
+        .from('wc2026_live_match_state_public')
+        .select('fixture_id, status_short');
+      if (!data || cancelled) return;
+      const map = new Map<string, string>();
+      for (const row of data) {
+        const key = uuidToKey.get(row.fixture_id);
+        if (key) map.set(key, row.status_short);
+      }
+      if (!cancelled) setLiveDbStatuses(map);
+    }
+    load();
+    return () => { cancelled = true; };
   }, []);
 
   async function handleLeadSubmit(e: React.FormEvent) {
