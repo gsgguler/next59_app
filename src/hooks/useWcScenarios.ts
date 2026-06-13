@@ -116,10 +116,17 @@ export function useWcScenarios(): UseWcScenariosResult {
 
         if (scenErr) throw new Error(scenErr.message);
 
+        const DB_TO_STATIC: Record<string, string> = {
+          'Czech Republic': 'Czechia',
+          'Bosnia & Herzegovina': 'Bosnia and Herzegovina',
+          'Cape Verde Islands': 'Cape Verde',
+        };
+        const normTeam = (n: string) => DB_TO_STATIC[n] ?? n;
+
         const scenarioMap = new Map<string, WcScenarioData>();
         for (const row of scenarioRows ?? []) {
           if (row.home_team_name && row.away_team_name) {
-            scenarioMap.set(`${row.home_team_name}||${row.away_team_name}`, row as WcScenarioData);
+            scenarioMap.set(`${normTeam(row.home_team_name)}||${normTeam(row.away_team_name)}`, row as WcScenarioData);
           }
         }
 

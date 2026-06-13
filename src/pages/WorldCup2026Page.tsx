@@ -296,6 +296,14 @@ export default function WorldCup2026Page() {
         .select('id, home_team_name, away_team_name, final_home_score, final_away_score, fixture_status');
       if (!fixRows || cancelled) return;
 
+      // DB team names differ from static in a few cases — normalize before lookup
+      const DB_TO_STATIC: Record<string, string> = {
+        'Czech Republic': 'Czechia',
+        'Bosnia & Herzegovina': 'Bosnia and Herzegovina',
+        'Cape Verde Islands': 'Cape Verde',
+      };
+      const normTeam = (n: string) => DB_TO_STATIC[n] ?? n;
+
       // Build team-name → static fixture id lookup (DB match_number ≠ static match_no)
       const teamPairToStaticId = new Map<string, string>();
       for (const f of ALL_WC2026_FIXTURES) {
@@ -307,7 +315,7 @@ export default function WorldCup2026Page() {
       const statusMap = new Map<string, string>();
 
       for (const r of fixRows) {
-        const key = teamPairToStaticId.get(`${r.home_team_name}||${r.away_team_name}`);
+        const key = teamPairToStaticId.get(`${normTeam(r.home_team_name)}||${normTeam(r.away_team_name)}`);
         if (!key) continue;
         uuidToKey.set(r.id, key);
         // Use final scores from fixtures table as baseline for finished matches
