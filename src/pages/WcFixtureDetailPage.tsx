@@ -1910,18 +1910,28 @@ export default function WcFixtureDetailPage() {
     if (!fixture || fixture.home_team_code === 'TBD' || fixture.away_team_code === 'TBD') return;
     let cancelled = false;
     setDbFixture(null);
+    // Primary: resolve by public_fixture_key (group stage fixtures)
+    // Fallback: team-pair name match (safety net for knockout TBD fixtures)
     const STATIC_TO_DB: Record<string, string> = {
       'Czechia': 'Czech Republic',
       'Bosnia and Herzegovina': 'Bosnia & Herzegovina',
       'Cape Verde': 'Cape Verde Islands',
     };
     const toDb = (n: string) => STATIC_TO_DB[n] ?? n;
-    supabase
-      .from('wc2026_fixtures')
-      .select('id, api_football_fixture_id, home_api_team_id, away_api_team_id, final_home_score, final_away_score')
-      .eq('home_team_name', toDb(fixture.home_team))
-      .eq('away_team_name', toDb(fixture.away_team))
-      .maybeSingle()
+    const hasPrimaryKey = fixture.id.startsWith('wc2026-');
+    const query = hasPrimaryKey
+      ? supabase
+          .from('wc2026_fixtures')
+          .select('id, api_football_fixture_id, home_api_team_id, away_api_team_id, final_home_score, final_away_score')
+          .eq('public_fixture_key', fixture.id)
+          .maybeSingle()
+      : supabase
+          .from('wc2026_fixtures')
+          .select('id, api_football_fixture_id, home_api_team_id, away_api_team_id, final_home_score, final_away_score')
+          .eq('home_team_name', toDb(fixture.home_team))
+          .eq('away_team_name', toDb(fixture.away_team))
+          .maybeSingle();
+    query
       .then(({ data }) => {
         if (!cancelled && data) {
           setDbFixture({

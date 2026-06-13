@@ -56,7 +56,7 @@ export function Hero() {
     async function load() {
       const { data: fixRows } = await supabase
         .from('wc2026_fixtures')
-        .select('id, home_team_name, away_team_name');
+        .select('id, public_fixture_key, home_team_name, away_team_name');
       if (!fixRows || cancelled) return;
       const DB_TO_STATIC: Record<string, string> = {
         'Czech Republic': 'Czechia',
@@ -70,7 +70,8 @@ export function Hero() {
       }
       const uuidToKey = new Map<string, string>();
       for (const r of fixRows) {
-        const key = teamPairToStaticId.get(`${normTeam(r.home_team_name)}||${normTeam(r.away_team_name)}`);
+        const key = r.public_fixture_key
+          ?? teamPairToStaticId.get(`${normTeam(r.home_team_name)}||${normTeam(r.away_team_name)}`);
         if (key) uuidToKey.set(r.id, key);
       }
       const { data } = await supabase

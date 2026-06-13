@@ -290,13 +290,14 @@ export default function WorldCup2026Page() {
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      // Pull match_number → uuid mapping AND final scores in one query
+      // Primary: resolve DB uuid → static key via public_fixture_key
+      // Fallback: team-pair name match (knockout/TBD fixtures without public_fixture_key)
       const { data: fixRows } = await supabase
         .from('wc2026_fixtures')
-        .select('id, home_team_name, away_team_name, final_home_score, final_away_score, fixture_status');
+        .select('id, public_fixture_key, home_team_name, away_team_name, final_home_score, final_away_score, fixture_status');
       if (!fixRows || cancelled) return;
 
-      // DB team names differ from static in a few cases — normalize before lookup
+      // Fallback normalization for fixtures without public_fixture_key
       const DB_TO_STATIC: Record<string, string> = {
         'Czech Republic': 'Czechia',
         'Bosnia & Herzegovina': 'Bosnia and Herzegovina',
@@ -304,7 +305,6 @@ export default function WorldCup2026Page() {
       };
       const normTeam = (n: string) => DB_TO_STATIC[n] ?? n;
 
-      // Build team-name → static fixture id lookup (DB match_number ≠ static match_no)
       const teamPairToStaticId = new Map<string, string>();
       for (const f of ALL_WC2026_FIXTURES) {
         teamPairToStaticId.set(`${f.home_team}||${f.away_team}`, f.id);
@@ -315,7 +315,9 @@ export default function WorldCup2026Page() {
       const statusMap = new Map<string, string>();
 
       for (const r of fixRows) {
-        const key = teamPairToStaticId.get(`${normTeam(r.home_team_name)}||${normTeam(r.away_team_name)}`);
+        // Prefer public_fixture_key; fall back to team-pair lookup
+        const key = r.public_fixture_key
+          ?? teamPairToStaticId.get(`${normTeam(r.home_team_name)}||${normTeam(r.away_team_name)}`);
         if (!key) continue;
         uuidToKey.set(r.id, key);
         // Use final scores from fixtures table as baseline for finished matches
