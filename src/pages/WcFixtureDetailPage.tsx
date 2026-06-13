@@ -1717,6 +1717,7 @@ interface FinishedResultBlockProps {
   awayScore: number;
   statusShort: string;
   fixtureUuid: string | null;
+  apiFootballFixtureId: number | null;
 }
 
 function FinishedResultBlock({
@@ -1726,9 +1727,13 @@ function FinishedResultBlock({
   awayScore,
   statusShort,
   fixtureUuid,
+  apiFootballFixtureId,
 }: FinishedResultBlockProps) {
   const [predictedHome, setPredictedHome] = useState<number | null>(null);
   const [predictedAway, setPredictedAway] = useState<number | null>(null);
+  const [homeWinProb, setHomeWinProb] = useState<number | null>(null);
+  const [drawProb, setDrawProb] = useState<number | null>(null);
+  const [awayWinProb, setAwayWinProb] = useState<number | null>(null);
 
   useEffect(() => {
     if (!fixtureUuid) return;
@@ -1749,17 +1754,61 @@ function FinishedResultBlock({
       });
   }, [fixtureUuid]);
 
+  useEffect(() => {
+    if (!apiFootballFixtureId) return;
+    supabase
+      .from('wc2026_calibration_runs')
+      .select('id')
+      .eq('run_status', 'completed')
+      .gt('matches_processed', 0)
+      .order('completed_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data: run }) => {
+        if (!run) return;
+        return supabase
+          .from('wc2026_match_scenario_calibration')
+          .select('home_win_probability,draw_probability,away_win_probability')
+          .eq('calibration_run_id', run.id)
+          .eq('api_football_fixture_id', apiFootballFixtureId)
+          .maybeSingle();
+      })
+      .then((res) => {
+        if (!res) return;
+        const { data } = res;
+        if (data) {
+          setHomeWinProb(Math.round(data.home_win_probability * 100));
+          setDrawProb(Math.round(data.draw_probability * 100));
+          setAwayWinProb(Math.round(data.away_win_probability * 100));
+        }
+      });
+  }, [apiFootballFixtureId]);
+
   const statusLabel = statusShort === 'AET' ? 'UZS' : statusShort === 'PEN' ? 'PEN' : 'MS';
+
+  // Determine actual outcome
+  const actualOutcome = homeScore > awayScore ? 'home' : awayScore > homeScore ? 'away' : 'draw';
+  const predictedOutcome =
+    predictedHome != null && predictedAway != null
+      ? predictedHome > predictedAway ? 'home' : predictedAway > predictedHome ? 'away' : 'draw'
+      : null;
+  const calledIt = predictedOutcome === actualOutcome;
+  const hasProbs = homeWinProb != null && drawProb != null && awayWinProb != null;
+
+  const favouredProb =
+    actualOutcome === 'home' ? homeWinProb :
+    actualOutcome === 'away' ? awayWinProb : drawProb;
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 mt-4 mb-6">
-      <div className="bg-navy-900/60 border border-navy-800 rounded-2xl p-4 text-center">
-        <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+      {/* Final score */}
+      <div className="bg-navy-900/60 border border-navy-800 rounded-2xl p-5 text-center mb-4">
+        <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
           Maç Sonucu
         </div>
         <div className="flex items-center justify-center gap-3 text-white">
           <span className="text-sm sm:text-base font-semibold">{homeTeamName}</span>
-          <span className="text-2xl sm:text-3xl font-black font-mono text-champagne tabular-nums">
+          <span className="text-3xl sm:text-4xl font-black font-mono text-champagne tabular-nums">
             {homeScore} – {awayScore}
           </span>
           <span className="text-sm sm:text-base font-semibold">{awayTeamName}</span>
@@ -1767,15 +1816,68 @@ function FinishedResultBlock({
             {statusLabel}
           </span>
         </div>
-        {predictedHome != null && predictedAway != null && (
-          <div className="mt-3 pt-3 border-t border-navy-800/60 text-xs text-slate-400">
-            Tahminimiz:
-            <span className="ml-2 text-sm font-bold font-mono text-white">
-              {predictedHome} – {predictedAway}
-            </span>
-          </div>
-        )}
       </div>
+
+      {/* Ne Dedik Ne Oldu */}
+      {(predictedHome != null || hasProbs) && (
+        <div className="bg-navy-900/60 border border-navy-800 rounded-2xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Target className="w-4 h-4 text-champagne shrink-0" />
+            <span className="text-sm font-bold text-white">Ne Dedik, Ne Oldu?</span>
+            {predictedOutcome && (
+              <span className={`ml-auto text-xs px-2.5 py-1 rounded-full font-semibold border ${
+                calledIt
+                  ? 'bg-emerald-900/40 border-emerald-700/40 text-emerald-300'
+                  : 'bg-red-900/40 border-red-700/40 text-red-300'
+              }`}>
+                {calledIt ? 'Tahmin Doğru' : 'Tahmin Yanlış'}
+              </span>
+            )}
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            {/* Predicted score */}
+            {predictedHome != null && predictedAway != null && (
+              <div className="bg-navy-800/40 rounded-xl p-3 text-center">
+                <div className="text-xs text-slate-400 mb-1">Tahmin Edilen Skor</div>
+                <div className="text-xl font-black font-mono text-white tabular-nums">
+                  {predictedHome} – {predictedAway}
+                </div>
+                <div className="text-xs text-slate-500 mt-1">
+                  {predictedOutcome === 'home' ? homeTeamName + ' galibiyeti' :
+                   predictedOutcome === 'away' ? awayTeamName + ' galibiyeti' : 'Beraberlik'} beklentisi
+                </div>
+              </div>
+            )}
+
+            {/* Outcome probabilities */}
+            {hasProbs && (
+              <div className="bg-navy-800/40 rounded-xl p-3">
+                <div className="text-xs text-slate-400 mb-2 text-center">Tahmin Edilen Olasılıklar</div>
+                <div className="space-y-2">
+                  <div className={`flex items-center justify-between text-xs ${actualOutcome === 'home' ? 'text-champagne font-semibold' : 'text-slate-400'}`}>
+                    <span>{homeTeamName} Galibiyet</span>
+                    <span className="font-mono tabular-nums">{homeWinProb}%</span>
+                  </div>
+                  <div className={`flex items-center justify-between text-xs ${actualOutcome === 'draw' ? 'text-champagne font-semibold' : 'text-slate-400'}`}>
+                    <span>Beraberlik</span>
+                    <span className="font-mono tabular-nums">{drawProb}%</span>
+                  </div>
+                  <div className={`flex items-center justify-between text-xs ${actualOutcome === 'away' ? 'text-champagne font-semibold' : 'text-slate-400'}`}>
+                    <span>{awayTeamName} Galibiyet</span>
+                    <span className="font-mono tabular-nums">{awayWinProb}%</span>
+                  </div>
+                </div>
+                {favouredProb != null && (
+                  <div className="mt-2 pt-2 border-t border-navy-700/40 text-xs text-slate-400 text-center">
+                    Gerçekleşen sonuca %{favouredProb} ihtimal vermişti
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1810,21 +1912,31 @@ export default function WcFixtureDetailPage() {
     setDbFixture(null);
     supabase
       .from('wc2026_fixtures')
-      .select('id, api_football_fixture_id, home_api_team_id, away_api_team_id')
+      .select('id, api_football_fixture_id, home_api_team_id, away_api_team_id, final_home_score, final_away_score')
       .eq('match_number', fixture.match_no)
       .maybeSingle()
       .then(({ data }) => {
-        if (!cancelled && data) setDbFixture({
-          uuid: data.id,
-          apiFootballFixtureId: data.api_football_fixture_id,
-          homeApiTeamId: data.home_api_team_id,
-          awayApiTeamId: data.away_api_team_id,
-        });
+        if (!cancelled && data) {
+          setDbFixture({
+            uuid: data.id,
+            apiFootballFixtureId: data.api_football_fixture_id,
+            homeApiTeamId: data.home_api_team_id,
+            awayApiTeamId: data.away_api_team_id,
+          });
+          // Use final scores from fixtures table as baseline
+          if (data.final_home_score != null && data.final_away_score != null) {
+            setPageMatchState(prev => prev ?? {
+              status_short: 'FT',
+              home_score: data.final_home_score,
+              away_score: data.final_away_score,
+            });
+          }
+        }
       });
     return () => { cancelled = true; };
   }, [fixture?.match_no]);
 
-  // Fetch page-level match state for finished result block
+  // Fetch page-level match state for finished result block (overrides fixture baseline)
   useEffect(() => {
     if (!dbFixture?.uuid) return;
     let cancelled = false;
@@ -1834,7 +1946,7 @@ export default function WcFixtureDetailPage() {
       .eq('fixture_id', dbFixture.uuid)
       .maybeSingle()
       .then(({ data }) => {
-        if (!cancelled && data) setPageMatchState({
+        if (!cancelled && data && data.home_score != null) setPageMatchState({
           status_short: data.status_short,
           home_score: data.home_score,
           away_score: data.away_score,
@@ -1996,6 +2108,7 @@ export default function WcFixtureDetailPage() {
           awayScore={pageMatchState.away_score!}
           statusShort={pageMatchState.status_short}
           fixtureUuid={dbFixture?.uuid ?? null}
+          apiFootballFixtureId={dbFixture?.apiFootballFixtureId ?? null}
         />
       )}
       {isLikelyFinished && !isPageFinished && (

@@ -259,6 +259,7 @@ export default function WcStandingsPage() {
       <SEO
         title="WC 2026 Puan Durumu | Next59"
         description="2026 FIFA Dünya Kupası grup puan durumları — tüm gruplar, takım istatistikleri ve sıralamalar."
+        canonical="/world-cup-2026/puan-durumu"
       />
 
       <div className="min-h-screen bg-navy-950">

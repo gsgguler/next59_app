@@ -32,7 +32,7 @@ function setLink(rel: string, href: string) {
   el.href = href;
 }
 
-export default function SEO({ title, description, canonical, ogType = 'website', ogImage }: SEOProps) {
+export default function SEO({ title, description, canonical = '', ogType = 'website', ogImage }: SEOProps) {
   const fullUrl = canonical.startsWith('http') ? canonical : `${BASE_URL}${canonical}`;
   const image = ogImage ?? DEFAULT_OG_IMAGE;
 

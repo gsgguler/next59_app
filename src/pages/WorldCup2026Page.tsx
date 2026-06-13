@@ -290,27 +290,43 @@ export default function WorldCup2026Page() {
   useEffect(() => {
     let cancelled = false;
     async function load() {
+      // Pull match_number → uuid mapping AND final scores in one query
       const { data: fixRows } = await supabase
         .from('wc2026_fixtures')
-        .select('id, match_number');
+        .select('id, match_number, final_home_score, final_away_score, fixture_status');
       if (!fixRows || cancelled) return;
+
       const uuidToKey = new Map<string, string>();
+      const scoreMap = new Map<string, { status_short: string; home_score: number | null; away_score: number | null }>();
+      const statusMap = new Map<string, string>();
+
       for (const r of fixRows) {
-        if (r.match_number != null) uuidToKey.set(r.id, `wc2026-${String(r.match_number).padStart(3, '0')}`);
+        if (r.match_number == null) continue;
+        const key = `wc2026-${String(r.match_number).padStart(3, '0')}`;
+        uuidToKey.set(r.id, key);
+        // Use final scores from fixtures table as baseline for finished matches
+        if (r.final_home_score != null && r.final_away_score != null) {
+          scoreMap.set(key, { status_short: 'FT', home_score: r.final_home_score, away_score: r.final_away_score });
+          statusMap.set(key, 'FT');
+        }
       }
+
+      // Overlay live/real-time state (may override the fixture-based FT above)
       const { data: stateRows } = await supabase
         .from('wc2026_live_match_state_public')
         .select('fixture_id, status_short, home_score, away_score');
       if (!stateRows || cancelled) return;
-      const statusMap = new Map<string, string>();
-      const scoreMap = new Map<string, { status_short: string; home_score: number | null; away_score: number | null }>();
+
       for (const r of stateRows) {
         const key = uuidToKey.get(r.fixture_id);
         if (key) {
           statusMap.set(key, r.status_short);
-          scoreMap.set(key, { status_short: r.status_short, home_score: r.home_score, away_score: r.away_score });
+          if (r.home_score != null && r.away_score != null) {
+            scoreMap.set(key, { status_short: r.status_short, home_score: r.home_score, away_score: r.away_score });
+          }
         }
       }
+
       if (!cancelled) { setLiveDbStatuses(statusMap); setLiveScores(scoreMap); }
     }
     load();

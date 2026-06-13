@@ -1,5 +1,6 @@
-import { Component } from 'react';
+import { Component, useEffect, useRef } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 import { captureError } from '../../lib/sentry';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 
@@ -12,14 +13,20 @@ interface State {
   error: Error | null;
 }
 
-export default class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
+class ErrorBoundaryInner extends Component<Props & { locationKey: string }, State> {
+  constructor(props: Props & { locationKey: string }) {
     super(props);
     this.state = { hasError: false, error: null };
   }
 
   static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
+  }
+
+  componentDidUpdate(prevProps: Props & { locationKey: string }) {
+    if (prevProps.locationKey !== this.props.locationKey && this.state.hasError) {
+      this.setState({ hasError: false, error: null });
+    }
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
@@ -80,4 +87,13 @@ export default class ErrorBoundary extends Component<Props, State> {
       </div>
     );
   }
+}
+
+export default function ErrorBoundary({ children }: Props) {
+  const location = useLocation();
+  return (
+    <ErrorBoundaryInner locationKey={location.key}>
+      {children}
+    </ErrorBoundaryInner>
+  );
 }

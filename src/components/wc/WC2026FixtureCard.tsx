@@ -141,6 +141,10 @@ export function WC2026FixtureCard({
   const venue = VENUE_META[fixture.venue];
 
   const isFinished = liveState != null && FINISHED_STATUSES_SET.has(liveState.status_short);
+  const kickoffMs = new Date(fixture.kickoff_utc).getTime();
+  const LIVE_DURATION_MS = (90 + 15) * 60 * 1000;
+  const isLikelyFinished = !isTBD && Date.now() > kickoffMs + LIVE_DURATION_MS;
+  const isDimmed = isFinished || isLikelyFinished;
   const hasScore = isFinished && liveState!.home_score != null && liveState!.away_score != null;
   const statusLabel = liveState?.status_short === 'AET' ? 'UZS' : liveState?.status_short === 'PEN' ? 'PEN' : 'MS';
 
@@ -151,9 +155,10 @@ export function WC2026FixtureCard({
   return (
     <Link
       to={`/world-cup-2026/mac/${fixture.id}`}
-      className="block relative bg-navy-900 border border-navy-800 rounded-xl p-4
+      className={`block relative bg-navy-900 border rounded-xl p-4
         hover:-translate-y-0.5 hover:shadow-lg hover:shadow-champagne/5 hover:border-champagne/20
-        transition-all duration-200 group cursor-pointer"
+        transition-all duration-200 group cursor-pointer
+        ${isDimmed ? 'border-navy-800/50 opacity-60 hover:opacity-80' : 'border-navy-800'}`}
     >
       {/* Stage + match no */}
       <div className="flex items-center justify-between mb-3">
@@ -161,6 +166,9 @@ export function WC2026FixtureCard({
           {groupLabel ? `${stageLabel} — ${groupLabel}` : stageLabel}
         </span>
         <div className="flex items-center gap-1.5">
+          {isDimmed && !isFinished && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/40 text-slate-500 font-mono">MS</span>
+          )}
           <span className="text-xs font-mono text-slate-400">#{fixture.match_no}</span>
           <ChevronRight className="w-3 h-3 text-navy-600 group-hover:text-champagne/60 transition-colors" />
         </div>

@@ -108,8 +108,8 @@ import AuthDebugPage from './pages/AuthDebugPage';
 
 export default function App() {
   return (
-    <ErrorBoundary>
-      <BrowserRouter>
+    <BrowserRouter>
+      <ErrorBoundary>
         <AuthProvider>
           <ToastProvider>
             <Routes>
@@ -245,7 +245,7 @@ export default function App() {
             <NotificationOptIn />
           </ToastProvider>
         </AuthProvider>
-      </BrowserRouter>
-    </ErrorBoundary>
+      </ErrorBoundary>
+    </BrowserRouter>
   );
 }
