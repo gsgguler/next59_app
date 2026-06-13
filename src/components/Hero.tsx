@@ -56,11 +56,16 @@ export function Hero() {
     async function load() {
       const { data: fixRows } = await supabase
         .from('wc2026_fixtures')
-        .select('id, match_number');
+        .select('id, home_team_name, away_team_name');
       if (!fixRows || cancelled) return;
+      const teamPairToStaticId = new Map<string, string>();
+      for (const f of ALL_WC2026_FIXTURES) {
+        teamPairToStaticId.set(`${f.home_team}||${f.away_team}`, f.id);
+      }
       const uuidToKey = new Map<string, string>();
       for (const r of fixRows) {
-        if (r.match_number != null) uuidToKey.set(r.id, `wc2026-${String(r.match_number).padStart(3, '0')}`);
+        const key = teamPairToStaticId.get(`${r.home_team_name}||${r.away_team_name}`);
+        if (key) uuidToKey.set(r.id, key);
       }
       const { data } = await supabase
         .from('wc2026_live_match_state_public')

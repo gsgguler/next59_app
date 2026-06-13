@@ -27,7 +27,7 @@ jobs:
             BODY='{"af_fixture_id":${{ github.event.inputs.af_fixture_id }}}'
           fi
           curl -s -w "\nHTTP_STATUS:%{http_code}" \
-            -X POST "${{ secrets.VITE.SUPABASE_URL }}/functions/v1/wc2026-live-sync" \
+            -X POST "${{ secrets.VITE_SUPABASE_URL }}/functions/v1/wc2026-live-sync" \
             -H "Content-Type: application/json" \
             -H "X-Internal-Secret: ${{ secrets.ADMIN_JOB_SECRET }}" \
             -d "$BODY" | tee /tmp/sync_response.txt

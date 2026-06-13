@@ -1913,7 +1913,8 @@ export default function WcFixtureDetailPage() {
     supabase
       .from('wc2026_fixtures')
       .select('id, api_football_fixture_id, home_api_team_id, away_api_team_id, final_home_score, final_away_score')
-      .eq('match_number', fixture.match_no)
+      .eq('home_team_name', fixture.home_team)
+      .eq('away_team_name', fixture.away_team)
       .maybeSingle()
       .then(({ data }) => {
         if (!cancelled && data) {

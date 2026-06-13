@@ -73,7 +73,7 @@ export interface WcQualifierStats {
 }
 
 interface UseWcScenariosResult {
-  scenarios: Map<number, WcScenarioData>;
+  scenarios: Map<string, WcScenarioData>;
   teamProfiles: Map<number, WcTeamProfile>;
   qualifierStats: Map<number, WcQualifierStats>;
   loading: boolean;
@@ -108,21 +108,7 @@ export function useWcScenarios(): UseWcScenariosResult {
         if (runErr) throw new Error(runErr.message);
         if (!run) { if (!cancelled) setLoading(false); return; }
 
-        // 2. Fetch fixture map: api_football_fixture_id → match_number
-        const { data: fixtures, error: fixErr } = await supabase
-          .from('wc2026_fixtures')
-          .select('match_number, api_football_fixture_id, home_api_team_id, away_api_team_id');
-
-        if (fixErr) throw new Error(fixErr.message);
-
-        const fixtureByApiId = new Map<number, number>(); // api_fixture_id → match_number
-        for (const f of fixtures ?? []) {
-          if (f.api_football_fixture_id) {
-            fixtureByApiId.set(f.api_football_fixture_id, f.match_number);
-          }
-        }
-
-        // 3. Fetch all scenario calibrations for this run
+        // 2. Fetch all scenario calibrations for this run (keyed by team pair)
         const { data: scenarioRows, error: scenErr } = await supabase
           .from('wc2026_match_scenario_calibration')
           .select('*')
@@ -130,11 +116,10 @@ export function useWcScenarios(): UseWcScenariosResult {
 
         if (scenErr) throw new Error(scenErr.message);
 
-        const scenarioMap = new Map<number, WcScenarioData>();
+        const scenarioMap = new Map<string, WcScenarioData>();
         for (const row of scenarioRows ?? []) {
-          const matchNo = fixtureByApiId.get(row.api_football_fixture_id);
-          if (matchNo !== undefined) {
-            scenarioMap.set(matchNo, row as WcScenarioData);
+          if (row.home_team_name && row.away_team_name) {
+            scenarioMap.set(`${row.home_team_name}||${row.away_team_name}`, row as WcScenarioData);
           }
         }
 

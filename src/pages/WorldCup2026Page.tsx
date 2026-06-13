@@ -293,16 +293,22 @@ export default function WorldCup2026Page() {
       // Pull match_number → uuid mapping AND final scores in one query
       const { data: fixRows } = await supabase
         .from('wc2026_fixtures')
-        .select('id, match_number, final_home_score, final_away_score, fixture_status');
+        .select('id, home_team_name, away_team_name, final_home_score, final_away_score, fixture_status');
       if (!fixRows || cancelled) return;
+
+      // Build team-name → static fixture id lookup (DB match_number ≠ static match_no)
+      const teamPairToStaticId = new Map<string, string>();
+      for (const f of ALL_WC2026_FIXTURES) {
+        teamPairToStaticId.set(`${f.home_team}||${f.away_team}`, f.id);
+      }
 
       const uuidToKey = new Map<string, string>();
       const scoreMap = new Map<string, { status_short: string; home_score: number | null; away_score: number | null }>();
       const statusMap = new Map<string, string>();
 
       for (const r of fixRows) {
-        if (r.match_number == null) continue;
-        const key = `wc2026-${String(r.match_number).padStart(3, '0')}`;
+        const key = teamPairToStaticId.get(`${r.home_team_name}||${r.away_team_name}`);
+        if (!key) continue;
         uuidToKey.set(r.id, key);
         // Use final scores from fixtures table as baseline for finished matches
         if (r.final_home_score != null && r.final_away_score != null) {
@@ -609,7 +615,7 @@ export default function WorldCup2026Page() {
                   </h3>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {grouped.get(dateKey)!.map((f) => (
-                      <WC2026FixtureCard key={f.id} fixture={f} scenario={scenarios.get(f.match_no)} liveState={liveScores.get(f.id)} />
+                      <WC2026FixtureCard key={f.id} fixture={f} scenario={scenarios.get(`${f.home_team}||${f.away_team}`)} liveState={liveScores.get(f.id)} />
                     ))}
                   </div>
                 </div>
