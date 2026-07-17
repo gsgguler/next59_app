@@ -1388,120 +1388,210 @@ function WcPredictionPanel({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (isTBD) { setLoading(false); return; }
-    if (!apiFootballFixtureId || !homeApiTeamId || !awayApiTeamId) { setLoading(false); return; }
+    if (isTBD) {
+      setState({
+        scenario: null, homeProfile: null, awayProfile: null,
+        homeQualifier: null, awayQualifier: null, scenario90: null, calibratedAt: null,
+        displayProbs: null,
+      });
+      setLoading(false);
+      return;
+    }
+
+    if (!apiFootballFixtureId || !homeApiTeamId || !awayApiTeamId) {
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
+    setLoading(true);
 
     async function fetchData() {
       try {
-      const { data: run } = await supabase
-        .from('wc2026_calibration_runs')
-        .select('id, completed_at')
-        .eq('run_status', 'completed')
-        .gt('matches_processed', 0)
-        .order('matches_processed', { ascending: false })
-        .order('completed_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!run || cancelled) { setLoading(false); return; }
-
-      const [{ data: scenRow }, { data: profiles }] = await Promise.all([
-        supabase
+        /*
+         * Match calibration must be resolved by the fixture itself.
+         * A team calibration run and a match-scenario run are different run types;
+         * selecting one global run for both caused fixtures #103/#104 to miss their
+         * valid scenario rows.
+         */
+        const { data: scenRow, error: scenarioError } = await supabase
           .from('wc2026_match_scenario_calibration')
           .select('*')
-          .eq('calibration_run_id', run.id)
           .eq('api_football_fixture_id', apiFootballFixtureId)
-          .maybeSingle(),
-        supabase
-          .from('wc2026_team_calibration_profiles')
-          .select('*')
-          .eq('calibration_run_id', run.id)
-          .in('api_football_team_id', [homeApiTeamId, awayApiTeamId]),
-      ]);
-
-      if (cancelled) return;
-
-      const homeProfile = (profiles ?? []).find(p => p.api_football_team_id === homeApiTeamId) ?? null;
-      const awayProfile = (profiles ?? []).find(p => p.api_football_team_id === awayApiTeamId) ?? null;
-
-      const teamIdStrings = [String(homeApiTeamId), String(awayApiTeamId)];
-      const [{ data: enrichedRows }, { data: scenario90Row }] = await Promise.all([
-        supabase
-          .from('wc_qualifier_team_summary')
-          .select('provider_team_id,team_name,confederation,matches_played,wins,draws,losses,goals_for,goals_against,goal_difference,points,win_rate,goals_for_per_match,goals_against_per_match,avg_possession_pct,avg_total_shots,avg_shots_on_goal,avg_corners,avg_yellow_cards,total_xg,xg_per_match')
-          .eq('provider', 'api_football')
-          .in('provider_team_id', teamIdStrings),
-        supabase
-          .from('wc2026_match_90min_scenarios')
-          .select('tempo_profile,first_15_story,minutes_15_30_story,minutes_30_45_story,minutes_45_60_story,minutes_60_75_story,minutes_75_90_story,key_match_triggers,confidence_label')
-          .eq('fixture_id', apiFootballFixtureId)
-          .order('created_at', { ascending: false })
+          .order('calibrated_at', { ascending: false })
           .limit(1)
-          .maybeSingle(),
-      ]);
+          .maybeSingle();
 
-      const enrichedMap = new Map<string, WcEnrichedQualifier>();
-      for (const row of enrichedRows ?? []) {
-        enrichedMap.set(row.provider_team_id, {
-          team_name: row.team_name,
-          confederation: row.confederation,
-          matches_played: row.matches_played,
-          wins: row.wins,
-          draws: row.draws,
-          losses: row.losses,
-          goals_for: row.goals_for,
-          goals_against: row.goals_against,
-          goal_difference: row.goal_difference,
-          points: row.points,
-          win_rate: Number(row.win_rate),
-          goals_for_per_match: Number(row.goals_for_per_match),
-          goals_against_per_match: Number(row.goals_against_per_match),
-          avg_possession_pct: row.avg_possession_pct != null ? Number(row.avg_possession_pct) : null,
-          avg_total_shots: row.avg_total_shots != null ? Number(row.avg_total_shots) : null,
-          avg_shots_on_goal: row.avg_shots_on_goal != null ? Number(row.avg_shots_on_goal) : null,
-          avg_corners: row.avg_corners != null ? Number(row.avg_corners) : null,
-          avg_yellow_cards: row.avg_yellow_cards != null ? Number(row.avg_yellow_cards) : null,
-          total_xg: row.total_xg != null ? Number(row.total_xg) : null,
-          xg_per_match: row.xg_per_match != null ? Number(row.xg_per_match) : null,
-        });
-      }
+        if (scenarioError) throw scenarioError;
+        if (cancelled) return;
 
-      // Fetch display-safe calibrated probabilities (no internal source fields)
-      const { data: dpRow } = await supabase
-        .from('wc2026_fixture_display_probabilities')
-        .select('home_pct,draw_pct,away_pct,display_label')
-        .eq('fixture_id', fixtureUuid)
-        .maybeSingle();
+        const displayPromise = fixtureUuid
+          ? supabase
+              .from('wc2026_fixture_display_probabilities')
+              .select('home_pct,draw_pct,away_pct,display_label')
+              .eq('fixture_id', fixtureUuid)
+              .limit(1)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null });
 
-      const displayProbs: DisplayProbs | null = dpRow
-        ? {
-            home_pct: parseFloat(dpRow.home_pct),
-            draw_pct: parseFloat(dpRow.draw_pct),
-            away_pct: parseFloat(dpRow.away_pct),
-            display_label: dpRow.display_label ?? 'Next59 Kalibre Model Tahmini',
+        const [
+          profileRunResult,
+          enrichedResult,
+          scenario90Result,
+          displayResult,
+        ] = await Promise.all([
+          supabase
+            .from('wc2026_calibration_runs')
+            .select('id,completed_at')
+            .eq('run_status', 'completed')
+            .gt('teams_updated', 0)
+            .order('completed_at', { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+
+          supabase
+            .from('wc_qualifier_team_summary')
+            .select('provider_team_id,team_name,confederation,matches_played,wins,draws,losses,goals_for,goals_against,goal_difference,points,win_rate,goals_for_per_match,goals_against_per_match,avg_possession_pct,avg_total_shots,avg_shots_on_goal,avg_corners,avg_yellow_cards,total_xg,xg_per_match')
+            .eq('provider', 'api_football')
+            .in('provider_team_id', [String(homeApiTeamId), String(awayApiTeamId)]),
+
+          supabase
+            .from('wc2026_match_90min_scenarios')
+            .select('tempo_profile,first_15_story,minutes_15_30_story,minutes_30_45_story,minutes_45_60_story,minutes_60_75_story,minutes_75_90_story,key_match_triggers,confidence_label,created_at')
+            .eq('fixture_id', apiFootballFixtureId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+
+          displayPromise,
+        ]);
+
+        if (cancelled) return;
+
+        let profiles: WcTeamProfile[] = [];
+        const profileRun = profileRunResult.data;
+
+        if (profileRun?.id) {
+          const { data: profileRows, error: profileError } = await supabase
+            .from('wc2026_team_calibration_profiles')
+            .select('*')
+            .eq('calibration_run_id', profileRun.id)
+            .in('api_football_team_id', [homeApiTeamId, awayApiTeamId]);
+
+          if (!profileError && profileRows) {
+            profiles = profileRows as WcTeamProfile[];
           }
-        : null;
+        }
 
-      setState({
-        scenario: scenRow as WcScenarioData | null,
-        homeProfile: homeProfile as WcTeamProfile | null,
-        awayProfile: awayProfile as WcTeamProfile | null,
-        homeQualifier: enrichedMap.get(String(homeApiTeamId)) ?? null,
-        awayQualifier: enrichedMap.get(String(awayApiTeamId)) ?? null,
-        scenario90: scenario90Row as Wc90MinData | null,
-        calibratedAt: run.completed_at ?? null,
-        displayProbs,
-      });
-      setLoading(false);
-      } catch {
-        setLoading(false);
+        if (cancelled) return;
+
+        const homeProfile =
+          profiles.find(
+            p => Number(p.api_football_team_id) === Number(homeApiTeamId),
+          ) ?? null;
+
+        const awayProfile =
+          profiles.find(
+            p => Number(p.api_football_team_id) === Number(awayApiTeamId),
+          ) ?? null;
+
+        const enrichedMap = new Map<string, WcEnrichedQualifier>();
+
+        for (const row of enrichedResult.data ?? []) {
+          enrichedMap.set(String(row.provider_team_id), {
+            team_name: row.team_name,
+            confederation: row.confederation,
+            matches_played: row.matches_played,
+            wins: row.wins,
+            draws: row.draws,
+            losses: row.losses,
+            goals_for: row.goals_for,
+            goals_against: row.goals_against,
+            goal_difference: row.goal_difference,
+            points: row.points,
+            win_rate: Number(row.win_rate),
+            goals_for_per_match: Number(row.goals_for_per_match),
+            goals_against_per_match: Number(row.goals_against_per_match),
+            avg_possession_pct:
+              row.avg_possession_pct != null
+                ? Number(row.avg_possession_pct)
+                : null,
+            avg_total_shots:
+              row.avg_total_shots != null
+                ? Number(row.avg_total_shots)
+                : null,
+            avg_shots_on_goal:
+              row.avg_shots_on_goal != null
+                ? Number(row.avg_shots_on_goal)
+                : null,
+            avg_corners:
+              row.avg_corners != null ? Number(row.avg_corners) : null,
+            avg_yellow_cards:
+              row.avg_yellow_cards != null
+                ? Number(row.avg_yellow_cards)
+                : null,
+            total_xg:
+              row.total_xg != null ? Number(row.total_xg) : null,
+            xg_per_match:
+              row.xg_per_match != null ? Number(row.xg_per_match) : null,
+          });
+        }
+
+        const dpRow = displayResult.data;
+        const displayProbs: DisplayProbs | null = dpRow
+          ? {
+              home_pct: Number(dpRow.home_pct),
+              draw_pct: Number(dpRow.draw_pct),
+              away_pct: Number(dpRow.away_pct),
+              display_label:
+                dpRow.display_label ?? 'Next59 Kalibre Model Tahmini',
+            }
+          : null;
+
+        setState({
+          scenario: scenRow as WcScenarioData | null,
+          homeProfile,
+          awayProfile,
+          homeQualifier:
+            enrichedMap.get(String(homeApiTeamId)) ?? null,
+          awayQualifier:
+            enrichedMap.get(String(awayApiTeamId)) ?? null,
+          scenario90:
+            scenario90Result.data as Wc90MinData | null,
+          calibratedAt:
+            (scenRow as { calibrated_at?: string | null } | null)
+              ?.calibrated_at
+            ?? profileRun?.completed_at
+            ?? null,
+          displayProbs,
+        });
+      } catch (error) {
+        console.error(
+          'WC2026 prediction panel could not load fixture calibration:',
+          error,
+        );
+
+        if (!cancelled) {
+          setState({
+            scenario: null, homeProfile: null, awayProfile: null,
+            homeQualifier: null, awayQualifier: null, scenario90: null,
+            calibratedAt: null, displayProbs: null,
+          });
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
 
     fetchData();
     return () => { cancelled = true; };
-  }, [isTBD, apiFootballFixtureId, homeApiTeamId, awayApiTeamId]);
+  }, [
+    fixtureUuid,
+    isTBD,
+    apiFootballFixtureId,
+    homeApiTeamId,
+    awayApiTeamId,
+  ]);
 
   if (isTBD) {
     return (
@@ -1527,7 +1617,16 @@ function WcPredictionPanel({
     );
   }
 
-  const { scenario, homeProfile, awayProfile, homeQualifier, awayQualifier, calibratedAt, displayProbs } = state;
+  const {
+    scenario,
+    homeProfile,
+    awayProfile,
+    homeQualifier,
+    awayQualifier,
+    scenario90,
+    calibratedAt,
+    displayProbs,
+  } = state;
 
   if (!scenario) {
     return (
@@ -1552,6 +1651,20 @@ function WcPredictionPanel({
   const fmtDate = calibratedAt
     ? new Date(calibratedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
     : null;
+
+  const scenarioPeriods = scenario90
+    ? [
+        { label: '0–15', text: scenario90.first_15_story },
+        { label: '15–30', text: scenario90.minutes_15_30_story },
+        { label: '30–45', text: scenario90.minutes_30_45_story },
+        { label: '45–60', text: scenario90.minutes_45_60_story },
+        { label: '60–75', text: scenario90.minutes_60_75_story },
+        { label: '75–90', text: scenario90.minutes_75_90_story },
+      ].filter(
+        (period): period is { label: string; text: string } =>
+          Boolean(period.text),
+      )
+    : [];
 
   return (
     <div className="bg-navy-900/40 border border-navy-800/60 rounded-xl p-5 mt-6 space-y-5">
@@ -1676,6 +1789,70 @@ function WcPredictionPanel({
         <RiskBar value={scenario.first_half_goal_probability} label="İlk Yarı Gol İhtimali" color="emerald" />
       </div>
 
+      {/* Deterministic 90-minute scenario narrative */}
+      {scenario90 && scenarioPeriods.length > 0 && (
+        <div className="border border-navy-800/60 rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between gap-3 px-4 py-3 bg-navy-800/30">
+            <div className="flex items-center gap-2.5">
+              <BookOpen className="w-4 h-4 text-champagne shrink-0" />
+              <span className="text-sm font-bold text-white">
+                90 Dakikalık Maç Senaryosu
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              {scenario90.tempo_profile && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-navy-700 text-slate-300">
+                  {tempoTr(scenario90.tempo_profile)}
+                </span>
+              )}
+              {scenario90.confidence_label && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-900/40 border border-emerald-700/30 text-emerald-300">
+                  {confidenceTr(scenario90.confidence_label)} güven
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="p-4 space-y-2.5 bg-navy-900/20">
+            {scenarioPeriods.map(period => (
+              <div
+                key={period.label}
+                className="grid grid-cols-[46px_1fr] gap-3 px-3 py-2.5 rounded-lg bg-navy-800/25 border border-white/[0.04]"
+              >
+                <span className="text-xs font-bold font-mono text-champagne">
+                  {period.label}'
+                </span>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  {period.text}
+                </p>
+              </div>
+            ))}
+
+            {scenario90.key_match_triggers &&
+              scenario90.key_match_triggers.length > 0 && (
+                <div className="pt-2 border-t border-navy-800/40">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                      Kritik Tetikleyiciler
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {scenario90.key_match_triggers.map((trigger, index) => (
+                      <span
+                        key={`${trigger}-${index}`}
+                        className="text-xs px-2.5 py-1 rounded-full bg-navy-800 border border-navy-700 text-slate-300"
+                      >
+                        {trigger}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+          </div>
+        </div>
+      )}
+
       {/* DB-driven 5-min flow panel */}
       <Wc5MinFlowPanel fixtureUuid={fixtureUuid} apiFootballFixtureId={apiFootballFixtureId} isTBD={isTBD} hideFinishedResult={isPageFinished} />
 
@@ -1756,30 +1933,40 @@ function FinishedResultBlock({
 
   useEffect(() => {
     if (!apiFootballFixtureId) return;
+
     supabase
-      .from('wc2026_calibration_runs')
-      .select('id')
-      .eq('run_status', 'completed')
-      .gt('matches_processed', 0)
-      .order('completed_at', { ascending: false })
+      .from('wc2026_match_scenario_calibration')
+      .select('home_win_probability,draw_probability,away_win_probability,predicted_score_home,predicted_score_away')
+      .eq('api_football_fixture_id', apiFootballFixtureId)
+      .order('calibrated_at', { ascending: false })
       .limit(1)
       .maybeSingle()
-      .then(({ data: run }) => {
-        if (!run) return;
-        return supabase
-          .from('wc2026_match_scenario_calibration')
-          .select('home_win_probability,draw_probability,away_win_probability')
-          .eq('calibration_run_id', run.id)
-          .eq('api_football_fixture_id', apiFootballFixtureId)
-          .maybeSingle();
-      })
-      .then((res) => {
-        if (!res) return;
-        const { data } = res;
-        if (data) {
-          setHomeWinProb(Math.round(data.home_win_probability * 100));
-          setDrawProb(Math.round(data.draw_probability * 100));
-          setAwayWinProb(Math.round(data.away_win_probability * 100));
+      .then(({ data, error }) => {
+        if (error) {
+          console.error(
+            'WC2026 finished-result calibration could not be loaded:',
+            error,
+          );
+          return;
+        }
+
+        if (!data) return;
+
+        setHomeWinProb(
+          Math.round(Number(data.home_win_probability) * 100),
+        );
+        setDrawProb(
+          Math.round(Number(data.draw_probability) * 100),
+        );
+        setAwayWinProb(
+          Math.round(Number(data.away_win_probability) * 100),
+        );
+
+        if (data.predicted_score_home != null) {
+          setPredictedHome(Number(data.predicted_score_home));
+        }
+        if (data.predicted_score_away != null) {
+          setPredictedAway(Number(data.predicted_score_away));
         }
       });
   }, [apiFootballFixtureId]);
