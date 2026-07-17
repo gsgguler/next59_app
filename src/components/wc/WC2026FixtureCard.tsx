@@ -14,8 +14,6 @@ const userTZ = getUserTimeZone();
 
 const FINISHED_STATUSES_SET = new Set(['FT', 'AET', 'PEN', 'completed']);
 
-// ── Flag ──────────────────────────────────────────────────────────────────────
-
 function CountryFlag({ iso2 }: { iso2: string }) {
   return (
     <span
@@ -25,8 +23,6 @@ function CountryFlag({ iso2 }: { iso2: string }) {
     />
   );
 }
-
-// ── TBD placeholder ───────────────────────────────────────────────────────────
 
 function TBDTeam({ label, align = 'left' }: { label: string; align?: 'left' | 'right' }) {
   const isRight = align === 'right';
@@ -49,13 +45,11 @@ function TBDTeam({ label, align = 'left' }: { label: string; align?: 'left' | 'r
   );
 }
 
-// ── Team display ──────────────────────────────────────────────────────────────
-
-function TeamDisplay({ code, align = 'left' }: { code: string; align?: 'left' | 'right' }) {
+function TeamDisplay({ code, fallbackName, align = 'left' }: { code: string; fallbackName: string; align?: 'left' | 'right' }) {
   const country = COUNTRY_BY_FIFA[code];
   const isRight = align === 'right';
 
-  if (!country) return <TBDTeam label="TBD" align={align} />;
+  if (!country) return <TBDTeam label={fallbackName || 'Belirlenecek'} align={align} />;
 
   return (
     <div className={`flex-1 flex items-center gap-2 min-w-0 ${isRight ? 'justify-end' : ''}`}>
@@ -81,10 +75,6 @@ function TeamDisplay({ code, align = 'left' }: { code: string; align?: 'left' | 
   );
 }
 
-// ── Card ──────────────────────────────────────────────────────────────────────
-
-// ── Probability bar ───────────────────────────────────────────────────────────
-
 function ProbBar({ scenario }: { scenario: WcScenarioData }) {
   const hp = Math.round(scenario.home_win_probability * 100);
   const dp = Math.round(scenario.draw_probability * 100);
@@ -109,21 +99,13 @@ function ProbBar({ scenario }: { scenario: WcScenarioData }) {
         />
       </div>
       <div className="flex items-center justify-between mt-1.5 text-xs font-mono tabular-nums">
-        <span className={leading === 'home' ? 'text-champagne font-semibold' : 'text-slate-400'}>
-          {hp}% Ev
-        </span>
-        <span className={leading === 'draw' ? 'text-champagne/70 font-semibold' : 'text-slate-400'}>
-          {dp}% Ber.
-        </span>
-        <span className={leading === 'away' ? 'text-sky-400 font-semibold' : 'text-slate-400'}>
-          {ap}% Dep.
-        </span>
+        <span className={leading === 'home' ? 'text-champagne font-semibold' : 'text-slate-400'}>{hp}% Ev</span>
+        <span className={leading === 'draw' ? 'text-champagne/70 font-semibold' : 'text-slate-400'}>{dp}% Ber.</span>
+        <span className={leading === 'away' ? 'text-sky-400 font-semibold' : 'text-slate-400'}>{ap}% Dep.</span>
       </div>
     </div>
   );
 }
-
-// ── Card ──────────────────────────────────────────────────────────────────────
 
 export function WC2026FixtureCard({
   fixture,
@@ -134,7 +116,9 @@ export function WC2026FixtureCard({
   scenario?: WcScenarioData;
   liveState?: { status_short: string; home_score: number | null; away_score: number | null };
 }) {
-  const isTBD = fixture.home_team_code === 'TBD' || fixture.home_team === 'TBD';
+  const homeIsTBD = fixture.home_team_code === 'TBD' || fixture.home_team === 'TBD';
+  const awayIsTBD = fixture.away_team_code === 'TBD' || fixture.away_team === 'TBD';
+  const isResolved = !homeIsTBD && !awayIsTBD;
   const trTime = formatMatchDateTime(fixture.kickoff_utc, userTZ);
   const stageLabel = STAGE_LABELS_TR[fixture.stage];
   const groupLabel = fixture.group ? `Grup ${fixture.group}` : null;
@@ -143,7 +127,7 @@ export function WC2026FixtureCard({
   const isFinished = liveState != null && FINISHED_STATUSES_SET.has(liveState.status_short);
   const kickoffMs = new Date(fixture.kickoff_utc).getTime();
   const LIVE_DURATION_MS = (90 + 15) * 60 * 1000;
-  const isLikelyFinished = !isTBD && Date.now() > kickoffMs + LIVE_DURATION_MS;
+  const isLikelyFinished = isResolved && Date.now() > kickoffMs + LIVE_DURATION_MS;
   const isDimmed = isFinished || isLikelyFinished;
   const hasScore = isFinished && liveState!.home_score != null && liveState!.away_score != null;
   const statusLabel = liveState?.status_short === 'AET' ? 'UZS' : liveState?.status_short === 'PEN' ? 'PEN' : 'MS';
@@ -160,7 +144,6 @@ export function WC2026FixtureCard({
         transition-all duration-200 group cursor-pointer
         ${isDimmed ? 'border-navy-800/50 opacity-60 hover:opacity-80' : 'border-navy-800'}`}
     >
-      {/* Stage + match no */}
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs font-semibold uppercase tracking-wider text-champagne/90">
           {groupLabel ? `${stageLabel} — ${groupLabel}` : stageLabel}
@@ -174,12 +157,11 @@ export function WC2026FixtureCard({
         </div>
       </div>
 
-      {/* Teams row */}
       <div className="flex items-center gap-2">
-        {isTBD ? (
+        {homeIsTBD ? (
           <TBDTeam label={tbdLabel(fixture.home_team)} align="left" />
         ) : (
-          <TeamDisplay code={fixture.home_team_code} align="left" />
+          <TeamDisplay code={fixture.home_team_code} fallbackName={fixture.home_team} align="left" />
         )}
 
         <div className="flex flex-col items-center px-1.5 shrink-0">
@@ -197,17 +179,15 @@ export function WC2026FixtureCard({
           )}
         </div>
 
-        {isTBD ? (
+        {awayIsTBD ? (
           <TBDTeam label={tbdLabel(fixture.away_team)} align="right" />
         ) : (
-          <TeamDisplay code={fixture.away_team_code} align="right" />
+          <TeamDisplay code={fixture.away_team_code} fallbackName={fixture.away_team} align="right" />
         )}
       </div>
 
-      {/* Divider */}
       <div className="h-px bg-navy-800 my-3" />
 
-      {/* Venue meta */}
       <div className="flex items-start justify-between gap-2 text-xs text-slate-300">
         <div className="flex items-start gap-1 min-w-0">
           <MapPin className="w-3 h-3 text-slate-400 shrink-0 mt-px" />
@@ -217,9 +197,7 @@ export function WC2026FixtureCard({
                 <span className="text-slate-300">{venue.country_tr} · {venue.city_display}</span>
                 <span className="block text-slate-400 truncate">
                   {fixture.venue}
-                  {venue.capacity ? (
-                    <span className="text-slate-500"> · {venue.capacity.toLocaleString('tr-TR')} kişi</span>
-                  ) : null}
+                  {venue.capacity ? <span className="text-slate-500"> · {venue.capacity.toLocaleString('tr-TR')} kişi</span> : null}
                 </span>
               </>
             ) : (
@@ -230,8 +208,7 @@ export function WC2026FixtureCard({
         <div className="shrink-0 tabular-nums text-slate-300 font-semibold">{trTime}</div>
       </div>
 
-      {/* Prediction probability bar */}
-      {scenario && !isTBD && <ProbBar scenario={scenario} />}
+      {scenario && isResolved && <ProbBar scenario={scenario} />}
     </Link>
   );
 }
