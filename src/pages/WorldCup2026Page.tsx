@@ -9,6 +9,8 @@ import {
   getLocalMatchDateKey,
   formatMatchDateTime,
   VENUE_META,
+  normalizeWc2026TeamName,
+  resolveFifaCodeByTeamName,
   type WC2026Fixture,
   type FixtureStage,
 } from '../data/worldCup2026Fixtures';
@@ -211,7 +213,8 @@ function FeaturedFixtureCard({
 }) {
   const home = COUNTRY_BY_FIFA[fixture.home_team_code];
   const away = COUNTRY_BY_FIFA[fixture.away_team_code];
-  const isTBD = fixture.home_team_code === 'TBD' || fixture.away_team_code === 'TBD';
+  const homeIsTBD = fixture.home_team_code === 'TBD' || fixture.home_team === 'TBD';
+  const awayIsTBD = fixture.away_team_code === 'TBD' || fixture.away_team === 'TBD';
   const venue = VENUE_META[fixture.venue];
   const trTime = formatMatchDateTime(fixture.kickoff_utc, getUserTimeZone());
   const isFinished = liveScore != null && FINISHED_STATUSES_CARD.has(liveScore.status_short);
@@ -231,7 +234,7 @@ function FeaturedFixtureCard({
             <span className="text-xs text-slate-400">{home.name_tr}</span>
           </>
         ) : (
-          <span className="text-xs text-slate-400 italic">{isTBD ? 'TBD' : fixture.home_team}</span>
+          <span className="text-xs text-slate-400 italic">{homeIsTBD ? 'TBD' : fixture.home_team}</span>
         )}
       </div>
       <div className="flex flex-col items-center px-4 shrink-0">
@@ -261,7 +264,7 @@ function FeaturedFixtureCard({
             <span className="text-xs text-slate-400">{away.name_tr}</span>
           </>
         ) : (
-          <span className="text-xs text-slate-400 italic">{isTBD ? 'TBD' : fixture.away_team}</span>
+          <span className="text-xs text-slate-400 italic">{awayIsTBD ? 'TBD' : fixture.away_team}</span>
         )}
       </div>
     </Link>
@@ -284,79 +287,133 @@ export default function WorldCup2026Page() {
 
   const { scenarios } = useWcScenarios();
 
+  const [resolvedFixtures, setResolvedFixtures] = useState<WC2026Fixture[]>(ALL_WC2026_FIXTURES);
   const [liveDbStatuses, setLiveDbStatuses] = useState<Map<string, string>>(new Map());
   const [liveScores, setLiveScores] = useState<Map<string, { status_short: string; home_score: number | null; away_score: number | null }>>(new Map());
 
   useEffect(() => {
     let cancelled = false;
+    let timer: ReturnType<typeof setInterval> | undefined;
+
     async function load() {
-      // Primary: resolve DB uuid → static key via public_fixture_key
-      // Fallback: team-pair name match (knockout/TBD fixtures without public_fixture_key)
-      const { data: fixRows } = await supabase
+      const { data: fixRows, error: fixtureError } = await supabase
         .from('wc2026_fixtures')
-        .select('id, public_fixture_key, home_team_name, away_team_name, final_home_score, final_away_score, fixture_status');
+        .select(`
+          id,
+          public_fixture_key,
+          match_number,
+          home_team_name,
+          away_team_name,
+          final_home_score,
+          final_away_score,
+          home_score,
+          away_score,
+          is_live,
+          is_closed
+        `)
+        .order('match_number', { ascending: true });
+
+      if (fixtureError) {
+        console.error('WC2026 fixtures could not be loaded:', fixtureError);
+        return;
+      }
       if (!fixRows || cancelled) return;
 
-      // Fallback normalization for fixtures without public_fixture_key
-      const DB_TO_STATIC: Record<string, string> = {
-        'Czech Republic': 'Czechia',
-        'Bosnia & Herzegovina': 'Bosnia and Herzegovina',
-        'Cape Verde Islands': 'Cape Verde',
-      };
-      const normTeam = (n: string) => DB_TO_STATIC[n] ?? n;
-
-      const teamPairToStaticId = new Map<string, string>();
-      for (const f of ALL_WC2026_FIXTURES) {
-        teamPairToStaticId.set(`${f.home_team}||${f.away_team}`, f.id);
-      }
-
+      const dbByMatchNumber = new Map<number, (typeof fixRows)[number]>();
       const uuidToKey = new Map<string, string>();
       const scoreMap = new Map<string, { status_short: string; home_score: number | null; away_score: number | null }>();
       const statusMap = new Map<string, string>();
 
-      for (const r of fixRows) {
-        // Prefer public_fixture_key; fall back to team-pair lookup
-        const key = r.public_fixture_key
-          ?? teamPairToStaticId.get(`${normTeam(r.home_team_name)}||${normTeam(r.away_team_name)}`);
+      for (const row of fixRows) {
+        if (row.match_number != null) dbByMatchNumber.set(Number(row.match_number), row);
+
+        const staticFixture = ALL_WC2026_FIXTURES.find(
+          (fixture) => fixture.match_no === Number(row.match_number),
+        );
+        const key = row.public_fixture_key ?? staticFixture?.id;
         if (!key) continue;
-        uuidToKey.set(r.id, key);
-        // Use final scores from fixtures table as baseline for finished matches
-        if (r.final_home_score != null && r.final_away_score != null) {
-          scoreMap.set(key, { status_short: 'FT', home_score: r.final_home_score, away_score: r.final_away_score });
+
+        uuidToKey.set(row.id, key);
+
+        const finalHome = row.final_home_score ?? row.home_score;
+        const finalAway = row.final_away_score ?? row.away_score;
+        if (row.is_closed && finalHome != null && finalAway != null) {
+          scoreMap.set(key, {
+            status_short: 'FT',
+            home_score: finalHome,
+            away_score: finalAway,
+          });
           statusMap.set(key, 'FT');
+        } else if (row.is_live) {
+          statusMap.set(key, 'LIVE');
         }
       }
 
-      // Overlay live/real-time state (may override the fixture-based FT above)
-      const { data: stateRows } = await supabase
+      const mergedFixtures = ALL_WC2026_FIXTURES.map((staticFixture) => {
+        const row = dbByMatchNumber.get(staticFixture.match_no);
+        if (!row) return staticFixture;
+
+        const homeTeam = normalizeWc2026TeamName(row.home_team_name) || staticFixture.home_team;
+        const awayTeam = normalizeWc2026TeamName(row.away_team_name) || staticFixture.away_team;
+        const resolvedHomeCode = resolveFifaCodeByTeamName(homeTeam);
+        const resolvedAwayCode = resolveFifaCodeByTeamName(awayTeam);
+
+        return {
+          ...staticFixture,
+          home_team: homeTeam !== 'TBD' ? homeTeam : staticFixture.home_team,
+          away_team: awayTeam !== 'TBD' ? awayTeam : staticFixture.away_team,
+          home_team_code: resolvedHomeCode !== 'TBD' ? resolvedHomeCode : staticFixture.home_team_code,
+          away_team_code: resolvedAwayCode !== 'TBD' ? resolvedAwayCode : staticFixture.away_team_code,
+          status: row.is_closed ? 'completed' : row.is_live ? 'live' : staticFixture.status,
+          fixture_status:
+            homeTeam !== 'TBD' && awayTeam !== 'TBD'
+              ? 'confirmed'
+              : staticFixture.fixture_status,
+        } satisfies WC2026Fixture;
+      });
+
+      const { data: stateRows, error: stateError } = await supabase
         .from('wc2026_live_match_state_public')
         .select('fixture_id, status_short, home_score, away_score');
-      if (!stateRows || cancelled) return;
 
-      for (const r of stateRows) {
-        const key = uuidToKey.get(r.fixture_id);
-        if (key) {
-          statusMap.set(key, r.status_short);
-          if (r.home_score != null && r.away_score != null) {
-            scoreMap.set(key, { status_short: r.status_short, home_score: r.home_score, away_score: r.away_score });
+      if (stateError) {
+        console.error('WC2026 live state could not be loaded:', stateError);
+      } else if (stateRows) {
+        for (const row of stateRows) {
+          const key = uuidToKey.get(row.fixture_id);
+          if (!key) continue;
+
+          statusMap.set(key, row.status_short);
+          if (row.home_score != null && row.away_score != null) {
+            scoreMap.set(key, {
+              status_short: row.status_short,
+              home_score: row.home_score,
+              away_score: row.away_score,
+            });
           }
         }
       }
 
-      if (!cancelled) { setLiveDbStatuses(statusMap); setLiveScores(scoreMap); }
+      if (!cancelled) {
+        setResolvedFixtures(mergedFixtures);
+        setLiveDbStatuses(statusMap);
+        setLiveScores(scoreMap);
+      }
     }
-    load();
-    return () => { cancelled = true; };
+
+    void load();
+    timer = setInterval(() => void load(), 60_000);
+
+    return () => {
+      cancelled = true;
+      if (timer) clearInterval(timer);
+    };
   }, []);
 
-  const active = getActiveCountdownFixture(ALL_WC2026_FIXTURES, liveDbStatuses, Date.now());
-
-  useEffect(() => {
-    setVisibleDates(INITIAL_DATES);
-  }, [teamSearch, stageFilter, groupFilter, cityFilter]);
+  const active = getActiveCountdownFixture(resolvedFixtures, liveDbStatuses, Date.now());
 
   const filtered = useMemo(() => {
-    let list = [...ALL_WC2026_FIXTURES];
+    let list = [...resolvedFixtures];
 
     if (stageFilter) {
       list = list.filter((f) => f.stage === stageFilter as FixtureStage);
@@ -379,7 +436,7 @@ export default function WorldCup2026Page() {
     }
 
     return list;
-  }, [teamSearch, stageFilter, groupFilter, cityFilter]);
+  }, [resolvedFixtures, teamSearch, stageFilter, groupFilter, cityFilter]);
 
   const grouped = useMemo(() => groupByDate(filtered), [filtered]);
   const dateKeys = useMemo(() => Array.from(grouped.keys()).sort(), [grouped]);
