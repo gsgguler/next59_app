@@ -1,6 +1,16 @@
-import { useState, useMemo, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Trophy, Search, Filter, Calendar, Globe, ChevronDown, Info, History, ChevronRight } from 'lucide-react';
+import { useState, useMemo, useEffect } from "react";
+import { Link } from "react-router-dom";
+import {
+  Trophy,
+  Search,
+  Filter,
+  Calendar,
+  Globe,
+  ChevronDown,
+  Info,
+  History,
+  ChevronRight,
+} from "lucide-react";
 import {
   ALL_WC2026_FIXTURES,
   WC2026_GROUPS,
@@ -13,64 +23,65 @@ import {
   resolveFifaCodeByTeamName,
   type WC2026Fixture,
   type FixtureStage,
-} from '../data/worldCup2026Fixtures';
-import { COUNTRY_BY_FIFA } from '../data/worldCup2026Countries';
-import { WC2026FixtureCard } from '../components/wc/WC2026FixtureCard';
-import { useWcScenarios } from '../hooks/useWcScenarios';
-import Countdown from '../components/Countdown';
-import SEO from '../components/seo/SEO';
-import { getActiveCountdownFixture } from '../lib/worldCupCountdown';
-import { supabase } from '../lib/supabase';
+} from "../data/worldCup2026Fixtures";
+import { COUNTRY_BY_FIFA } from "../data/worldCup2026Countries";
+import { WC2026FixtureCard } from "../components/wc/WC2026FixtureCard";
+import WcPredictionAuditTable from "../components/wc/WcPredictionAuditTable";
+import { useWcScenarios } from "../hooks/useWcScenarios";
+import Countdown from "../components/Countdown";
+import SEO from "../components/seo/SEO";
+import { getActiveCountdownFixture } from "../lib/worldCupCountdown";
+import { supabase } from "../lib/supabase";
 
 // ---------------------------------------------------------------------------
 // Filter options
 // ---------------------------------------------------------------------------
 
 const STAGE_FILTER_OPTIONS = [
-  { label: 'Tüm Maçlar', value: '' },
-  { label: 'Grup Maçları', value: 'Group Stage' },
-  { label: 'Son 32', value: 'Round of 32' },
-  { label: 'Son 16', value: 'Round of 16' },
-  { label: 'Çeyrek Final', value: 'Quarter-final' },
-  { label: 'Yarı Final', value: 'Semi-final' },
-  { label: 'Final', value: 'Final' },
+  { label: "Tüm Maçlar", value: "" },
+  { label: "Grup Maçları", value: "Group Stage" },
+  { label: "Son 32", value: "Round of 32" },
+  { label: "Son 16", value: "Round of 16" },
+  { label: "Çeyrek Final", value: "Quarter-final" },
+  { label: "Yarı Final", value: "Semi-final" },
+  { label: "Final", value: "Final" },
 ];
 
 const GROUP_FILTER_OPTIONS = [
-  { label: 'Tüm Gruplar', value: '' },
+  { label: "Tüm Gruplar", value: "" },
   ...WC2026_GROUPS.map((g) => ({ label: `Grup ${g}`, value: g })),
 ];
 
 const LOCATION_GROUPS = [
   {
-    label: 'ABD',
+    label: "ABD",
     options: [
-      { label: 'Atlanta',               value: 'Atlanta' },
-      { label: 'Boston',                value: 'Foxborough' },
-      { label: 'Dallas',                value: 'Arlington' },
-      { label: 'Houston',               value: 'Houston' },
-      { label: 'Kansas City',           value: 'Kansas City' },
-      { label: 'Los Angeles',           value: 'Inglewood' },
-      { label: 'Miami',                 value: 'Miami' },
-      { label: 'New York / New Jersey', value: 'East Rutherford' },
-      { label: 'Philadelphia',          value: 'Philadelphia' },
-      { label: 'San Francisco Bay Area', value: 'Santa Clara' },
-      { label: 'Seattle',               value: 'Seattle' },
+      { label: "Atlanta", value: "Atlanta" },
+      { label: "Boston", value: "Foxborough" },
+      { label: "Dallas", value: "Arlington" },
+      { label: "Houston", value: "Houston" },
+      { label: "Kansas City", value: "Kansas City" },
+      { label: "Los Angeles", value: "Inglewood" },
+      { label: "Miami", value: "Miami" },
+      { label: "New York / New Jersey", value: "East Rutherford" },
+      { label: "Philadelphia", value: "Philadelphia" },
+      { label: "San Francisco Bay Area", value: "Santa Clara" },
+      { label: "Seattle", value: "Seattle" },
     ],
   },
   {
-    label: 'Kanada',
+    label: "Kanada",
     options: [
-      { label: 'Toronto',   value: 'Toronto' },
-      { label: 'Vancouver', value: 'Vancouver' },
+      { label: "Toronto", value: "Toronto" },
+      { label: "Vancouver", value: "Vancouver" },
     ],
   },
   {
-    label: 'Meksika',
+    label: "Meksika",
     options: [
-      { label: 'Guadalajara', value: 'Guadalajara' },
-      { label: 'Mexico City', value: 'Mexico City' },
-      { label: 'Monterrey',   value: 'Monterrey' },
+      { label: "Guadalajara", value: "Guadalajara" },
+      { label: "Mexico City", value: "Mexico City" },
+      { label: "Monterrey", value: "Monterrey" },
     ],
   },
 ];
@@ -118,10 +129,20 @@ function FilterSelect({
         className="appearance-none bg-navy-900 border border-navy-700 text-white text-xs rounded-lg pl-8 pr-7 py-2 focus:outline-none focus:ring-1 focus:ring-champagne/40 focus:border-champagne/40 transition-all cursor-pointer"
       >
         {options.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
         ))}
       </select>
-      <svg className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-navy-400 pointer-events-none" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4l4 4 4-4" /></svg>
+      <svg
+        className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-navy-400 pointer-events-none"
+        viewBox="0 0 12 12"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      >
+        <path d="M2 4l4 4 4-4" />
+      </svg>
     </div>
   );
 }
@@ -149,12 +170,22 @@ function LocationFilterSelect({
         {LOCATION_GROUPS.map((g) => (
           <optgroup key={g.label} label={g.label}>
             {g.options.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
             ))}
           </optgroup>
         ))}
       </select>
-      <svg className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-navy-400 pointer-events-none" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4l4 4 4-4" /></svg>
+      <svg
+        className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-navy-400 pointer-events-none"
+        viewBox="0 0 12 12"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      >
+        <path d="M2 4l4 4 4-4" />
+      </svg>
     </div>
   );
 }
@@ -164,16 +195,16 @@ function LocationFilterSelect({
 // ---------------------------------------------------------------------------
 
 const TOURNAMENT_STATS = [
-  { label: 'Katılan Takım', value: '48', sub: 'tarihte en fazla' },
-  { label: 'Toplam Maç', value: '104', sub: '72 grup + 32 eleme' },
-  { label: 'Stadyum', value: '16', sub: '3 ülkede' },
-  { label: 'Şehir', value: '16', sub: 'ABD, Kanada, Meksika' },
+  { label: "Katılan Takım", value: "48", sub: "tarihte en fazla" },
+  { label: "Toplam Maç", value: "104", sub: "72 grup + 32 eleme" },
+  { label: "Stadyum", value: "16", sub: "3 ülkede" },
+  { label: "Şehir", value: "16", sub: "ABD, Kanada, Meksika" },
 ];
 
 const HOST_COUNTRIES = [
-  { name: 'ABD', iso2: 'us', venues: 11, note: 'Ana ev sahibi' },
-  { name: 'Kanada', iso2: 'ca', venues: 2, note: 'Toronto · Vancouver' },
-  { name: 'Meksika', iso2: 'mx', venues: 3, note: 'CDMX · GDL · MTY' },
+  { name: "ABD", iso2: "us", venues: 11, note: "Ana ev sahibi" },
+  { name: "Kanada", iso2: "ca", venues: 2, note: "Toronto · Vancouver" },
+  { name: "Meksika", iso2: "mx", venues: 3, note: "CDMX · GDL · MTY" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -182,25 +213,25 @@ const HOST_COUNTRIES = [
 
 // fifa_code arrays — keyed by group letter
 const GROUPS_DATA: Record<string, string[]> = {
-  A: ['MEX', 'RSA', 'KOR', 'CZE'],
-  B: ['CAN', 'SUI', 'QAT', 'BIH'],
-  C: ['BRA', 'MAR', 'SCO', 'HAI'],
-  D: ['USA', 'AUS', 'PAR', 'TUR'],
-  E: ['GER', 'CIV', 'ECU', 'CUW'],
-  F: ['NED', 'JPN', 'SWE', 'TUN'],
-  G: ['BEL', 'EGY', 'NZL', 'IRN'],
-  H: ['ESP', 'KSA', 'URU', 'CPV'],
-  I: ['FRA', 'SEN', 'NOR', 'IRQ'],
-  J: ['ARG', 'ALG', 'AUT', 'JOR'],
-  K: ['POR', 'COL', 'UZB', 'COD'],
-  L: ['ENG', 'CRO', 'GHA', 'PAN'],
+  A: ["MEX", "RSA", "KOR", "CZE"],
+  B: ["CAN", "SUI", "QAT", "BIH"],
+  C: ["BRA", "MAR", "SCO", "HAI"],
+  D: ["USA", "AUS", "PAR", "TUR"],
+  E: ["GER", "CIV", "ECU", "CUW"],
+  F: ["NED", "JPN", "SWE", "TUN"],
+  G: ["BEL", "EGY", "NZL", "IRN"],
+  H: ["ESP", "KSA", "URU", "CPV"],
+  I: ["FRA", "SEN", "NOR", "IRQ"],
+  J: ["ARG", "ALG", "AUT", "JOR"],
+  K: ["POR", "COL", "UZB", "COD"],
+  L: ["ENG", "CRO", "GHA", "PAN"],
 };
 
 // ---------------------------------------------------------------------------
 // Featured fixture card (dynamic)
 // ---------------------------------------------------------------------------
 
-const FINISHED_STATUSES_CARD = new Set(['FT', 'AET', 'PEN', 'completed']);
+const FINISHED_STATUSES_CARD = new Set(["FT", "AET", "PEN", "completed"]);
 
 function FeaturedFixtureCard({
   fixture,
@@ -209,17 +240,32 @@ function FeaturedFixtureCard({
 }: {
   fixture: WC2026Fixture;
   badgeLabel: string;
-  liveScore?: { status_short: string; home_score: number | null; away_score: number | null };
+  liveScore?: {
+    status_short: string;
+    home_score: number | null;
+    away_score: number | null;
+  };
 }) {
   const home = COUNTRY_BY_FIFA[fixture.home_team_code];
   const away = COUNTRY_BY_FIFA[fixture.away_team_code];
-  const homeIsTBD = fixture.home_team_code === 'TBD' || fixture.home_team === 'TBD';
-  const awayIsTBD = fixture.away_team_code === 'TBD' || fixture.away_team === 'TBD';
+  const homeIsTBD =
+    fixture.home_team_code === "TBD" || fixture.home_team === "TBD";
+  const awayIsTBD =
+    fixture.away_team_code === "TBD" || fixture.away_team === "TBD";
   const venue = VENUE_META[fixture.venue];
   const trTime = formatMatchDateTime(fixture.kickoff_utc, getUserTimeZone());
-  const isFinished = liveScore != null && FINISHED_STATUSES_CARD.has(liveScore.status_short);
-  const hasScore = isFinished && liveScore!.home_score != null && liveScore!.away_score != null;
-  const statusLabel = liveScore?.status_short === 'AET' ? 'UZS' : liveScore?.status_short === 'PEN' ? 'PEN' : 'MS';
+  const isFinished =
+    liveScore != null && FINISHED_STATUSES_CARD.has(liveScore.status_short);
+  const hasScore =
+    isFinished &&
+    liveScore!.home_score != null &&
+    liveScore!.away_score != null;
+  const statusLabel =
+    liveScore?.status_short === "AET"
+      ? "UZS"
+      : liveScore?.status_short === "PEN"
+        ? "PEN"
+        : "MS";
 
   return (
     <Link
@@ -229,16 +275,25 @@ function FeaturedFixtureCard({
       <div className="flex flex-col items-end gap-1 min-w-0">
         {home ? (
           <>
-            <span className={`fi fi-${home.iso2} w-8 h-[22px] rounded-[3px] shadow-sm`} style={{ display: 'inline-block' }} />
-            <span className="text-sm font-semibold text-white leading-tight">{home.name_en}</span>
+            <span
+              className={`fi fi-${home.iso2} w-8 h-[22px] rounded-[3px] shadow-sm`}
+              style={{ display: "inline-block" }}
+            />
+            <span className="text-sm font-semibold text-white leading-tight">
+              {home.name_en}
+            </span>
             <span className="text-xs text-slate-400">{home.name_tr}</span>
           </>
         ) : (
-          <span className="text-xs text-slate-400 italic">{homeIsTBD ? 'TBD' : fixture.home_team}</span>
+          <span className="text-xs text-slate-400 italic">
+            {homeIsTBD ? "TBD" : fixture.home_team}
+          </span>
         )}
       </div>
       <div className="flex flex-col items-center px-4 shrink-0">
-        <span className="text-xs font-bold text-champagne/80 tracking-widest uppercase mb-1">{badgeLabel}</span>
+        <span className="text-xs font-bold text-champagne/80 tracking-widest uppercase mb-1">
+          {badgeLabel}
+        </span>
         {hasScore ? (
           <div className="flex items-center gap-2 my-1">
             <span className="text-xl font-black font-mono text-champagne tabular-nums">
@@ -251,7 +306,11 @@ function FeaturedFixtureCard({
         ) : (
           <span className="text-xs text-slate-300 mt-1">{trTime}</span>
         )}
-        {venue && <span className="text-xs text-slate-400 mt-0.5">{venue.city_display}</span>}
+        {venue && (
+          <span className="text-xs text-slate-400 mt-0.5">
+            {venue.city_display}
+          </span>
+        )}
         <span className="text-xs text-champagne/60 mt-1 group-hover:text-champagne transition-colors flex items-center gap-1">
           Detay <ChevronRight className="w-3 h-3" />
         </span>
@@ -259,12 +318,19 @@ function FeaturedFixtureCard({
       <div className="flex flex-col items-start gap-1 min-w-0">
         {away ? (
           <>
-            <span className={`fi fi-${away.iso2} w-8 h-[22px] rounded-[3px] shadow-sm`} style={{ display: 'inline-block' }} />
-            <span className="text-sm font-semibold text-white leading-tight">{away.name_en}</span>
+            <span
+              className={`fi fi-${away.iso2} w-8 h-[22px] rounded-[3px] shadow-sm`}
+              style={{ display: "inline-block" }}
+            />
+            <span className="text-sm font-semibold text-white leading-tight">
+              {away.name_en}
+            </span>
             <span className="text-xs text-slate-400">{away.name_tr}</span>
           </>
         ) : (
-          <span className="text-xs text-slate-400 italic">{awayIsTBD ? 'TBD' : fixture.away_team}</span>
+          <span className="text-xs text-slate-400 italic">
+            {awayIsTBD ? "TBD" : fixture.away_team}
+          </span>
         )}
       </div>
     </Link>
@@ -278,18 +344,30 @@ function FeaturedFixtureCard({
 const INITIAL_DATES = 6;
 
 export default function WorldCup2026Page() {
-  const [teamSearch, setTeamSearch] = useState('');
-  const [stageFilter, setStageFilter] = useState('');
-  const [groupFilter, setGroupFilter] = useState('');
-  const [cityFilter, setCityFilter] = useState('');
+  const [teamSearch, setTeamSearch] = useState("");
+  const [stageFilter, setStageFilter] = useState("");
+  const [groupFilter, setGroupFilter] = useState("");
+  const [cityFilter, setCityFilter] = useState("");
   const [visibleDates, setVisibleDates] = useState(INITIAL_DATES);
   const [groupsExpanded, setGroupsExpanded] = useState(false);
 
   const { scenarios } = useWcScenarios();
 
-  const [resolvedFixtures, setResolvedFixtures] = useState<WC2026Fixture[]>(ALL_WC2026_FIXTURES);
-  const [liveDbStatuses, setLiveDbStatuses] = useState<Map<string, string>>(new Map());
-  const [liveScores, setLiveScores] = useState<Map<string, { status_short: string; home_score: number | null; away_score: number | null }>>(new Map());
+  const [resolvedFixtures, setResolvedFixtures] =
+    useState<WC2026Fixture[]>(ALL_WC2026_FIXTURES);
+  const [liveDbStatuses, setLiveDbStatuses] = useState<Map<string, string>>(
+    new Map(),
+  );
+  const [liveScores, setLiveScores] = useState<
+    Map<
+      string,
+      {
+        status_short: string;
+        home_score: number | null;
+        away_score: number | null;
+      }
+    >
+  >(new Map());
 
   useEffect(() => {
     let cancelled = false;
@@ -297,8 +375,9 @@ export default function WorldCup2026Page() {
 
     async function load() {
       const { data: fixRows, error: fixtureError } = await supabase
-        .from('wc2026_fixtures')
-        .select(`
+        .from("wc2026_fixtures")
+        .select(
+          `
           id,
           public_fixture_key,
           match_number,
@@ -310,22 +389,31 @@ export default function WorldCup2026Page() {
           away_score,
           is_live,
           is_closed
-        `)
-        .order('match_number', { ascending: true });
+        `,
+        )
+        .order("match_number", { ascending: true });
 
       if (fixtureError) {
-        console.error('WC2026 fixtures could not be loaded:', fixtureError);
+        console.error("WC2026 fixtures could not be loaded:", fixtureError);
         return;
       }
       if (!fixRows || cancelled) return;
 
       const dbByMatchNumber = new Map<number, (typeof fixRows)[number]>();
       const uuidToKey = new Map<string, string>();
-      const scoreMap = new Map<string, { status_short: string; home_score: number | null; away_score: number | null }>();
+      const scoreMap = new Map<
+        string,
+        {
+          status_short: string;
+          home_score: number | null;
+          away_score: number | null;
+        }
+      >();
       const statusMap = new Map<string, string>();
 
       for (const row of fixRows) {
-        if (row.match_number != null) dbByMatchNumber.set(Number(row.match_number), row);
+        if (row.match_number != null)
+          dbByMatchNumber.set(Number(row.match_number), row);
 
         const staticFixture = ALL_WC2026_FIXTURES.find(
           (fixture) => fixture.match_no === Number(row.match_number),
@@ -339,13 +427,13 @@ export default function WorldCup2026Page() {
         const finalAway = row.final_away_score ?? row.away_score;
         if (row.is_closed && finalHome != null && finalAway != null) {
           scoreMap.set(key, {
-            status_short: 'FT',
+            status_short: "FT",
             home_score: finalHome,
             away_score: finalAway,
           });
-          statusMap.set(key, 'FT');
+          statusMap.set(key, "FT");
         } else if (row.is_live) {
-          statusMap.set(key, 'LIVE');
+          statusMap.set(key, "LIVE");
         }
       }
 
@@ -353,31 +441,45 @@ export default function WorldCup2026Page() {
         const row = dbByMatchNumber.get(staticFixture.match_no);
         if (!row) return staticFixture;
 
-        const homeTeam = normalizeWc2026TeamName(row.home_team_name) || staticFixture.home_team;
-        const awayTeam = normalizeWc2026TeamName(row.away_team_name) || staticFixture.away_team;
+        const homeTeam =
+          normalizeWc2026TeamName(row.home_team_name) ||
+          staticFixture.home_team;
+        const awayTeam =
+          normalizeWc2026TeamName(row.away_team_name) ||
+          staticFixture.away_team;
         const resolvedHomeCode = resolveFifaCodeByTeamName(homeTeam);
         const resolvedAwayCode = resolveFifaCodeByTeamName(awayTeam);
 
         return {
           ...staticFixture,
-          home_team: homeTeam !== 'TBD' ? homeTeam : staticFixture.home_team,
-          away_team: awayTeam !== 'TBD' ? awayTeam : staticFixture.away_team,
-          home_team_code: resolvedHomeCode !== 'TBD' ? resolvedHomeCode : staticFixture.home_team_code,
-          away_team_code: resolvedAwayCode !== 'TBD' ? resolvedAwayCode : staticFixture.away_team_code,
-          status: row.is_closed ? 'completed' : row.is_live ? 'live' : staticFixture.status,
+          home_team: homeTeam !== "TBD" ? homeTeam : staticFixture.home_team,
+          away_team: awayTeam !== "TBD" ? awayTeam : staticFixture.away_team,
+          home_team_code:
+            resolvedHomeCode !== "TBD"
+              ? resolvedHomeCode
+              : staticFixture.home_team_code,
+          away_team_code:
+            resolvedAwayCode !== "TBD"
+              ? resolvedAwayCode
+              : staticFixture.away_team_code,
+          status: row.is_closed
+            ? "completed"
+            : row.is_live
+              ? "live"
+              : staticFixture.status,
           fixture_status:
-            homeTeam !== 'TBD' && awayTeam !== 'TBD'
-              ? 'confirmed'
+            homeTeam !== "TBD" && awayTeam !== "TBD"
+              ? "confirmed"
               : staticFixture.fixture_status,
         } satisfies WC2026Fixture;
       });
 
       const { data: stateRows, error: stateError } = await supabase
-        .from('wc2026_live_match_state_public')
-        .select('fixture_id, status_short, home_score, away_score');
+        .from("wc2026_live_match_state_public")
+        .select("fixture_id, status_short, home_score, away_score");
 
       if (stateError) {
-        console.error('WC2026 live state could not be loaded:', stateError);
+        console.error("WC2026 live state could not be loaded:", stateError);
       } else if (stateRows) {
         for (const row of stateRows) {
           const key = uuidToKey.get(row.fixture_id);
@@ -410,13 +512,17 @@ export default function WorldCup2026Page() {
     };
   }, []);
 
-  const active = getActiveCountdownFixture(resolvedFixtures, liveDbStatuses, Date.now());
+  const active = getActiveCountdownFixture(
+    resolvedFixtures,
+    liveDbStatuses,
+    Date.now(),
+  );
 
   const filtered = useMemo(() => {
     let list = [...resolvedFixtures];
 
     if (stageFilter) {
-      list = list.filter((f) => f.stage === stageFilter as FixtureStage);
+      list = list.filter((f) => f.stage === (stageFilter as FixtureStage));
     }
     if (groupFilter) {
       list = list.filter((f) => f.group === groupFilter);
@@ -448,13 +554,14 @@ export default function WorldCup2026Page() {
   }, [teamSearch, stageFilter, groupFilter, cityFilter]);
 
   const clearFilters = () => {
-    setTeamSearch('');
-    setStageFilter('');
-    setGroupFilter('');
-    setCityFilter('');
+    setTeamSearch("");
+    setStageFilter("");
+    setGroupFilter("");
+    setCityFilter("");
   };
 
-  const hasActiveFilter = teamSearch || stageFilter || groupFilter || cityFilter;
+  const hasActiveFilter =
+    teamSearch || stageFilter || groupFilter || cityFilter;
 
   return (
     <div className="min-h-screen">
@@ -476,7 +583,8 @@ export default function WorldCup2026Page() {
           </div>
 
           <h1 className="text-4xl sm:text-5xl font-black text-white leading-tight mb-4">
-            World Cup 2026<br />
+            World Cup 2026
+            <br />
             <span className="text-champagne">Fikstür & Gruplar</span>
           </h1>
 
@@ -519,8 +627,12 @@ export default function WorldCup2026Page() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {TOURNAMENT_STATS.map((s) => (
               <div key={s.label} className="text-center">
-                <div className="text-2xl font-black text-champagne tabular-nums">{s.value}</div>
-                <div className="text-xs font-semibold text-white mt-0.5">{s.label}</div>
+                <div className="text-2xl font-black text-champagne tabular-nums">
+                  {s.value}
+                </div>
+                <div className="text-xs font-semibold text-white mt-0.5">
+                  {s.label}
+                </div>
                 <div className="text-xs text-slate-400 mt-0.5">{s.sub}</div>
               </div>
             ))}
@@ -532,14 +644,19 @@ export default function WorldCup2026Page() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-3 gap-4">
           {HOST_COUNTRIES.map((c) => (
-            <div key={c.name} className="bg-navy-900 border border-navy-800 rounded-xl p-4 flex items-center gap-3">
+            <div
+              key={c.name}
+              className="bg-navy-900 border border-navy-800 rounded-xl p-4 flex items-center gap-3"
+            >
               <span
                 className={`fi fi-${c.iso2} w-9 h-6 rounded-[3px] shadow-sm shrink-0`}
-                style={{ display: 'inline-block' }}
+                style={{ display: "inline-block" }}
               />
               <div>
                 <div className="text-sm font-bold text-white">{c.name}</div>
-                <div className="text-xs text-slate-400">{c.venues} stadyum · {c.note}</div>
+                <div className="text-xs text-slate-400">
+                  {c.venues} stadyum · {c.note}
+                </div>
               </div>
             </div>
           ))}
@@ -556,25 +673,35 @@ export default function WorldCup2026Page() {
             <Trophy className="w-4 h-4 text-champagne" />
             Grup Tablosu (A–L)
           </span>
-          <ChevronDown className={`w-4 h-4 text-navy-400 transition-transform duration-200 ${groupsExpanded ? 'rotate-180' : ''}`} />
+          <ChevronDown
+            className={`w-4 h-4 text-navy-400 transition-transform duration-200 ${groupsExpanded ? "rotate-180" : ""}`}
+          />
         </button>
 
         {groupsExpanded && (
           <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 animate-fade-in">
             {Object.entries(GROUPS_DATA).map(([group, teams]) => (
-              <div key={group} className="bg-navy-900 border border-navy-800 rounded-xl overflow-hidden">
+              <div
+                key={group}
+                className="bg-navy-900 border border-navy-800 rounded-xl overflow-hidden"
+              >
                 <div className="bg-navy-800/60 px-3 py-2">
-                  <span className="text-xs font-bold text-champagne uppercase tracking-wide">Grup {group}</span>
+                  <span className="text-xs font-bold text-champagne uppercase tracking-wide">
+                    Grup {group}
+                  </span>
                 </div>
                 <div className="divide-y divide-navy-800">
                   {teams.map((fifaCode) => {
                     const c = COUNTRY_BY_FIFA[fifaCode];
                     return (
-                      <div key={fifaCode} className="flex items-center gap-2 px-3 py-2">
+                      <div
+                        key={fifaCode}
+                        className="flex items-center gap-2 px-3 py-2"
+                      >
                         {c ? (
                           <span
                             className={`fi fi-${c.iso2} w-5 h-[14px] rounded-[2px] shadow-sm shrink-0`}
-                            style={{ display: 'inline-block' }}
+                            style={{ display: "inline-block" }}
                           />
                         ) : (
                           <span className="w-5 h-[14px] bg-navy-700 rounded-[2px] shrink-0 inline-block" />
@@ -598,6 +725,9 @@ export default function WorldCup2026Page() {
           </div>
         )}
       </section>
+
+      {/* ── Prediction audit ── */}
+      <WcPredictionAuditTable />
 
       {/* ── Fixture module ── */}
       <section className="border-t border-navy-800">
@@ -658,12 +788,16 @@ export default function WorldCup2026Page() {
           <div className="flex items-center gap-3 mb-8">
             <Calendar className="w-5 h-5 text-champagne" />
             <h2 className="text-lg font-bold text-white">Tüm Maçlar</h2>
-            <span className="text-xs text-slate-400 font-mono ml-auto">{filtered.length} maç</span>
+            <span className="text-xs text-slate-400 font-mono ml-auto">
+              {filtered.length} maç
+            </span>
           </div>
 
           {filtered.length === 0 ? (
             <div className="text-center py-20">
-              <p className="text-navy-400 text-sm">Aramanızla eşleşen maç bulunamadı.</p>
+              <p className="text-navy-400 text-sm">
+                Aramanızla eşleşen maç bulunamadı.
+              </p>
               <button
                 onClick={clearFilters}
                 className="mt-3 text-xs text-champagne hover:text-champagne-light transition-colors"
@@ -677,12 +811,21 @@ export default function WorldCup2026Page() {
                 <div key={dateKey} className="animate-fade-in">
                   <h3 className="text-sm font-semibold text-champagne/80 uppercase tracking-wider mb-4 flex items-center gap-3">
                     <span className="h-px flex-1 bg-navy-800" />
-                    <span className="shrink-0">{formatFixtureDateForTZ(dateKey + 'T12:00:00Z', 'UTC')}</span>
+                    <span className="shrink-0">
+                      {formatFixtureDateForTZ(dateKey + "T12:00:00Z", "UTC")}
+                    </span>
                     <span className="h-px flex-1 bg-navy-800" />
                   </h3>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {grouped.get(dateKey)!.map((f) => (
-                      <WC2026FixtureCard key={f.id} fixture={f} scenario={scenarios.get(`${f.home_team}||${f.away_team}`)} liveState={liveScores.get(f.id)} />
+                      <WC2026FixtureCard
+                        key={f.id}
+                        fixture={f}
+                        scenario={scenarios.get(
+                          `${f.home_team}||${f.away_team}`,
+                        )}
+                        liveState={liveScores.get(f.id)}
+                      />
                     ))}
                   </div>
                 </div>
@@ -709,11 +852,15 @@ export default function WorldCup2026Page() {
         <div className="bg-navy-900/50 border border-navy-800 rounded-xl p-5 flex gap-3">
           <Info className="w-4 h-4 text-readable-muted shrink-0 mt-0.5" />
           <div className="text-xs text-slate-400 leading-relaxed">
-            <span className="font-semibold text-slate-300">Fikstür Kaynağı:</span> Maç saatleri ve
-            eşleşmeler Fox Sports, Roadtrips ve Yahoo Sports üzerinden çapraz doğrulanmıştır.
-            FIFA'nın resmi dijital kanalı doğrudan erişime kapalı olduğundan tüm veriler
-            üçüncü taraf kaynaklara dayanmaktadır. Resmi açıklamalar çıktıkça güncellenecektir.
-            Naklen yayın saatleri Türkiye saatiyle (TRT, UTC+3) gösterilmektedir.
+            <span className="font-semibold text-slate-300">
+              Fikstür Kaynağı:
+            </span>{" "}
+            Maç saatleri ve eşleşmeler Fox Sports, Roadtrips ve Yahoo Sports
+            üzerinden çapraz doğrulanmıştır. FIFA'nın resmi dijital kanalı
+            doğrudan erişime kapalı olduğundan tüm veriler üçüncü taraf
+            kaynaklara dayanmaktadır. Resmi açıklamalar çıktıkça
+            güncellenecektir. Naklen yayın saatleri Türkiye saatiyle (TRT,
+            UTC+3) gösterilmektedir.
           </div>
         </div>
       </section>
